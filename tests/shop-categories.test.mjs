@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { shopMarkup } from '../src/ui/shop.js';
@@ -22,4 +23,12 @@ test('shop buy screen separates items and equipment into category tabs',()=>{
  assert.match(html,/data-shop-category-value="ring"/);
  assert.match(html,/data-shop-category-value="charm"/);
  assert.match(html,/class="shop-item-category">アイテム<\/small>|class="shop-item-category">アイテム<\/small>/);
+});
+
+test('shop buy rows honor the hidden attribute when categories change',()=>{
+ const css=readFileSync(new URL('../styles/main.css',import.meta.url),'utf8');
+ const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+ assert.match(css,/\.shop-buy-list>\[data-shop-category-value\]\[hidden\]\s*\{\s*display\s*:\s*none\s*!important\s*;?\s*\}/);
+ assert.match(main,/if\(el\.dataset\.shopCategory\)return syncShopCategory\(el\.dataset\.shopCategory\)/);
+ assert.match(main,/row\.hidden=!visible/);
 });
