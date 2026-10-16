@@ -1,0 +1,23 @@
+/* Player feedback box: mobile-first. Other game menus unaffected. */
+.feedback-box{display:grid;gap:12px;min-width:0}
+.feedback-box h2{margin:0;color:#ffe3a2}
+.feedback-box .modal-sub{margin:0;color:#c4d1e4;line-height:1.65}
+.feedback-label{display:grid;gap:6px;font-size:.84rem;font-weight:750;color:#e4e9f4}
+.feedback-label select,.feedback-label input,.feedback-label textarea{width:100%;min-width:0;padding:11px 12px;border:1px solid #476082;border-radius:10px;background:#0b1728;color:#fff;font:inherit;font-size:16px;line-height:1.5}
+.feedback-label textarea{resize:vertical;min-height:138px;max-height:38vh}
+.feedback-label :focus-visible{outline:2px solid #e9c56d;outline-offset:2px}
+.feedback-hint{font-size:.75rem;color:#c4cedb;line-height:1.65;margin:0}
+.feedback-actions{display:flex;flex-wrap:wrap;gap:8px}
+.feedback-actions button{flex:1 1 130px;min-height:45px}
+.feedback-error{margin:0;color:#ff9ea6;min-height:0;font-size:.8rem;line-height:1.5}
+.feedback-error:empty{display:none}
+.feedback-receipt{overflow-wrap:anywhere;color:#aaceef;font-size:.8rem}
+.feedback-history{display:grid;gap:10px;max-height:48vh;overflow-y:auto}
+.feedback-history-entry{padding:11px;border:1px solid #40516d;background:#111e31;border-radius:11px;min-width:0}
+.feedback-history-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.feedback-history-head span{font-size:.72rem;border:1px solid #718baf;color:#cce2ff;border-radius:999px;padding:3px 8px}
+.feedback-history-entry small{display:block;margin:5px 0;color:#adbbce;font-size:.7rem}
+.feedback-history-entry p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;margin:8px 0 0}
+
+.feedback-label input[readonly]{background:#18253a;color:#d5e1f2;cursor:default;border-color:#384a65}
+.feedback-history-subject{font-size:.94rem;font-weight:750;color:#ffe5a2;margin-top:8px;overflow-wrap:anywhere}

@@ -1,0 +1,2 @@
+export function setDifficulty(state,difficulty){if(!['NORMAL','HARD'].includes(difficulty))throw new Error('不明な難易度です');if(difficulty==='HARD'&&!state.hardUnlocked)throw new Error('ハードは未解放です');state.difficulty=difficulty;state.completionRequiresHard=false;return difficulty;}
+export function getDifficultyTuning(state){return state.difficulty==='HARD'?{enemyHp:1.25,enemyDamage:1.2}:{enemyHp:1,enemyDamage:1};}

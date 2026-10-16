@@ -1,0 +1,40 @@
+name: Game QA - Cloudflare Workers (no deploy)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify game JavaScript syntax
+        run: node --check src/main.js
+      - name: Run full game regression suite
+        run: node --test tests/*.test.mjs
+      - name: Test Workers deployment guardrails offline
+        run: python3 -m unittest discover -s deployment_tests -p 'test_*.py' -v
+      - name: Stage Worker static assets only
+        run: python3 tools/build_worker.py
+      - name: Check no private/development assets shipped
+        run: |
+          test -f build/worker/index.html
+          test -f build/worker/_headers
+          test -f build/worker/src/main.js
+          test ! -e build/worker/tests
+          test ! -e build/worker/.github
+          test ! -e build/worker/__qa_hunt.html
+          test ! -e build/worker/maintenance

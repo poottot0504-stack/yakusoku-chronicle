@@ -1,0 +1,4 @@
+import { WEATHER_TABLES,rollWeather } from '../data/weather.js';
+const PHASES=['morning','day','evening','night'];
+export function advanceTimePhase(state,{rerollWeather=false,rng=Math.random}={}){state.world??={};const i=PHASES.indexOf(state.world.timePhase);state.world.timePhase=PHASES[(i<0?0:i+1)%PHASES.length];if(state.world.timePhase==='morning')state.world.day=(state.world.day??1)+1;const table=WEATHER_TABLES[state.world.regionId]??WEATHER_TABLES.field;if(rerollWeather||rng()<table.changeChance)state.world.weather=rollWeather(state.world.regionId,rng);return state.world.timePhase;}
+export function recordNormalBattle(state,rng=Math.random){state.world??={};state.world.battleCountInPhase=(state.world.battleCountInPhase??0)+1;if(state.world.battleCountInPhase>=10){state.world.battleCountInPhase=0;advanceTimePhase(state,{rerollWeather:false,rng});}return state.world.battleCountInPhase;}

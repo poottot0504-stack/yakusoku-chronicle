@@ -1,0 +1,3 @@
+import { EQUIPMENT } from '../data/equipment.js';
+export function recordEquipmentObtained(state,equipmentId,{source=null,enhanceLevel=0}={}){state.equipmentBestiary??={};const e=state.equipmentBestiary[equipmentId]??={obtained:true,sources:[],plus10:false};e.obtained=true;if(source&&!e.sources.includes(source))e.sources.push(source);if(enhanceLevel>=10)e.plus10=true;state.equipmentBestiary[equipmentId]=e;return e;}
+export function isEquipmentBestiaryComplete(state){const complete=Object.keys(EQUIPMENT).every(id=>state.equipmentBestiary?.[id]?.obtained===true);if(complete){state.titles??=[];if(!state.titles.includes('伝説の収集家'))state.titles.push('伝説の収集家');}return complete;}

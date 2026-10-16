@@ -1,0 +1,9 @@
+# Cloudflare Workers static assets, NOT a Cloudflare Pages deployment.
+# The existing Worker URL is https://muddy-credit-f5af.starload.workers.dev/
+# NEVER change the name without rechecking the existing Cloudflare Worker.
+name = "muddy-credit-f5af"
+compatibility_date = "2026-10-16"
+workers_dev = true
+
+[assets]
+directory = "./build/worker"

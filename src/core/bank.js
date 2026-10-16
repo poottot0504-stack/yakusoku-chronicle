@@ -1,0 +1,5 @@
+export const MAX_BANK_GOLD = 9_000_000_000_000;
+export function bankBalance(state){const n=Number(state?.bankGold);return Number.isSafeInteger(n)&&n>0?Math.min(MAX_BANK_GOLD,n):0;}
+function wholeAmount(value){const n=Number(value);if(!Number.isSafeInteger(n)||n<=0||n>MAX_BANK_GOLD)throw new Error('1G以上の正しい金額を入力してください');return n;}
+export function depositGold(state,value){const n=wholeAmount(value),cash=Number(state.gold??0),saved=bankBalance(state);if(!Number.isSafeInteger(cash)||cash<n)throw new Error('手持ちのゴールドが足りません');if(saved>MAX_BANK_GOLD-n)throw new Error('銀行の預入上限を超えています');state.gold=cash-n;state.bankGold=saved+n;return {amount:n,balance:state.bankGold,gold:state.gold};}
+export function withdrawGold(state,value){const n=wholeAmount(value),cash=Number(state.gold??0),saved=bankBalance(state);if(saved<n)throw new Error('預けたゴールドが足りません');if(!Number.isSafeInteger(cash)||cash>Number.MAX_SAFE_INTEGER-n)throw new Error('所持金の上限を超えています');state.gold=cash+n;state.bankGold=saved-n;return {amount:n,balance:state.bankGold,gold:state.gold};}

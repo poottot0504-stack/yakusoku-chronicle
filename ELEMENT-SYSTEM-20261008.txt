@@ -1,0 +1,23 @@
+約束のクロニクル 属性システム（2026-10-08）
+
+対応属性: fire(火) / water(水) / thunder(雷) / ice(氷) / light(光) / dark(闇)
+弱点倍率: 1.5倍
+弱点関係: 火の弱点=水 / 水の弱点=雷 / 雷の弱点=氷 / 氷の弱点=火 / 光と闇は相互弱点
+
+【新しいモンスター・ボス追加】
+敵定義へ element:'fire' のように1項目追加してください。weaknesses を省略すると自動設定されます。
+固有弱点だけ weaknesses:['water','light'] のように指定できます。
+
+【新しい特技・魔法追加】
+属性は技名または作者が書いた description に属性語がある場合だけ自動付与されます。
+ファイア=火 / ブリザド=氷 / サンダー=雷 / アクアバースト=水 / ライトレイ=光 / ダークマター=闇。
+判定語を増やす場合は src/core/elements.js の ELEMENT_KEYWORDS に追加してください。
+旧 element:'fire' の指定だけでは属性化されません。画面上の名前・説明を基準にします。
+
+【主な実装場所】
+src/core/elements.js 属性・弱点・技属性判定
+src/data/enemies.js 通常敵・ストーリーボス
+src/raid/raidRules.js レイドボス
+src/core/masho-cave.js 洞窟ボスが元ボス属性を継承
+src/core/combat-math.js 通常戦闘の倍率適用
+src/raid/raidPartyTurn.js レイド倍率適用

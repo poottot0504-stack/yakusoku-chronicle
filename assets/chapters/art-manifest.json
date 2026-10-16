@@ -1,0 +1,122 @@
+{
+  "field-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "forest-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "coast-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "cave-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "snow-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "desert-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "swamp-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "volcano-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "ruins-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "abyss-cycle1": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "field-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "forest-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "coast-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "cave-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "snow-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "desert-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "swamp-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "volcano-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "ruins-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  },
+  "abyss-cycle2": {
+    "source": "approved-chapter-grid",
+    "crop": "landscape-without-label",
+    "width": 1680,
+    "height": 220
+  }
+}

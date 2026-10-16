@@ -1,0 +1,1 @@
+export const WEAPON_LABELS={oneHandSword:'片手剣',greatSword:'大剣',dagger:'短剣',fist:'拳・ナックル',staff:'杖',greatStaff:'大杖',spear:'槍',axe:'斧',bow:'弓',mace:'メイス',dualBlades:'双剣',katana:'刀',instrument:'楽器',cards:'カード'};

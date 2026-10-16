@@ -1,0 +1,35 @@
+/* タイトル画面：アップデート情報。イベント告知・セーブ欄に干渉しない。 */
+#title-screen .title-update-panel{
+ width:100%;margin:6px 0 18px;padding:15px 16px 13px;
+ border:1px solid #d7ba71;border-radius:10px;
+ background:linear-gradient(150deg,rgba(13,48,41,.97),rgba(9,29,33,.97));
+ box-shadow:0 2px 0 #5c4729,0 8px 24px #051f1a99,inset 0 1px 0 #fff3c321;
+ color:#f7eed1;text-align:left;
+}
+#title-screen .title-update-topline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px;font-size:11px;letter-spacing:.08em;color:#dccb9d}
+#title-screen .title-update-label{font-family:Georgia,serif;font-size:10px;letter-spacing:.17em;font-weight:800;color:#ffdb8a}
+#title-screen .title-update-panel h2{display:flex;align-items:center;gap:7px;margin:0 0 5px;font-family:'Yu Mincho','Hiragino Mincho ProN',serif;font-size:clamp(17px,4.2vw,20px);line-height:1.35;color:#ffe4a0}
+#title-screen .title-update-headline{margin:0 0 9px;font-size:12px;color:#ebe0c0;line-height:1.6}
+#title-screen .title-update-highlights{list-style:none;padding:0;margin:0 0 11px;display:grid;gap:7px}
+#title-screen .title-update-highlights li{position:relative;margin:0;padding-left:14px;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
+#title-screen .title-update-highlights li::before{content:'✦';position:absolute;top:0;left:0;font-size:11px;color:#e6be69}
+#title-screen .title-update-details{margin:0;border-top:1px solid #c7ad6e54;padding-top:7px}
+#title-screen .title-update-details summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:7px 6px;color:#ffe0a1;font-size:12px;font-weight:800;touch-action:manipulation}
+#title-screen .title-update-details summary::-webkit-details-marker{display:none}
+#title-screen .title-update-chevron{display:inline-block;transition:transform .18s;font-size:17px;line-height:1}
+#title-screen .title-update-details[open] .title-update-chevron{transform:rotate(180deg)}
+#title-screen .title-update-details summary:focus-visible{outline:2px solid #ffe1a1;outline-offset:2px;border-radius:5px}
+#title-screen .title-update-expanded{border-top:1px solid #c7ad6e36;padding-top:8px}
+#title-screen .title-update-expanded ul{display:grid;gap:9px;margin:7px 0 12px;padding-left:1.2rem;list-style:disc}
+#title-screen .title-update-expanded li{font-size:12px;line-height:1.75;overflow-wrap:anywhere}
+#title-screen .title-update-footnote{margin:0;font-size:11px;line-height:1.7;color:#d8cda8}
+@media(max-width:420px){#title-screen .title-update-panel{padding:12px 12px 9px;margin:4px 0 15px}#title-screen .title-update-highlights li{font-size:11px}#title-screen .title-update-headline{font-size:11px}}
+@media(prefers-reduced-motion:reduce){#title-screen .title-update-chevron{transition:none}}
+
+/* Two-page update archive. Buttons remain large enough for touch on iOS. */
+#title-screen .title-update-page-tag{margin-left:auto;border:1px solid #e1c17975;padding:2px 7px;border-radius:999px;font-family:system-ui,sans-serif;font-size:10px;font-weight:700;color:#f8db97}
+#title-screen .title-update-pages{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid #c7ad6e54;margin-top:9px;padding-top:11px;color:#d8cca8;font-size:12px;font-weight:700}
+#title-screen .title-update-page-buttons{display:flex;align-items:center;gap:9px}
+#title-screen .title-update-page-buttons button{border:1px solid #bba06c91;background:#15352d;color:#f4ddaa;font-size:13px;font-weight:800;border-radius:8px;min-width:42px;min-height:42px;cursor:pointer;touch-action:manipulation}
+#title-screen .title-update-page-buttons button.active{background:#dfbf72;color:#122521;border-color:#f9e7a7}
+#title-screen .title-update-page-buttons button:focus-visible{outline:2px solid #ffe1a1;outline-offset:2px}

@@ -1,0 +1,74 @@
+import { MASHO_ABYSS_WEAPONS } from '../data/masho-abyss-weapons.js';
+import { STORY_CHAPTERS } from '../data/story.js';
+import { BOSSES } from '../data/bosses.js';
+import { OATHBREAKER_DATA } from '../data/oathbreakers.js';
+import { RAID_BOSSES } from '../raid/raidRules.js';
+import { MASHO_EQUIPMENT } from '../data/masho-equipment.js';
+import { createEquipmentInstance } from '../data/equipment.js';
+import { hasFirstClear, applyProgressionCaps } from './progression-caps.js';
+import { scaledCharacterExp } from './adventure.js';
+import { awardCharacterExp, awardJobExp } from './progression.js';
+import { JOBS } from '../data/jobs.js';
+import { isTwinStarFestivalActive, isTrainingFestivalActive } from './events.js';
+import { TWIN_STAR_FESTIVAL, TRAINING_FESTIVAL } from '../data/events.js';
+import { recordEquipmentObtained } from './equipment-bestiary.js';
+import { applyBoostedBattleGold, getBattleBoostMultiplier } from './boost-scrolls.js';
+import { bossAreaAttack } from './boss-skills.js';
+import { normalizeElement, regionElement, elementProfile } from './elements.js';
+
+export const MASHO_DROP_RATE=.05;
+export const MASHO_ABYSS_DROP_RATE=.002;
+export const MASHO_MAX_FLOOR=25;
+const story=STORY_CHAPTERS.map(ch=>({id:`storyBoss-${ch.regionId}`,name:ch.bossName,kind:'story',element:normalizeElement(ch.bossElement)==='none'?regionElement(ch.regionId):normalizeElement(ch.bossElement)}));
+const oaths=OATHBREAKER_DATA.map(o=>({...o,kind:'oath'}));
+const raids=RAID_BOSSES.map(b=>({id:b.id,name:b.name,kind:'raid',element:b.element}));
+const endings=Object.values(BOSSES).map(b=>({...b,kind:'story'}));
+export const MASHO_BOSS_POOL=[...story,...raids,...oaths,...endings,{id:'eidel',name:'第零位 エイデル',kind:'final',element:'dark'}];
+const pools=Array.from({length:20},()=>[]);
+story.forEach((b,i)=>pools[i].push(b));
+oaths.forEach((b,i)=>pools[i].push(b));
+raids.forEach((b,i)=>pools[10+i].push(b));
+endings.forEach((b,i)=>pools[15+i].push(b));
+pools[18].push(oaths.at(-1),raids.at(-1));pools[19].push(MASHO_BOSS_POOL.at(-1));
+export const MASHO_FLOORS=pools.map((bosses,i)=>({floor:i+1,level:150+Math.round(i*150/19),tier:i>=14?3:i>=7?2:1,bosses,exp:100000+i*12000,jobExp:50000+i*8000,gold:15000+i*5000}));
+for(let i=0;i<5;i++)MASHO_FLOORS.push({floor:21+i,level:310+i*10,tier:4,bosses:[raids[i]],exp:600000+i*50000,jobExp:300000+i*25000,gold:200000+i*25000});
+export function normalizeMashoProgress(state){
+ const old=state.mashoCave??{},highest=Math.max(0,Math.min(MASHO_MAX_FLOOR,Math.floor(Number(old.highestCleared)||0)));
+ state.mashoCave={...old,highestCleared:highest,clearCounts:{...(old.clearCounts??{})}};return state.mashoCave;
+}
+export function getMashoFloors(state){const highest=normalizeMashoProgress(state).highestCleared,unlocked=hasFirstClear(state);return MASHO_FLOORS.map(f=>({...f,cleared:f.floor<=highest,available:unlocked&&f.floor<=highest+1}));}
+export function canEnterMashoFloor(state,floor){return Number.isInteger(floor)&&getMashoFloors(state).some(f=>f.floor===floor&&f.available);}
+const pick=(list,rng)=>list[Math.max(0,Math.min(list.length-1,Math.floor(rng()*list.length)))];
+export function createMashoEnemy(state,floor,rng=Math.random){
+ if(!hasFirstClear(state))throw new Error('魔障の洞窟は一周目クリアで解放されます');
+ if(!canEnterMashoFloor(state,floor))throw new Error('先に前の階層をクリアしてください');
+ const f=MASHO_FLOORS[floor-1],b=pick(f.bosses,rng),level=f.level,statFloor=Math.min(floor,20),multiplier=floor>20?1+(floor-20)*.05:1,maxHp=Math.round(Math.round(18000+Math.pow(statFloor-1,1.65)*2500)*(floor<=14?5:1)*multiplier);
+ const element=normalizeElement(b.element)==='none'?(b.kind==='oath'?'dark':regionElement('cave')):normalizeElement(b.element);
+ return {id:`masho-${floor}-${b.id}`,artId:b.id,name:b.name+'【魔障】',...elementProfile(element),mashoBoss:true,mashoFloor:floor,regionId:'cave',...(b.kind==='raid'?{raidBoss:true,bossId:b.id}:{}),level,maxHp,hp:maxHp,maxMp:Math.round(9999*multiplier),mp:Math.round(9999*multiplier),stats:Object.fromEntries(Object.entries({attack:200+(statFloor-1)*27,defense:120+(statFloor-1)*19,magic:190+(statFloor-1)*28,speed:90+(statFloor-1)*9}).map(([key,value])=>[key,Math.round(value*(floor>=15?10:5)*multiplier*(floor>=20&&['attack','magic'].includes(key)?.7:1))])),isBoss:true,enemyClass:'boss',instantDeathCycle:b.kind==='oath'||b.kind==='final'||b.id==='lich',instantDeathName:b.instantDeathName??'魔障の死刻',ai:[{type:'attack',power:110},{type:'attack',power:140},bossAreaAttack(`${b.name}・魔障波`,85+floor,{kind:element==='none'?'physical':'magic',element}),...(floor>20?[{type:'skill',skill:{id:'mashoAbyssRuin',name:'魔障・終焉の波動',kind:'magic',element:'none',allTargets:true,alwaysHit:true,canCrit:false,maxHpDamageRatio:.4,description:'全員に最大HPの40％ダメージ。防御力を無視する。防御で回避可能。'}}]:[])],exp:f.exp,jobExp:f.jobExp,gold:f.gold,stealTable:[],plunderTable:[]};
+}
+export function getMashoRewardPreview(state,floor,now=Date.now()){
+ const f=MASHO_FLOORS[floor-1];if(!f)return null;
+ const event=isTwinStarFestivalActive(now)?TWIN_STAR_FESTIVAL:isTrainingFestivalActive(now)?TRAINING_FESTIVAL:null;
+ const characterExpMultiplier=getBattleBoostMultiplier(state,'characterExp',{now,eventMultiplier:event?.characterExpMultiplier??1,includeDaily:false}),jobExpMultiplier=getBattleBoostMultiplier(state,'jobExp',{now,eventMultiplier:event?.jobExpMultiplier??1,includeDaily:false});
+ // 魔障の洞窟は『今日の旅ボーナス』対象外。期間イベントと周回倍率だけ適用する。
+ return {exp:scaledCharacterExp(f.exp,state.cycle,characterExpMultiplier),jobExp:Math.floor(f.jobExp*(state.cycle>=2?2:1)*jobExpMultiplier),gold:Math.max(0,Math.floor(Number(f.gold)||0)),characterExpMultiplier,jobExpMultiplier};
+}
+export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
+ if(battle.mashoRewardSettled)return battle.mashoRewardSettled;
+ const floor=battle.mashoFloor,enemies=battle.actors?.filter(a=>a.side==='enemy')??[];
+ if(!canEnterMashoFloor(state,floor)||!enemies.length||enemies.some(e=>!e.mashoBoss||e.mashoFloor!==floor||e.hp>0||e.escaped)||!battle.actors.some(a=>a.side==='ally'&&a.hp>0))throw new Error('魔障の洞窟の勝利が確認できません');
+ applyProgressionCaps(state);const f=MASHO_FLOORS[floor-1],reward=getMashoRewardPreview(state,floor,now);
+ const levelUps=[];
+ for(const c of state.characters??[]){if(!(state.activePartyIds??[]).includes(c.id)||c.hp<=0)continue;const lv=c.level,jlv=c.jobLevels?.[c.currentJob]??1;awardCharacterExp(state,c.id,reward.exp);awardJobExp(c,reward.jobExp,state);if(c.level>lv)levelUps.push(`${c.name}のLvが${c.level}に上がった！`);if(c.jobLevels[c.currentJob]>jlv)levelUps.push(`${c.name}の${JOBS[c.currentJob]?.name??c.currentJob}Lvが${c.jobLevels[c.currentJob]}に上がった！`);}
+ state.gold=(state.gold??0)+applyBoostedBattleGold(state,reward.gold,now,{includeDaily:false});
+ let promiseOre=0;if(floor>=18&&floor<=20){promiseOre=floor===20?2:1;state.materials??={};state.materials.promiseOre=Math.min(999,(state.materials.promiseOre??0)+promiseOre);}
+ const progress=normalizeMashoProgress(state);progress.highestCleared=Math.max(progress.highestCleared,floor);progress.clearCounts[floor]=(progress.clearCounts[floor]??0)+1;
+ let equipment=null;const equipmentDropRate=Math.min(1,(floor>20?MASHO_ABYSS_DROP_RATE:MASHO_DROP_RATE)*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));if(rng()<equipmentDropRate){const def=pick(floor>20?Object.values(MASHO_ABYSS_WEAPONS):Object.values(MASHO_EQUIPMENT).filter(d=>d.mashoTier===f.tier),rng);equipment=createEquipmentInstance(def.id);state.equipmentInventory??=[];state.equipmentInventory.push(equipment);recordEquipmentObtained(state,def.id,{source:'魔障の洞窟'});}
+ const enhanceCrystalId=floor<=10?'enhanceCrystal':floor<=20?'advancedEnhanceCrystal':'ultimateEnhanceCrystal';
+ const enhanceCrystalBaseRate=floor<=10?.25:floor<=20?.20:.12;
+ const enhanceCrystalChance=Math.min(1,enhanceCrystalBaseRate*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));
+ const enhanceMaterial=rng()<enhanceCrystalChance?{id:enhanceCrystalId,name:floor<=10?'強化結晶':floor<=20?'上級強化結晶':'究極強化結晶',qty:1}:null;
+ if(enhanceMaterial){state.materials??={};state.materials[enhanceCrystalId]=Math.min(999,(Number(state.materials[enhanceCrystalId])||0)+1);}
+ const receipt={floor,...reward,equipment,levelUps,promiseOre,enhanceMaterial};progress.lastReward=receipt;battle.mashoRewardSettled=receipt;
+ state.adventure??={};state.adventure.message=`魔障の洞窟 第${floor}階層クリア！`;return receipt;
+}
