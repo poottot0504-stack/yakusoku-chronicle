@@ -1,0 +1,107 @@
+name: Publish Workers game (approved in ChatGPT)
+
+# This is deliberately separate from the original PUBLISH-button workflow.
+# ChatGPT can write a single request file only after the owner explicitly
+# commands publication in chat. Normal code pushes NEVER trigger this workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'release-requests/approved.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chronicle-existing-workers-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: ${{ github.repository == 'poottot0504-stack/yakusoku-chronicle' && github.ref == 'refs/heads/main' && github.actor == 'poottot0504-stack' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Validate explicit chat approval and exact one-file push
+        env:
+          APPROVAL_ACTOR: ${{ github.actor }}
+          APPROVAL_REPOSITORY: ${{ github.repository }}
+          APPROVAL_REF: ${{ github.ref }}
+          APPROVAL_EVENT_NAME: ${{ github.event_name }}
+          APPROVAL_EVENT_BEFORE: ${{ github.event.before }}
+          APPROVAL_EVENT_SHA: ${{ github.sha }}
+        run: python3 tools/chat_release_guard.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript syntax
+        run: node --check src/main.js
+      - name: Run full game regression suite
+        run: node --test tests/*.test.mjs
+      - name: Run offline deployment guard tests
+        run: python3 -m unittest discover -s deployment_tests -p 'test_*.py' -v
+      - name: Stage public Worker assets only
+        run: python3 tools/build_worker.py
+      - name: Keep exact tested build for publishing
+        uses: actions/upload-artifact@v4
+        with:
+          name: chat-approved-worker-assets
+          path: build/worker/
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Read pinned release scripts
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download exact verified static build
+        uses: actions/download-artifact@v4
+        with:
+          name: chat-approved-worker-assets
+          path: build/worker/
+      - name: Block stale approvals after new main commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_HEAD: ${{ github.sha }}
+        run: |
+          current=$(curl --fail --silent --show-error --retry 2 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/heads/main" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["sha"])')
+          if [ "$current" != "$APPROVED_HEAD" ]; then
+            echo 'Production blocked: newer commits exist after approval'; exit 1
+          fi
+      - name: Check fixed Worker destination and only safe assets
+        run: |
+          test -f build/worker/index.html
+          test -f build/worker/_headers
+          test -f build/worker/src/main.js
+          test ! -e build/worker/tests
+          test ! -e build/worker/release-requests
+          test ! -e build/worker/.github
+          test ! -e build/worker/__qa_hunt.html
+          grep -Fq 'name = "muddy-credit-f5af"' wrangler.toml
+          grep -Fq 'workers_dev = true' wrangler.toml
+          grep -Fq 'directory = "./build/worker"' wrangler.toml
+      - name: Confirm existing Cloudflare Worker and workers.dev host (read-only)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: python3 tools/check_worker_project.py
+      - name: Deploy to existing Cloudflare Worker only
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.toml
