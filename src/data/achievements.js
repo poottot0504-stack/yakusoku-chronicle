@@ -22,7 +22,6 @@ const list=[
  A('first-ending','ひとつの結末','story','エンディングを見る',s=>!!s.story?.firstEndingSeen,{gold:5000}),
  A('true-ending','約束の果て','story','真エンディングを見る',s=>!!s.story?.trueEndingSeen,{title:'約束を果たした者'}),
  A('cycle-2','もう一度、約束を','story','2周目へ進む',s=>(s.cycle??1)>=2,{gold:8000}),
- A('cycle-3','三度目の旅','story','3周目へ進む',s=>(s.cycle??1)>=3,{title:'時巡りの旅人'}),
 
  A('battle-1','最初の勝利','battle','魔物を1体倒す',s=>totalDefeats(s)>=1,{gold:100,title:'はじまりの一歩'}),
  A('battle-10','駆け出し討伐者','battle','魔物を10体倒す',s=>totalDefeats(s)>=10,{gold:500}),
