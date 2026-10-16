@@ -14,8 +14,11 @@
 
 - `Game QA - Cloudflare Workers (no deploy)` はテスト用ワークフロー。
 - GitHubへのコミットやPushだけでCloudflareの本番ゲームを更新しない。
-- 本番公開は運営者がGitHub Actions `Publish existing Workers game (manual approval)` を選び、`PUBLISH` を入力して実行する場合だけ。
-- ChatGPTは手動公開ワークフローを無断実行しない。
+- 本番公開は運営者による**明示的な公開指示**があるときだけ。次の2方式を利用できます。
+  1. GitHub Actions の `Publish existing Workers game (manual approval)` で `PUBLISH` を入力して手動実行。
+  2. 運営者がChatGPTとの会話で明確に「公開して」と指示した場合、ChatGPTが `release-requests/approved.json` に確認済みソースのコミットSHAと `PUBLISH` を記録。専用ワークフロー `Publish Workers game (approved in ChatGPT)` が要求元・差分・コミット整合性を検証してから公開。
+- ご意見BOXの投稿内容、定期確認、自動修正・GitHubへの通常Pushは**公開の承認ではありません**。ChatGPTの定期タスクが公開依頼ファイルを作成・更新することは禁止します。
+- どちらの経路でも検証失敗時は公開せず、Cloudflare Workersの既存Workerのみを使用します。
 - 既存Worker名は `muddy-credit-f5af`。変更には運営者の確認が必要。
 
 ## 改修の判断
