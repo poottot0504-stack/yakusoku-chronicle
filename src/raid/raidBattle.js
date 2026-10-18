@@ -1,6 +1,6 @@
 import { deathWarningText } from '../ui/death-warning.js';
 import {raidStageMarkup} from '../ui/battle-art.js';
-import { JOBS } from '../data/jobs.js';
+import { JOBS, applyJobPassiveToStat } from '../data/jobs.js';
 import { getRaidBossStats } from './raidRules.js?v=raid-balance-20261014';
 import { elementProfileLabel } from '../core/elements.js';
 import { chooseRaidBossStatusAction, raidStatusLabel } from './raidStatus.js';
@@ -66,7 +66,7 @@ function raidLogMarkup(lines=[]){
 }
 
 export function raidPowerStat(hero={},action='attack',statBonus={}){
- const job=hero?.currentJob??'swordsman',p=profileFor(hero),atk=Math.max(1,(hero?.stats?.attack??1)+(statBonus?.attack??0)),mag=Math.max(1,(hero?.stats?.magic??1)+(statBonus?.magic??0)),spd=Math.max(0,(hero?.stats?.speed??0)+(statBonus?.speed??0));
+ const job=hero?.currentJob??'swordsman',p=profileFor(hero),atk=Math.max(1,applyJobPassiveToStat(hero,'attack',(hero?.stats?.attack??1)+(statBonus?.attack??0))),mag=Math.max(1,applyJobPassiveToStat(hero,'magic',(hero?.stats?.magic??1)+(statBonus?.magic??0))),spd=Math.max(0,applyJobPassiveToStat(hero,'speed',(hero?.stats?.speed??0)+(statBonus?.speed??0)));
  if(job==='redMage'){
   if(action==='magic'||action==='chainMagic')return {kind:'magic',value:mag};
   if(action==='magicSword')return {kind:'hybrid',value:Math.round((atk+mag)/2)};
@@ -78,7 +78,7 @@ export function raidPowerStat(hero={},action='attack',statBonus={}){
 }
 
 export function raidActionPayload(type,hero,bossStats={defense:0},statBonus={}){
- const p=profileFor(hero),lv=Math.max(1,hero?.level??1),jobLv=hero?.jobLevels?.[hero?.currentJob]??1,mag=Math.max(1,(hero?.stats?.magic??1)+(statBonus?.magic??0)),powerInfo=raidPowerStat(hero,type,statBonus),power=powerInfo.value,base=lv+jobLv+power*4,physicalDefense=Math.max(0,bossStats?.defense??0),magicDefense=Math.max(0,bossStats?.magicDefense??bossStats?.magicAttack??0),effectiveDefense=powerInfo.kind==='magic'?magicDefense:powerInfo.kind==='hybrid'?(physicalDefense+magicDefense)/2:physicalDefense,mitigation=300/(300+effectiveDefense),rage=hpEnrage(hero,p);
+ const p=profileFor(hero),lv=Math.max(1,hero?.level??1),jobLv=hero?.jobLevels?.[hero?.currentJob]??1,mag=Math.max(1,applyJobPassiveToStat(hero,'magic',(hero?.stats?.magic??1)+(statBonus?.magic??0))),powerInfo=raidPowerStat(hero,type,statBonus),power=powerInfo.value,base=lv+jobLv+power*4,physicalDefense=Math.max(0,bossStats?.defense??0),magicDefense=Math.max(0,bossStats?.magicDefense??bossStats?.magicAttack??0),effectiveDefense=powerInfo.kind==='magic'?magicDefense:powerInfo.kind==='hybrid'?(physicalDefense+magicDefense)/2:physicalDefense,mitigation=300/(300+effectiveDefense),rage=hpEnrage(hero,p);
  const hit=m=>Math.max(1,Math.round(base*m*mitigation*p.damage*rage));
  const guard=Math.max(1,Math.floor((lv+jobLv)*2.2*p.guard));
  const healing=Math.max(1,Math.floor((lv+jobLv+mag*2)*2*p.heal));
