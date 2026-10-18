@@ -85,6 +85,8 @@ function bishopBattle(skill,extraAllies=[]){
  const caster=bishop(),enemy={id:'test-foe',name:'敵',hp:30000,maxHp:30000,stats:{attack:1,defense:1,magic:1,speed:1},ai:[{type:'attack',power:1}]};
  const b=createBattle([caster,...extraAllies],enemy);startTurn(b);
  resolveAction(b,{type:'skill',skill,targetId:caster.id},()=>.9999);
+ // The battle engine resolves a round only after every living ally plans an action.
+ for(let i=0;i<4&&b.phase==='planning'&&b.awaitingActorId;i++)resolveAction(b,{type:'wait'},()=>.9999);
  return b;
 }
 test('bishop level 120 area blessing and level 300 salvation are no longer identical',()=>{
