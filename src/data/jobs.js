@@ -65,3 +65,9 @@ export function describeJobPassive(jobId){
  if(!passive)return '';
  return `${passive.name}（${PASSIVE_STAT_LABELS[passive.stat]}＋${Math.round(passive.rate*1000)/10}%）`;
 }
+
+/** Keep normal battles and raid formulas consistent without mutating saved stats. */
+export function applyJobPassiveToStat(character,stat,value){
+ const passive=getJobPassive(character?.currentJob);
+ return passive?.stat===stat?Math.round(value*(1+passive.rate)):value;
+}
