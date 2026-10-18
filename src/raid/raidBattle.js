@@ -1,6 +1,6 @@
 import { deathWarningText } from '../ui/death-warning.js';
 import {raidStageMarkup} from '../ui/battle-art.js';
-import { JOBS } from '../data/jobs.js';
+import { JOBS, applyJobPassiveToStat } from '../data/jobs.js';
 import { getRaidBossStats } from './raidRules.js?v=raid-balance-20261014';
 import { elementProfileLabel } from '../core/elements.js';
 import { chooseRaidBossStatusAction, raidStatusLabel } from './raidStatus.js';
@@ -23,8 +23,8 @@ export const RAID_JOB_PROFILES={
  pirateKing:{role:'physical',power:'attack',speedWeight:.15,damage:1.05,guard:.90,heal:.65,support:2},
  sniper:{role:'physical',power:'attack',speedWeight:.10,damage:1.20,guard:.75,heal:.55,support:1},
  paladin:{role:'tank',power:'attack',damage:.85,guard:1.80,heal:.90,support:2},
- bard:{role:'support',power:'magic',damage:.75,guard:.85,heal:.90,support:3},
- trickster:{role:'support',power:'magic',damage:.80,guard:.75,heal:.70,support:3},
+ bard:{role:'support',power:'magic',speedWeight:.15,damage:.75,guard:.85,heal:.90,support:3},
+ trickster:{role:'support',power:'magic',speedWeight:.15,damage:.80,guard:.75,heal:.70,support:3},
  bishop:{role:'healer',power:'magic',damage:.75,guard:1.05,heal:1.90,support:2},
  highWizard:{role:'magic',power:'magic',damage:1.35,guard:.70,heal:.65,support:1},
  berserker:{role:'physical',power:'attack',damage:1.25,guard:.65,heal:.45,support:1,enrage:.50}
@@ -66,7 +66,7 @@ function raidLogMarkup(lines=[]){
 }
 
 export function raidPowerStat(hero={},action='attack',statBonus={}){
- const job=hero?.currentJob??'swordsman',p=profileFor(hero),atk=Math.max(1,(hero?.stats?.attack??1)+(statBonus?.attack??0)),mag=Math.max(1,(hero?.stats?.magic??1)+(statBonus?.magic??0)),spd=Math.max(0,(hero?.stats?.speed??0)+(statBonus?.speed??0));
+ const job=hero?.currentJob??'swordsman',p=profileFor(hero),atk=Math.max(1,applyJobPassiveToStat(hero,'attack',(hero?.stats?.attack??1)+(statBonus?.attack??0))),mag=Math.max(1,applyJobPassiveToStat(hero,'magic',(hero?.stats?.magic??1)+(statBonus?.magic??0))),spd=Math.max(0,applyJobPassiveToStat(hero,'speed',(hero?.stats?.speed??0)+(statBonus?.speed??0)));
  if(job==='redMage'){
   if(action==='magic'||action==='chainMagic')return {kind:'magic',value:mag};
   if(action==='magicSword')return {kind:'hybrid',value:Math.round((atk+mag)/2)};
@@ -78,7 +78,7 @@ export function raidPowerStat(hero={},action='attack',statBonus={}){
 }
 
 export function raidActionPayload(type,hero,bossStats={defense:0},statBonus={}){
- const p=profileFor(hero),lv=Math.max(1,hero?.level??1),jobLv=hero?.jobLevels?.[hero?.currentJob]??1,mag=Math.max(1,(hero?.stats?.magic??1)+(statBonus?.magic??0)),powerInfo=raidPowerStat(hero,type,statBonus),power=powerInfo.value,base=lv+jobLv+power*4,physicalDefense=Math.max(0,bossStats?.defense??0),magicDefense=Math.max(0,bossStats?.magicDefense??bossStats?.magicAttack??0),effectiveDefense=powerInfo.kind==='magic'?magicDefense:powerInfo.kind==='hybrid'?(physicalDefense+magicDefense)/2:physicalDefense,mitigation=300/(300+effectiveDefense),rage=hpEnrage(hero,p);
+ const p=profileFor(hero),lv=Math.max(1,hero?.level??1),jobLv=hero?.jobLevels?.[hero?.currentJob]??1,mag=Math.max(1,applyJobPassiveToStat(hero,'magic',(hero?.stats?.magic??1)+(statBonus?.magic??0))),powerInfo=raidPowerStat(hero,type,statBonus),power=powerInfo.value,base=lv+jobLv+power*4,physicalDefense=Math.max(0,bossStats?.defense??0),magicDefense=Math.max(0,bossStats?.magicDefense??bossStats?.magicAttack??0),effectiveDefense=powerInfo.kind==='magic'?magicDefense:powerInfo.kind==='hybrid'?(physicalDefense+magicDefense)/2:physicalDefense,mitigation=300/(300+effectiveDefense),rage=hpEnrage(hero,p);
  const hit=m=>Math.max(1,Math.round(base*m*mitigation*p.damage*rage));
  const guard=Math.max(1,Math.floor((lv+jobLv)*2.2*p.guard));
  const healing=Math.max(1,Math.floor((lv+jobLv+mag*2)*2*p.heal));
