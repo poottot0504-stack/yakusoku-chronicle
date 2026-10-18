@@ -122,3 +122,15 @@ test('raid heals and defensive boss damage apply passive without permanent stat 
  assert.ok(paladin[0].hp>unknown[0].hp,'Paladin defense passive should reduce raid boss damage');
  assert.equal(paladin[0].stats.defense,100,'Do not overwrite saved defensive stats');
 });
+
+test('speed passives have a meaningful, modest contribution for bard and trickster raid actions',()=>{
+ for(const job of ['bard','trickster']){
+  const hero={currentJob:job,stats:{attack:100,magic:100,speed:400}};
+  const result=raidPowerStat(hero,'attack');
+  const baseline=Math.round(100+400*.15);
+  assert.equal(result.kind,'magic');
+  assert.equal(result.value,Math.round(100+applyJobPassiveToStat(hero,'speed',400)*.15));
+  assert.ok(result.value>baseline,`Speed passive must affect ${job} raid damage`);
+  assert.ok(result.value<=baseline+3,`Speed passive should be small for ${job}`);
+ }
+});
