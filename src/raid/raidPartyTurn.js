@@ -1,4 +1,5 @@
 import { useBattleItem } from '../core/items.js';
+import { applyJobPassiveToStat } from '../data/jobs.js';
 import { RAID_JOB_PROFILES, calculateRaidBossDamage } from './raidBattle.js';
 import { tryInflictRaidPartyStatus, raidStatusLabel } from './raidStatus.js';
 import { getSkillElement, getElementMultiplier, elementLabel } from '../core/elements.js';
@@ -28,8 +29,8 @@ export function currentRaidTurnActor(turn,party=[]){
 export function calculateRaidSkillDamage(actor,skill,bossStats={},statBonus={},boss={}){
  const p=profileFor(actor),lv=Math.max(1,actor?.level??1),jobLv=actor?.jobLevels?.[actor?.currentJob]??1;
  const magic=skill?.kind==='magic'||skill?.type==='magic';
- const atk=Math.max(1,(actor?.stats?.attack??1)+(statBonus?.attack??0));
- const mag=Math.max(1,(actor?.stats?.magic??1)+(statBonus?.magic??0));
+ const atk=Math.max(1,applyJobPassiveToStat(actor,'attack',(actor?.stats?.attack??1)+(statBonus?.attack??0)));
+ const mag=Math.max(1,applyJobPassiveToStat(actor,'magic',(actor?.stats?.magic??1)+(statBonus?.magic??0)));
  const source=magic?mag:atk;
  const defense=Math.max(0,magic?(bossStats?.magicDefense??bossStats?.magicAttack??0):(bossStats?.defense??0));
  const mitigation=300/(300+defense*(1-Math.max(0,Math.min(.8,Number(skill?.defensePierce??0))))),power=Math.max(0,Number(skill?.power??100))/100,hits=Math.max(1,Number(skill?.multiHit??1));
@@ -43,12 +44,14 @@ export function applyRaidSkillEffect({actor,skill,targetId,party=[],statBonus={}
  if(skill.type==='revive'&&!party.some(x=>x.id===targetId&&(x.hp??0)<=0))return {ok:false,message:'戦闘不能の仲間がいません'};
  actor.mp=Math.max(0,(actor.mp??0)-cost);
  if(skill.type==='heal'){
-  const amount=skill.flatHeal??Math.max(20,Math.floor(((actor?.stats?.magic??1)+(statBonus?.magic??0))*(skill.power??30)*.6));
+  const amount=skill.flatHeal??Math.max(20,Math.floor(applyJobPassiveToStat(actor,'magic',(actor?.stats?.magic??1)+(statBonus?.magic??0))*(skill.power??30)*.6));
   const alive=party.filter(x=>(x?.hp??0)>0);
   const targets=skill.target==='all'?alive:[party.find(x=>x.id===targetId)??actor].filter(x=>(x?.hp??0)>0);
   let healing=0;for(const t of targets){const before=t.hp??0;t.hp=Math.min(t.maxHp??before,before+(skill.fullHeal?Math.max(0,(t.maxHp??before)-before):skill.healRatio!=null?Math.floor((t.maxHp??before)*skill.healRatio):amount));healing+=Math.max(0,t.hp-before);}
-  const clearTargets=skill.highClear?alive:skill.clear?targets:[];for(const t of clearTargets){t.statusAilments=[];t.statusResistTurns={};}
-  return {ok:true,kind:'heal',healing,payload:{healing},targets:targets.map(x=>x.id)};
+  let revived=0;const revivedIds=[];
+  if(skill.reviveFallenRatio&&skill.target==='all'){for(const t of party.filter(x=>(x?.hp??0)<=0)){t.hp=Math.max(1,Math.floor((t.maxHp??1)*skill.reviveFallenRatio));revived++;revivedIds.push(t.id);}}
+  const clearTargets=skill.highClear?party.filter(x=>(x?.hp??0)>0):skill.clear?targets:[];for(const t of clearTargets){t.statusAilments=[];t.statusResistTurns={};}
+  return {ok:true,kind:'heal',healing,revived,payload:{healing,supportActions:revived?1:0},targets:[...targets.map(x=>x.id),...revivedIds]};
  }
  if(skill.type==='revive'){
   const target=party.find(x=>x.id===targetId&&((x.hp??0)<=0));if(!target)return {ok:false,message:'戦闘不能の仲間がいません'};
@@ -95,7 +98,7 @@ export function applyRaidBossAction(action,party=[],plannedActions=[],bossStats=
  const hit=t=>{
   const magical=isStatus?Boolean(action?.magic):magicBoss;const kind=isAoe?(magical?'magicAoe':'aoe'):(magical?'magic':'single');
   const actionElement=getSkillElement(action),element=actionElement!=='none'?actionElement:(RAID_BOSS_ELEMENT[bossId]??'none');
-  const targetDefense=Math.max(0,((t?.stats?.defense??0)+(t?.battleFlatStats?.defense??0))*(1+(t.raidBuff?.turns>0?(t.raidBuff.defensePct??0):0)));
+  const targetDefense=Math.max(0,applyJobPassiveToStat(t,'defense',(t?.stats?.defense??0)+(t?.battleFlatStats?.defense??0))*(1+(t.raidBuff?.turns>0?(t.raidBuff.defensePct??0):0)));
   const elementMult=getElementMultiplier(element,t);
   let damage=calculateRaidBossDamage(bossStats,{defense:targetDefense},kind);
   if(isStatus)damage=Math.max(1,Math.round(damage*Math.max(.1,Number(action?.damageScale??.7))));

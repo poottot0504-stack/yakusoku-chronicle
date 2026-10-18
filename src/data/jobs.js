@@ -31,3 +31,43 @@ const EQUIPMENT_GROUPS={
 for(const job of ALL_JOBS)job.equipmentGroups=[...(EQUIPMENT_GROUPS[job.id]??[])];
 
 export const JOBS=Object.fromEntries(ALL_JOBS.map(j=>[j.id,j]));
+
+// Innate passives apply only while the job is equipped. Modest bonuses avoid
+// stacking with permanent mastery, equipment and temporary battle buffs.
+export const JOB_PASSIVES=Object.freeze({
+ swordsman:{stat:'attack',rate:.03,name:'剣の心得'},
+ mage:{stat:'magic',rate:.03,name:'魔力の素養'},
+ thief:{stat:'speed',rate:.03,name:'軽快な足取り'},
+ fighter:{stat:'attack',rate:.025,name:'闘気'},
+ healer:{stat:'defense',rate:.03,name:'守護の祈り'},
+ archer:{stat:'speed',rate:.025,name:'狩人の集中'},
+ redMage:{stat:'magic',rate:.025,name:'魔剣の共鳴'},
+ whiteMage:{stat:'defense',rate:.035,name:'白き加護'},
+ blackMage:{stat:'magic',rate:.035,name:'深淵の知恵'},
+ darkKnight:{stat:'attack',rate:.03,name:'暗黒の闘志'},
+ pirateKing:{stat:'speed',rate:.03,name:'海賊の機転'},
+ sniper:{stat:'attack',rate:.035,name:'狙撃の極意'},
+ paladin:{stat:'defense',rate:.04,name:'聖騎士の守り'},
+ bard:{stat:'speed',rate:.025,name:'旅の旋律'},
+ trickster:{stat:'speed',rate:.03,name:'道化の身軽さ'},
+ bishop:{stat:'defense',rate:.035,name:'聖堂の庇護'},
+ highWizard:{stat:'magic',rate:.04,name:'大魔導の叡智'},
+ gunbreaker:{stat:'defense',rate:.035,name:'銃剣の構え'},
+ astrologian:{stat:'magic',rate:.025,name:'星読みの才'},
+ berserker:{stat:'attack',rate:.04,name:'狂戦士の本能'}
+});
+export function getJobPassive(jobId){return JOB_PASSIVES[jobId]??null;}
+
+const PASSIVE_STAT_LABELS=Object.freeze({attack:'攻撃',defense:'防御',magic:'魔法',speed:'素早さ'});
+/** UI description of the active-job-only passive; uses the same values as combat. */
+export function describeJobPassive(jobId){
+ const passive=getJobPassive(jobId);
+ if(!passive)return '';
+ return `${passive.name}（${PASSIVE_STAT_LABELS[passive.stat]}＋${Math.round(passive.rate*1000)/10}%）`;
+}
+
+/** Keep normal battles and raid formulas consistent without mutating saved stats. */
+export function applyJobPassiveToStat(character,stat,value){
+ const passive=getJobPassive(character?.currentJob);
+ return passive?.stat===stat?Math.round(value*(1+passive.rate)):value;
+}

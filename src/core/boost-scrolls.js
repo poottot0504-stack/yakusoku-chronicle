@@ -22,8 +22,12 @@ function remainingFromEntry(entry,now=Date.now()) {
  return Number.isFinite(expiry)?Math.max(0,Math.min(MAX_SCROLL_MS,expiry-now)):0;
 }
 export function normalizeBoostScrolls(raw={},now=Date.now()) {
- return Object.fromEntries(Object.values(BOOST_SCROLLS).map(({kind})=>
-  [kind,{remainingMs:remainingFromEntry(raw?.[kind],now)}]));
+ return Object.fromEntries(Object.values(BOOST_SCROLLS).map(({kind})=>{
+  const entry=raw?.[kind],remainingMs=remainingFromEntry(entry,now);
+  const initial=entry&&typeof entry==='object'?Number(entry.initialDurationMs):0;
+  const initialDurationMs=[1,2,3].some(h=>initial===h*3600000)?initial:undefined;
+  return [kind,initialDurationMs?{remainingMs,initialDurationMs}:{remainingMs}];
+ }));
 }
 export function remainingBoostMs(state,kind,now=Date.now()) {
  return remainingFromEntry(state?.boostScrolls?.[kind],now);
@@ -36,7 +40,7 @@ export function advanceBoostPlaytime(state,elapsedMs) {
  if(!elapsed||!state?.boostScrolls)return 0;
  for(const {kind} of Object.values(BOOST_SCROLLS)) {
   const remaining=remainingBoostMs(state,kind);
-  if(remaining>0)state.boostScrolls[kind]={remainingMs:Math.max(0,remaining-elapsed)};
+  if(remaining>0)state.boostScrolls[kind]={...state.boostScrolls[kind],remainingMs:Math.max(0,remaining-elapsed)};
  }
  return elapsed;
 }
@@ -61,7 +65,7 @@ export function useBoostScroll(state,itemId,{now=Date.now(),rng=Math.random}={})
  if(!stack)throw new Error('書を所持していません');
  const roll=Number(rng());const hours=DURATIONS[Math.max(0,Math.min(2,Math.floor((Number.isFinite(roll)?roll:0)*3)))];
  state.boostScrolls??={};
- state.boostScrolls[book.kind]={remainingMs:hours*3600000};
+ state.boostScrolls[book.kind]={remainingMs:hours*3600000,initialDurationMs:hours*3600000};
  stack.qty-=1;
  return {name:book.name,kind:book.kind,hours,remainingMs:hours*3600000};
 }
