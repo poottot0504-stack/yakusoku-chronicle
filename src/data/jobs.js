@@ -57,3 +57,11 @@ export const JOB_PASSIVES=Object.freeze({
  berserker:{stat:'attack',rate:.04,name:'狂戦士の本能'}
 });
 export function getJobPassive(jobId){return JOB_PASSIVES[jobId]??null;}
+
+const PASSIVE_STAT_LABELS=Object.freeze({attack:'攻撃',defense:'防御',magic:'魔法',speed:'素早さ'});
+/** UI description of the active-job-only passive; uses the same values as combat. */
+export function describeJobPassive(jobId){
+ const passive=getJobPassive(jobId);
+ if(!passive)return '';
+ return `${passive.name}（${PASSIVE_STAT_LABELS[passive.stat]}＋${Math.round(passive.rate*1000)/10}%）`;
+}
