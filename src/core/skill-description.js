@@ -9,6 +9,7 @@ export function describeSkill(skill,{raid=false}={}){
   const targets=s.target==='all'?'生存中の味方全員':'味方1人';
   out.push(`${targets}のHPを${s.fullHeal?'全回復':s.healRatio!=null?`最大HPの${Math.round(s.healRatio*100)}％回復`:Number.isFinite(s.flatHeal)?`${num(s.flatHeal)}回復`:'魔法に応じて回復'}。最大HPを超えて回復しません。`);
   if(!raid&&!s.fullHeal)out.push('呪い状態では回復量が半減します。');
+  if(s.reviveFallenRatio)out.push(`戦闘不能の味方全員を最大HPの${Math.round(s.reviveFallenRatio*100)}％で蘇生。`);
   if(s.highClear)out.push('生存中の味方全員の状態異常を解除。');else if(s.clear)out.push(`${s.target==='all'&&!raid?'選択された味方1人':'回復対象'}の状態異常を解除。`);
  }else if(s.type==='revive')out.push(`戦闘不能の味方1人を、最大HPの${Math.round((s.hpRatio??.3)*100)}％で蘇生。`);
  else if(s.type==='buff'){
