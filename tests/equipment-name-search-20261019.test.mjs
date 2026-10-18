@@ -74,6 +74,6 @@ test('live input event preserves keyboard focus and CSS is safe on iPhone',()=>{
  assert.match(script,/equipmentSearch=String\(input\.value\?\?''\)\.slice\(0,100\);syncEquipmentCandidateFilters\(\)/);
  assert.match(script,/if\(el\.hasAttribute\('data-equipment-search-clear'\)\)/);
  assert.match(css,/\.equipment-search-controls>input\{[^}]*font-size:16px/);
- assert.match(html,/main\.js\?v=equipment-search-20261019-v1/);
- assert.match(html,/main\.css\?v=equipment-search-20261019-v1/);
+ assert.match(html,/main\.js\?v=hunt-security-ticket-v2-20261016-v1-equipment-search-20261019-v1/);
+ assert.match(html,/main\.css\?v=mobile-region-map-20261018-v2-equipment-search-20261019-v1/);
 });
