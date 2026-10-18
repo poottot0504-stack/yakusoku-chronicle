@@ -11,7 +11,8 @@ for(let r=0;r<10;r++)for(let i=0;i<10;i++){
 }
 list[0]={...list[0],id:'slime',name:'スライム'};
 list[24]={...list[24],id:'stormSiren',name:'嵐歌のセイレーン',regionId:'coast',rare:true,weight:1,conditions:{time:'night',weather:'rain',storyFlag:'rareGate',itemId:'moonToken'}};
-list[77]={...list[77],id:'mimic',name:'ミミック',regionId:'ruins',rare:true,weight:.5,materials:{normal:'ミミックの欠片',rare:'ミミックの魔核'}};
+// Keep the chapter 8 volcano Golem: the Mimic is an EXTRA rare ruins encounter.
+list.push({...list[77],id:'mimic',name:'ミミック',regionId:'ruins',rare:true,weight:.5,materials:{normal:'ミミックの欠片',rare:'ミミックの魔核'}});
 const storyBosses=STORY_CHAPTERS.map((chapter,index)=>({
  id:`storyBoss-${chapter.regionId}`,
  name:chapter.bossName,

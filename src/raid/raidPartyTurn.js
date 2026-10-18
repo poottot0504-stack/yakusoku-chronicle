@@ -48,8 +48,10 @@ export function applyRaidSkillEffect({actor,skill,targetId,party=[],statBonus={}
   const alive=party.filter(x=>(x?.hp??0)>0);
   const targets=skill.target==='all'?alive:[party.find(x=>x.id===targetId)??actor].filter(x=>(x?.hp??0)>0);
   let healing=0;for(const t of targets){const before=t.hp??0;t.hp=Math.min(t.maxHp??before,before+(skill.fullHeal?Math.max(0,(t.maxHp??before)-before):skill.healRatio!=null?Math.floor((t.maxHp??before)*skill.healRatio):amount));healing+=Math.max(0,t.hp-before);}
-  const clearTargets=skill.highClear?alive:skill.clear?targets:[];for(const t of clearTargets){t.statusAilments=[];t.statusResistTurns={};}
-  return {ok:true,kind:'heal',healing,payload:{healing},targets:targets.map(x=>x.id)};
+  let revived=0;const revivedIds=[];
+  if(skill.reviveFallenRatio&&skill.target==='all'){for(const t of party.filter(x=>(x?.hp??0)<=0)){t.hp=Math.max(1,Math.floor((t.maxHp??1)*skill.reviveFallenRatio));revived++;revivedIds.push(t.id);}}
+  const clearTargets=skill.highClear?party.filter(x=>(x?.hp??0)>0):skill.clear?targets:[];for(const t of clearTargets){t.statusAilments=[];t.statusResistTurns={};}
+  return {ok:true,kind:'heal',healing,revived,payload:{healing,supportActions:revived?1:0},targets:[...targets.map(x=>x.id),...revivedIds]};
  }
  if(skill.type==='revive'){
   const target=party.find(x=>x.id===targetId&&((x.hp??0)<=0));if(!target)return {ok:false,message:'戦闘不能の仲間がいません'};

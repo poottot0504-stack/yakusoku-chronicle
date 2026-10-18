@@ -34,7 +34,8 @@ export const MASHO_FLOORS=pools.map((bosses,i)=>({floor:i+1,level:150+Math.round
 for(let i=0;i<5;i++)MASHO_FLOORS.push({floor:21+i,level:310+i*10,tier:4,bosses:[raids[i]],exp:600000+i*50000,jobExp:300000+i*25000,gold:200000+i*25000});
 export function normalizeMashoProgress(state){
  const old=state.mashoCave??{},highest=Math.max(0,Math.min(MASHO_MAX_FLOOR,Math.floor(Number(old.highestCleared)||0)));
- state.mashoCave={...old,highestCleared:highest,clearCounts:{...(old.clearCounts??{})}};return state.mashoCave;
+ const pastAbyssClears=Array.from({length:5},(_,i)=>Math.max(0,Math.floor(Number(old.clearCounts?.[i+21])||0))).reduce((a,b)=>a+b,0);
+ state.mashoCave={...old,highestCleared:highest,clearCounts:{...(old.clearCounts??{})},abyssClearCount:Math.max(0,Math.floor(Number(old.abyssClearCount??pastAbyssClears)||0))};return state.mashoCave;
 }
 export function getMashoFloors(state){const highest=normalizeMashoProgress(state).highestCleared,unlocked=hasFirstClear(state);return MASHO_FLOORS.map(f=>({...f,cleared:f.floor<=highest,available:unlocked&&f.floor<=highest+1}));}
 export function canEnterMashoFloor(state,floor){return Number.isInteger(floor)&&getMashoFloors(state).some(f=>f.floor===floor&&f.available);}
@@ -62,12 +63,15 @@ export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
  for(const c of state.characters??[]){if(!(state.activePartyIds??[]).includes(c.id)||c.hp<=0)continue;const lv=c.level,jlv=c.jobLevels?.[c.currentJob]??1;awardCharacterExp(state,c.id,reward.exp);awardJobExp(c,reward.jobExp,state);if(c.level>lv)levelUps.push(`${c.name}のLvが${c.level}に上がった！`);if(c.jobLevels[c.currentJob]>jlv)levelUps.push(`${c.name}の${JOBS[c.currentJob]?.name??c.currentJob}Lvが${c.jobLevels[c.currentJob]}に上がった！`);}
  state.gold=(state.gold??0)+applyBoostedBattleGold(state,reward.gold,now,{includeDaily:false});
  let promiseOre=0;if(floor>=18&&floor<=20){promiseOre=floor===20?2:1;state.materials??={};state.materials.promiseOre=Math.min(999,(state.materials.promiseOre??0)+promiseOre);}
- const progress=normalizeMashoProgress(state);progress.highestCleared=Math.max(progress.highestCleared,floor);progress.clearCounts[floor]=(progress.clearCounts[floor]??0)+1;
+ const progress=normalizeMashoProgress(state);progress.highestCleared=Math.max(progress.highestCleared,floor);progress.clearCounts[floor]=(progress.clearCounts[floor]??0)+1;if(floor>20)progress.abyssClearCount++;
  let equipment=null;const equipmentDropRate=Math.min(1,(floor>20?MASHO_ABYSS_DROP_RATE:MASHO_DROP_RATE)*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));if(rng()<equipmentDropRate){const def=pick(floor>20?Object.values(MASHO_ABYSS_WEAPONS):Object.values(MASHO_EQUIPMENT).filter(d=>d.mashoTier===f.tier),rng);equipment=createEquipmentInstance(def.id);state.equipmentInventory??=[];state.equipmentInventory.push(equipment);recordEquipmentObtained(state,def.id,{source:'魔障の洞窟'});}
  const enhanceCrystalId=floor<=10?'enhanceCrystal':floor<=20?'advancedEnhanceCrystal':'ultimateEnhanceCrystal';
  const enhanceCrystalBaseRate=floor<=10?.25:floor<=20?.20:.12;
  const enhanceCrystalChance=Math.min(1,enhanceCrystalBaseRate*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));
- const enhanceMaterial=rng()<enhanceCrystalChance?{id:enhanceCrystalId,name:floor<=10?'強化結晶':floor<=20?'上級強化結晶':'究極強化結晶',qty:1}:null;
+ // A material safety net every five completed abyss runs (across floors 21-25).
+ // The five unique abyss weapons keep their deliberately rare 0.2% chance.
+ const abyssMaterialGuaranteed=floor>20&&progress.abyssClearCount%5===0;
+ const enhanceMaterial=abyssMaterialGuaranteed||rng()<enhanceCrystalChance?{id:enhanceCrystalId,name:floor<=10?'強化結晶':floor<=20?'上級強化結晶':'究極強化結晶',qty:1}:null;
  if(enhanceMaterial){state.materials??={};state.materials[enhanceCrystalId]=Math.min(999,(Number(state.materials[enhanceCrystalId])||0)+1);}
  const receipt={floor,...reward,equipment,levelUps,promiseOre,enhanceMaterial};progress.lastReward=receipt;battle.mashoRewardSettled=receipt;
  state.adventure??={};state.adventure.message=`魔障の洞窟 第${floor}階層クリア！`;return receipt;

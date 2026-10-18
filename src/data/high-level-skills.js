@@ -1,7 +1,7 @@
 // Job mastery skills: Lv120 / 150 / 200 / 250 / 300.
 const attack=(name,mp,power,extra={})=>({name,mp,power,type:'attack',...extra});
 const magic=(name,mp,power,element,extra={})=>({name,mp,power,type:'magic',kind:'magic',element,...extra});
-const heal=(name,mp,amount)=>({name,mp,power:amount,flatHeal:amount,type:'heal',target:'all',highClear:true});
+const heal=(name,mp,amount,extra={})=>({name,mp,power:amount,flatHeal:amount,type:'heal',target:'all',highClear:true,...extra});
 const buff=(name,mp,values,target='all')=>({name,mp,power:0,type:'buff',target,selfBuff:{...(values.attackPct!=null&&values.magicPct==null?{magicPct:0}:{}),...values},turns:3});
 const revive=(name,mp,ratio)=>({name,mp,power:ratio*100,type:'revive',hpRatio:ratio});
 const rows={
@@ -20,7 +20,7 @@ const rows={
  paladin:[attack('聖王の剣',60,550),buff('聖城の守護',75,{defensePct:.5}),heal('守護者の祈り',95,2400),attack('聖光の大断罪',110,780,{allTargets:true}),attack('終式・不滅の聖剣',145,1100,{defensePierce:.25})],
  bard:[magic('星渡りの詩',55,510,'none'),heal('生命樹の旋律',70,1200),buff('英雄たちの凱歌',90,{attackPct:.4,magicPct:.4}),magic('天響のレクイエム',110,840,'light',{allTargets:true}),buff('終式・永遠の大合唱',145,{attackPct:.55,magicPct:.55,defensePct:.45})],
  trickster:[magic('運命の切札',60,580,'dark'),attack('四重の幻刃',75,180,{multiHit:4}),magic('星札の大乱舞',95,820,'light',{allTargets:true}),buff('道化王の奇策',105,{attackPct:.45,magicPct:.45}),magic('終式・世界を返す札',150,1150,'dark',{allTargets:true})],
- bishop:[heal('聖堂の大祝福',60,1100),magic('天門の審判',75,580,'light',{allTargets:true}),revive('完全蘇生の祈り',110,1),buff('天使の大結界',115,{defensePct:.55}),heal('終式・天上の救済',160,8500)],
+ bishop:[heal('聖堂の大祝福',60,1100,{fullHeal:false}),magic('天門の審判',75,580,'light',{allTargets:true}),revive('完全蘇生の祈り',110,1),buff('天使の大結界',115,{defensePct:.55}),heal('終式・天上の救済',160,8500,{reviveFallenRatio:.3})],
  highWizard:[magic('天火・プロミネンス',65,650,'fire',{allTargets:true}),magic('轟天・サンダーノヴァ',80,750,'thunder',{allTargets:true}),magic('絶零・ブリザードノヴァ',100,860,'ice',{allTargets:true}),buff('大魔導の覚醒',110,{magicPct:.75},'self'),magic('終極・星界の大魔陣',160,1250,'light',{allTargets:true})],
  gunbreaker:[attack('バースト・ペネトレイト',60,640,{defensePierce:.3}),buff('不屈の砲刃',75,{defensePct:.6,attackPct:.25},'self'),attack('クアッド・リボルバー',100,210,{multiHit:4}),heal('オーロラ・リザレイ',110,3000),attack('終式・ゼロバースト',150,250,{multiHit:5})],
  astrologian:[heal('星天の大癒',60,1200),magic('星界の大審判',80,610,'light',{allTargets:true}),buff('運命星の加護',100,{attackPct:.35,magicPct:.35,defensePct:.35}),revive('星巡りの再誕',110,.85),heal('終式・宇宙の祝福',160,8500)],
