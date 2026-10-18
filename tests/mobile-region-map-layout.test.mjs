@@ -8,6 +8,7 @@ import {adventureMarkup} from '../src/ui/adventure.js';
 
 test('world map keeps mining counter as an explicit separate grid row',()=>{
  const s=ensureAdventureState(createNewGame(createDefaultRoster()));
+ s.adventure.completedRegions=['field','forest','coast','cave','snow','desert','swamp','volcano','ruins'];
  s.gathering={miningCharges:{field:2,forest:4,volcano:3}};
  const markup=adventureMarkup(s);
  assert.match(markup,/data-region="field"/);
