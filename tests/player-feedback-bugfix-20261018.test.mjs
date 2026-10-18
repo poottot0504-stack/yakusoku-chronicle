@@ -96,10 +96,11 @@ test('bishop level 120 area blessing and level 300 salvation are no longer ident
  assert.equal(high.reviveFallenRatio,.3);
  assert.ok(low.description.includes('1,100回復'));assert.ok(high.description.includes('蘇生'));
  const groupLow=bishopBattle(low,[{...fallen(),hp:100}]);
- assert.equal(groupLow.actorMap.ally.hp,1200,'Level 120 skill is a 1100-point heal');
+ const afterCast=b=>b.visualTimeline.find(frame=>frame.visualAction.actorId==='bishop').actors;
+ assert.equal(afterCast(groupLow).find(a=>a.id==='ally').hp,1200,'Level 120 skill is a 1100-point heal');
  const groupHigh=bishopBattle(high,[fallen()]);
- assert.equal(groupHigh.actorMap.ally.hp,3000,'Final skill revives allies at 30 percent');
- assert.equal(groupHigh.actorMap.bishop.hp,10000,'Final skill fully restores living allies');
+ assert.equal(afterCast(groupHigh).find(a=>a.id==='ally').hp,3000,'Final skill revives allies at 30 percent');
+ assert.equal(afterCast(groupHigh).find(a=>a.id==='bishop').hp,10000,'Final skill fully restores living allies');
  const raidCaster=bishop(),raidFallen=fallen();
  const raid=applyRaidSkillEffect({actor:raidCaster,skill:high,targetId:raidCaster.id,party:[raidCaster,raidFallen]});
  assert.ok(raid.ok);assert.equal(raid.revived,1);assert.equal(raidFallen.hp,3000);
