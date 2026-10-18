@@ -1,3 +1,4 @@
+import { getJobPassive } from '../data/jobs.js';
 import { chooseEnemyAction } from './ai.js';
 import { calculateDamage } from './combat-math.js';
 import { getEffectiveCombatStat } from './combat-stats.js';
@@ -7,7 +8,7 @@ import { ensureEnemyStatusAi } from './enemy-status.js';
 import { statusCastChance } from './status-caster-rules.js';
 import { getSkillElement, getElementMultiplier, elementLabel } from './elements.js';
 
-const cloneActor=a=>{const out=structuredClone({...a,statusAilments:a.statusAilments??[],buffs:a.buffs??[],debuffs:a.debuffs??[]});if(a.currentJob&&a.level){out.stats={attack:Math.round(a.stats?.attack??1)+(a.battleFlatStats?.attack??0),defense:Math.round(a.stats?.defense??1)+(a.battleFlatStats?.defense??0),magic:Math.round(a.stats?.magic??1)+(a.battleFlatStats?.magic??0),speed:Math.round(a.stats?.speed??1)+(a.battleFlatStats?.speed??0)};}return out;};
+const cloneActor=a=>{const out=structuredClone({...a,statusAilments:a.statusAilments??[],buffs:a.buffs??[],debuffs:a.debuffs??[]});if(a.currentJob&&a.level){out.stats={attack:Math.round(a.stats?.attack??1)+(a.battleFlatStats?.attack??0),defense:Math.round(a.stats?.defense??1)+(a.battleFlatStats?.defense??0),magic:Math.round(a.stats?.magic??1)+(a.battleFlatStats?.magic??0),speed:Math.round(a.stats?.speed??1)+(a.battleFlatStats?.speed??0)};const passive=getJobPassive(a.currentJob);if(passive){out.stats[passive.stat]=Math.max(1,Math.round(out.stats[passive.stat]*(1+passive.rate)));out.jobPassive=passive.name;}}return out;};
 export function createBattle(activeParty,enemy,options={}){
  const enemies=Array.isArray(enemy)?enemy:[enemy];
  const actors=[...activeParty.map(a=>({...cloneActor(a),side:'ally',statusAilments:[],statusResistTurns:{}})),...enemies.map(e=>{const actor={...cloneActor(e),side:'enemy'};actor.ai=ensureEnemyStatusAi(actor);if(actor.isBoss){actor.maxHp=Math.round((actor.maxHp??actor.hp??1)*1.25);actor.hp=actor.maxHp;actor.stats??={};for(const k of ['attack','defense','magic'])actor.stats[k]=Math.round((actor.stats[k]??1)*1.30);actor.stats.speed=Math.round((actor.stats.speed??1)*1.08);actor.bossUpdate26Boost=true;if(actor.eventEnemy){actor.eventBoss=true;actor.eventInstantDeathChance=actor.eventInstantDeathChance??.05;actor.eventInstantDeathName=actor.eventInstantDeathName??'死の宣告';}}return actor;})];
