@@ -23,8 +23,8 @@ export const RAID_JOB_PROFILES={
  pirateKing:{role:'physical',power:'attack',speedWeight:.15,damage:1.05,guard:.90,heal:.65,support:2},
  sniper:{role:'physical',power:'attack',speedWeight:.10,damage:1.20,guard:.75,heal:.55,support:1},
  paladin:{role:'tank',power:'attack',damage:.85,guard:1.80,heal:.90,support:2},
- bard:{role:'support',power:'magic',damage:.75,guard:.85,heal:.90,support:3},
- trickster:{role:'support',power:'magic',damage:.80,guard:.75,heal:.70,support:3},
+ bard:{role:'support',power:'magic',speedWeight:.15,damage:.75,guard:.85,heal:.90,support:3},
+ trickster:{role:'support',power:'magic',speedWeight:.15,damage:.80,guard:.75,heal:.70,support:3},
  bishop:{role:'healer',power:'magic',damage:.75,guard:1.05,heal:1.90,support:2},
  highWizard:{role:'magic',power:'magic',damage:1.35,guard:.70,heal:.65,support:1},
  berserker:{role:'physical',power:'attack',damage:1.25,guard:.65,heal:.45,support:1,enrage:.50}
