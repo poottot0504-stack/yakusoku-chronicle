@@ -1,4 +1,5 @@
 import { getMashoSetCount } from '../core/masho-set.js';
+import { equipmentCandidateVisible } from './equipment-search.js';
 import { EQUIPMENT } from '../data/equipment.js';
 import { canEquip, canEquipForJob, equipmentJobLabel } from '../core/equipment.js';
 import { getEnhancedStats } from '../core/forge.js';
@@ -72,8 +73,8 @@ function conditionInfo(c,def,state,inst){
   if(!ok)return {ok:false,jobOk:true,reason:'現在の装備条件では装備できません'};
   return {ok:true,jobOk:true,reason:`装備可能　必要職業Lv ${required}`};
 }
-function candidateGroupMarkup(state,c,g,wearers,selected){
-  const def=g.def,cat=equipmentCategoryFor(def),hasUnequipped=g.unequipped.length>0,hidden=selected==='unequipped'?!hasUnequipped:selected!=='all'&&selected!==cat;
+function candidateGroupMarkup(state,c,g,wearers,selected,query=''){
+  const def=g.def,cat=equipmentCategoryFor(def),hasUnequipped=g.unequipped.length>0,hidden=!equipmentCandidateVisible({category:selected,itemCategory:cat,unequipped:hasUnequipped,name:def.name,query});
   const selectedWorn=g.equipped.find(x=>x.wear?.character?.id===c.id);
   const representative=g.unequipped[0]??selectedWorn?.inst??g.instances[0];
   const cond=conditionInfo(c,def,state,representative);
@@ -86,7 +87,7 @@ function candidateGroupMarkup(state,c,g,wearers,selected){
   const disabled=!cond.ok||isCurrent;
   const jobLabel=equipmentJobLabel(def);
   const details=[resistanceText(def),jobLabel].filter(Boolean);
-  return `<article class="equipment-group-card ${cond.ok?'can-equip':'cannot-equip'}" data-equipment-category-value="${cat}" data-equipment-unequipped="${hasUnequipped?'1':'0'}" ${hidden?'hidden':''}>
+  return `<article class="equipment-group-card ${cond.ok?'can-equip':'cannot-equip'}" data-equipment-category-value="${cat}" data-equipment-unequipped="${hasUnequipped?'1':'0'}" data-equipment-search-name="${esc(def.name)}" ${hidden?'hidden':''}>
     <div class="equipment-group-head"><div><b>${esc(def.name)} +${Number(representative.enhanceLevel??0)}</b>${g.instances.length>1?`<strong class="equipment-stack-count">×${g.instances.length}</strong>`:''}</div><span class="equipment-condition ${cond.ok?'ok':'ng'}">${esc(cond.reason)}</span></div>
     <div class="equipment-primary-stats">${esc(candidateStats(representative))}</div>
     <div class="equipment-owner-line"><span>${ownerText}</span>${freeText?`<span>🧳 ${esc(freeText)}</span>`:''}</div>
@@ -100,7 +101,7 @@ function candidateGroupMarkup(state,c,g,wearers,selected){
 
 export function itemTargetMarkup(state,item={}){const chars=(state.characters??[]).filter(c=>item.canTargetKo||(c.hp??0)>0);return `<section class="target-list">${chars.map(c=>`<button data-target="${c.id}">${esc(c.name)}</button>`).join('')}</section>`;}
 
-export function equipmentMarkup(state,characterId){
+export function equipmentMarkup(state,characterId,searchQuery=''){
   const c=(state.characters??[]).find(x=>x.id===characterId);if(!c)return '<p>キャラクターが見つかりません</p>';
   const slots=['weapon','shield','head','body','arms','waist','legs','accessory1','accessory2'];
   const wearers=wearerMap(state);
@@ -121,9 +122,10 @@ export function equipmentMarkup(state,characterId){
     const cat=slotCategory(slot),x=defFor(state,c.equipment?.[slot]),hidden=selected==='unequipped'||selected!=='all'&&selected!==cat;
     return `<div class="equipment-slot" data-equipment-current-category="${cat}" ${hidden?'hidden':''}><span class="equipment-slot-icon" title="${LABEL[slot]}"><span class="equipment-pixel-crop equipment-pixel-${slot}"><img src="./assets/equipment-slots/pixel-equipment-sheet.png" alt="${LABEL[slot]}" width="1254" height="1254"></span></span><span class="equipment-slot-label">${LABEL[slot]}</span><strong>${esc(x?.def?.name??'なし')}${x?.inst?` +${Number(x.inst.enhanceLevel??0)}`:''}</strong>${x?.inst?`<small>${esc(candidateStats(x.inst))} / 必要職業Lv ${getRequiredJobLevel(x.def,x.inst)}</small>`:''}</div>`;
   }).join('');
-  const candidateCards=groups.map(g=>candidateGroupMarkup(state,c,g,wearers,selected)).join('');
+  const candidateCards=groups.map(g=>candidateGroupMarkup(state,c,g,wearers,selected,searchQuery)).join('');
   const totalResist=getEquipmentElementResist(state,c),totalResistText=RESIST_KEYS.map(k=>`${elementLabel(k)} ${Math.round(totalResist[k]*100)}%`).join(' / ');
   const equippedCount=slots.filter(slot=>!!c.equipment?.[slot]).length,totalCopies=rows.length;
-  const visibleGroups=groups.filter(g=>selected==='unequipped'?g.unequipped.length>0:selected==='all'||equipmentCategoryFor(g.def)===selected).length;
-  return `<section class="panel equipment equipment-screen"><div class="section-title"><h2>⚔️ 装備</h2><span>${esc(c.name)}</span></div>${tabs}<div class="equipment-overview"><b>${esc(c.name)}の装備</b><span>${equippedCount}/9部位</span><span>所持 ${groups.length}種 / ${totalCopies}個</span><button data-recommend-equipment class="equipment-recommend-button">✨ おすすめ装備</button></div><p class="equipment-recommend-note">おすすめ装備は現在の職業・職業Lv・能力傾向から自動選択します。他の仲間が装備中の品は取りません。</p><p class="notice equipment-resistance-total"><b>🛡️ 装備属性耐性</b><br>${totalResistText}<br><small>属性ダメージを軽減します（各属性 最大75%）。</small></p><p class="notice">魔障シリーズ ${getMashoSetCount(state,c)}/9部位${getMashoSetCount(state,c)===9?'：セット効果発動！ 全能力＋10':'：9部位で攻撃・防御・魔法・素早さ・最大HP・最大MP＋10'}</p><div class="equipped-slots">${current}</div></section><section class="panel equipment-candidates"><div class="equipment-list-head"><div><h2>${selected==='unequipped'?'未装備一覧':'装備候補'}</h2><small>${visibleGroups}種を表示</small></div><button data-open-sell-shop class="equipment-organize-button">💰 整理・売却</button></div>${selected==='unequipped'?'<p class="notice">未装備の在庫が1個以上ある種類だけを表示。装備中の仲間も同じカードで確認できます。</p>':'<p class="notice">同じ装備はまとめて表示。装備中の仲間と、現在装備との能力差がすぐ確認できます。</p>'}<div class="equipment-group-list">${candidateCards||'<p class="notice">装備アイテムがありません。</p>'}</div><p class="notice equipment-category-empty" hidden>${selected==='unequipped'?'未装備のアイテムがありません。':'このカテゴリに装備できるアイテムがありません。'}</p></section>`;
+  const visibleGroups=groups.filter(g=>equipmentCandidateVisible({category:selected,itemCategory:equipmentCategoryFor(g.def),unequipped:g.unequipped.length>0,name:g.def.name,query:searchQuery})).length;
+  const emptyMessage=String(searchQuery).trim()?'検索に一致する装備がありません。':selected==='unequipped'?'未装備のアイテムがありません。':'このカテゴリに装備できるアイテムがありません。';
+  return `<section class="panel equipment equipment-screen"><div class="section-title"><h2>⚔️ 装備</h2><span>${esc(c.name)}</span></div>${tabs}<div class="equipment-overview"><b>${esc(c.name)}の装備</b><span>${equippedCount}/9部位</span><span>所持 ${groups.length}種 / ${totalCopies}個</span><button data-recommend-equipment class="equipment-recommend-button">✨ おすすめ装備</button></div><p class="equipment-recommend-note">おすすめ装備は現在の職業・職業Lv・能力傾向から自動選択します。他の仲間が装備中の品は取りません。</p><p class="notice equipment-resistance-total"><b>🛡️ 装備属性耐性</b><br>${totalResistText}<br><small>属性ダメージを軽減します（各属性 最大75%）。</small></p><p class="notice">魔障シリーズ ${getMashoSetCount(state,c)}/9部位${getMashoSetCount(state,c)===9?'：セット効果発動！ 全能力＋10':'：9部位で攻撃・防御・魔法・素早さ・最大HP・最大MP＋10'}</p><div class="equipped-slots">${current}</div></section><section class="panel equipment-candidates"><div class="equipment-list-head"><div><h2>${selected==='unequipped'?'未装備一覧':'装備候補'}</h2><small aria-live="polite">${visibleGroups}種を表示</small></div><button data-open-sell-shop class="equipment-organize-button">💰 整理・売却</button></div>${selected==='unequipped'?'<p class="notice">未装備の在庫が1個以上ある種類だけを表示。装備中の仲間も同じカードで確認できます。</p>':'<p class="notice">同じ装備はまとめて表示。装備中の仲間と、現在装備との能力差がすぐ確認できます。</p>'}<div class="equipment-search"><label for="equipment-search-input">🔎 装備名で検索</label><div class="equipment-search-controls"><input id="equipment-search-input" data-equipment-search type="search" value="${esc(searchQuery)}" placeholder="装備名を入力（例：魔障）" maxlength="100" autocomplete="off" aria-label="装備名で検索"><button type="button" data-equipment-search-clear ${String(searchQuery).trim()?'':'hidden'}>クリア</button></div></div><div class="equipment-group-list">${candidateCards||'<p class="notice">装備アイテムがありません。</p>'}</div><p class="notice equipment-category-empty" ${visibleGroups>0?'hidden':''}>${emptyMessage}</p></section>`;
 }
