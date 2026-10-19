@@ -59,6 +59,13 @@ export function equipItem(state,characterId,instanceId,slot){
  if(item.slot==='weapon'&&item.twoHanded&&c.equipment.shield)c.equipment.shield=null;
  c.equipment[slot]=instanceId;for(const wearer of changed)clampResources(state,wearer);return c;
 }
+export function toggleEquipmentLock(state,instanceId){
+ const instance=(state.equipmentInventory??[]).find(item=>item.instanceId===instanceId);
+ if(!instance)throw new Error('装備が見つかりません');
+ instance.locked=instance.locked!==true;
+ return {instance,locked:instance.locked};
+}
+
 export function unequipAllEquipment(state,characterId){
  const character=(state.characters??[]).find(c=>c.id===characterId);
  if(!character)throw new Error('キャラクターが見つかりません');
