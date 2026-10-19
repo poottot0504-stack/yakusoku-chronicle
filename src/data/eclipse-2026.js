@@ -4,6 +4,8 @@
 export const ECLIPSE_EVENT=Object.freeze({
  id:'eclipse-gate-2026',
  name:'星蝕の異界門',
+ announcementStart:Date.parse('2026-10-28T00:00:00+09:00'),
+ banner:'./assets/events/eclipse-gate-2026.svg',
  startsAt:Date.parse('2026-10-31T00:00:00+09:00'),
  endsAt:Date.parse('2026-11-02T00:00:00+09:00')
 });
@@ -18,9 +20,10 @@ export const ECLIPSE_MATERIALS=Object.freeze({
 
 export const ECLIPSE_TIERS=Object.freeze([
  Object.freeze({id:'i',label:'Ⅰ',requiredLevel:1,rarity:'rare',weapon:26,armor:12,ring:9,charm:10,hp:45,mp:20,speed:2,gold:550}),
- Object.freeze({id:'ii',label:'Ⅱ',requiredLevel:100,rarity:'epic',weapon:92,armor:48,ring:27,charm:32,hp:180,mp:70,speed:8,gold:3800})
+ Object.freeze({id:'ii',label:'Ⅱ',requiredLevel:1,rarity:'epic',weapon:92,armor:48,ring:27,charm:32,hp:180,mp:70,speed:8,gold:3800})
 ]);
 
+// Rank I and II are both equippable at Job Lv 1, even after enhancement.
 // Include advanced weapon types (gunblade and starGlobe) so none of the 20 jobs
 // are left without an event weapon. The equipment job rules remain authoritative.
 export const ECLIPSE_WEAPONS=Object.freeze([
@@ -53,7 +56,7 @@ export const ECLIPSE_ARMOR=Object.freeze([
 
 export const ECLIPSE_EQUIPMENT={};
 for(const tier of ECLIPSE_TIERS){
- const shared={requiredLevel:tier.requiredLevel,rarity:tier.rarity,eventLimited:true,eventId:ECLIPSE_EVENT.id,elementAffinity:'dark',description:'星蝕の異界門・ハロウィン特別編の限定装備。イベント終了後も獲得済み素材で生産可能。'};
+ const shared={requiredLevel:tier.requiredLevel,noEventLevelScaling:true,rarity:tier.rarity,eventLimited:true,eventId:ECLIPSE_EVENT.id,elementAffinity:'dark',description:'星蝕の異界門・ハロウィン特別編の限定装備。イベント終了後も獲得済み素材で生産可能。'};
  for(const w of ECLIPSE_WEAPONS){
   const id=`eclipse-${tier.id}-${w.id}`;
   ECLIPSE_EQUIPMENT[id]={...shared,id,name:`${w.name} ${tier.label}`,slot:'weapon',weaponType:w.type,...(w.twoHanded?{twoHanded:true}:{}),[w.stat]:tier.weapon,...(w.fast?{speed:tier.speed}:{})};
