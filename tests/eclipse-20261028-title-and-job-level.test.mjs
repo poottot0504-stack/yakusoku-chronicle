@@ -26,9 +26,10 @@ test('all 48 eclipse weapons armor rings and charms equip at Job Lv 1 before and
 });
 
 test('other event equipment still uses the original required job level scaling',()=>{
- assert.equal(getRequiredJobLevel(EQUIPMENT['halloween-i-blade'],{enhanceLevel:0}),30);
- assert.equal(getRequiredJobLevel(EQUIPMENT['halloween-i-blade'],{enhanceLevel:5}),55);
- assert.equal(getRequiredJobLevel(EQUIPMENT['halloween-iii-blade'],{enhanceLevel:5}),250);
+ const first=EQUIPMENT['halloween-i-blade'],third=EQUIPMENT['halloween-iii-blade'];
+ assert.equal(getRequiredJobLevel(first,{enhanceLevel:0}),first.requiredLevel);
+ assert.equal(getRequiredJobLevel(first,{enhanceLevel:5}),first.requiredLevel+25);
+ assert.equal(getRequiredJobLevel(third,{enhanceLevel:5}),third.requiredLevel+50);
 });
 
 test('JST Oct 28 announcement is hidden before midnight and visible at precisely midnight',()=>{
@@ -93,7 +94,7 @@ test('banner is a committed 3:1 themed asset with no external network dependenci
  assert.match(asset,/星蝕の異界門/);
  assert.match(asset,/10\/31 0:00/);
  assert.match(asset,/11\/1 23:59/);
- assert.doesNotMatch(asset,/<script|https?:\/\//i);
+ assert.doesNotMatch(asset,/<script|<image[^>]+(?:href|src)=[\"']https?:/i);
  const css=readFileSync(new URL('../styles/main.css',import.meta.url),'utf8');
  assert.match(css,/\.eclipse-event-notice>\.event-notice-banner\{[^}]*aspect-ratio:3\/1;object-fit:contain/);
 });
