@@ -14,7 +14,7 @@ import { getNpcsForLocation } from '../core/npcs.js';
 import { npcCardsMarkup } from './npcs.js';
 import { rankingApologyNpcCardMarkup } from './ranking-apology.js';
 import { huntCountApologyNpcMarkup } from './hunt-count-apology.js';
-import { eventQuestMarkup } from './events.js';
+import { eventQuestMarkup } from './events.js?v=eclipse-battles-20261020';
 import { raidEventQuestMarkup } from './raid.js';
 import { getInnPrice } from '../core/inn.js';
 import { getMiningCharges } from '../core/gathering.js';

@@ -49,7 +49,7 @@ import { questsMarkup } from './ui/quests.js';
 import { achievementsMarkup } from './ui/achievements.js';
 import { forgeMarkup } from './ui/forge.js?v=equipped-by-20261010';
 import { battleMarkup } from './ui/battle.js';
-import { adventureMarkup, townMarkup, endingMarkup, endgameMarkup } from './ui/adventure.js?v=hunt-count-apology-20261016';
+import { adventureMarkup, townMarkup, endingMarkup, endgameMarkup } from './ui/adventure.js?v=hunt-count-apology-20261016-eclipse-20261020';
 import { QUESTS } from './data/quests.js';
 import { acceptQuestFromNpc, reportQuestToNpc, updateQuestProgress, getVisibleQuestDefinitions } from './core/quests.js';
 import { npcConversationMarkup } from './ui/npcs.js';
@@ -64,16 +64,18 @@ import { itemsMarkup } from './ui/items.js';
 import { shopMarkup, sellShopMarkup } from './ui/shop.js';
 import { getItemDef, useFieldItem, getUsableInventory, useBattleItem, canUseItemOn } from './core/items.js';
 import { EQUIPMENT } from './data/equipment.js';
-import { awardBattleDrops, mergeDropTotals, formatDropLines } from './core/drops.js?v=material2x-raid10-20261009';
+import { awardBattleDrops, mergeDropTotals, formatDropLines } from './core/drops.js?v=material2x-raid10-20261009-eclipse20261020';
+import { awardEclipseWaveBonus } from './core/eclipse-rewards.js';
 import { makeTrainingEnemy, TRAINING_AREAS } from './core/training-boundary.js';
 import { makeGuildHuntEnemy } from './core/guild-hunts.js';
 import { createOathbreakerEnemy, settleOathbreakerVictory } from './core/oathbreakers.js';
 import { createEidelEnemy, settleEidelVictory } from './core/eidel.js';
 import { craftPromiseChronicle, usePromiseChronicle } from './core/promise-chronicle.js';
 import { formatPlayTime, addElapsedPlayTime } from './core/play-time.js';
-import { isTwinStarFestivalActive, isHalloweenActive, makeHalloweenWave, getNextHalloweenWave, recordHalloweenWaveEncounters, halloweenCharacterExpMultiplier, isTrainingFestivalActive, makeTrainingFestivalWave, getNextTrainingFestivalWave, getNextEventBoundary } from './core/events.js?v=training-easier-20261010';
+import { isTwinStarFestivalActive, isHalloweenActive, makeHalloweenWave, getNextHalloweenWave, recordHalloweenWaveEncounters, halloweenCharacterExpMultiplier, isTrainingFestivalActive, makeTrainingFestivalWave, getNextTrainingFestivalWave, getNextEventBoundary, getEclipseEventStatus, makeEclipseWave, getNextEclipseWave } from './core/events.js?v=training-easier-20261010-eclipse20261020';
 import { HALLOWEEN_EVENT, TRAINING_FESTIVAL, TWIN_STAR_FESTIVAL } from './data/events.js';
-import { twinStarFestivalDetailsMarkup, titleEventNoticeMarkup, halloweenEventDetailsMarkup, trainingFestivalDetailsMarkup, jobReleaseDetailsMarkup, eclipseEventDetailsMarkup } from './ui/events.js?v=market-reopen-20261014-eclipse-20261020';
+import { ECLIPSE_EVENT } from './data/eclipse-2026.js';
+import { twinStarFestivalDetailsMarkup, titleEventNoticeMarkup, halloweenEventDetailsMarkup, trainingFestivalDetailsMarkup, jobReleaseDetailsMarkup, eclipseEventDetailsMarkup } from './ui/events.js?v=market-reopen-20261014-eclipse-20261020-battles';
 import { raidDetailsMarkup } from './ui/raid.js?v=material2x-raid10-20261009';
 import { createRaidApi,getRaidPlayerId } from './raid/raidApi.js';
 import { raidJoinButtonState,raidJoinLoadingMarkup,withRaidJoinTimeout } from './raid/raidJoinUi.js?v=material2x-raid10-20261009';
@@ -342,6 +344,23 @@ function awardSpecialBattleExperience(){
  state.adventure.message=['試練勝利！',...result.levelUps].join('\n');auditVictory(battleMeta,exp);return result;
 }
 function startBattle(enemy,{boss=false,rematch=false,trainingArea=null,guildQuestId=null,exploration=false}={}){const enemies=Array.isArray(enemy)?enemy:[enemy];battleMeta={regionId:guildQuestId?enemies[0].regionId:state.adventure.regionId,boss,rematch,trainingArea,guildQuestId,exploration,rareEncounter:enemies.some(x=>x.rareMonster),enemy:enemies[0],enemies,auditBefore:captureProgressionSnapshot(state)};battle=createAdventureBattle(enemies,{isBoss:boss});battle.gold=enemies.reduce((n,e)=>n+(e.gold??0),0);battle.exp=enemies.reduce((n,e)=>n+(e.exp??0),0);battle.jobExp=enemies.reduce((n,e)=>n+(e.jobExp??0),0);startTurn(battle);renderBattle();}
+// Three genuine battles with HP/MP carried between waves. Each victory saves
+// materials immediately, including battles started just before the event closes.
+function startEclipseWave(wave=1){
+ if(!getEclipseEventStatus().active)return toast('星蝕の異界門は開催期間外です（日本時間）');
+ if(wave===1){
+  state.adventure??={};
+  state.adventure.eclipseLevelUps=[];
+  state.adventure.eclipseDrops=[];
+ }
+ const now=Date.now();
+ const enemies=makeEclipseWave(state,wave);
+ recordHalloweenWaveEncounters(state,enemies);
+ battleMeta={regionId:'event:eclipse-gate-2026',boss:wave===3,rematch:false,eventId:ECLIPSE_EVENT.id,eventWave:wave,eventStartedAt:now,enemy:enemies[0],enemies,auditBefore:captureProgressionSnapshot(state)};
+ battle=createAdventureBattle(enemies,{isBoss:wave===3});
+ startTurn(battle);
+ renderBattle();
+}
 function startHalloweenWave(wave=1){if(wave===1&&!isHalloweenActive())return toast('イベント開催期間外です');if(wave===1){state.adventure??={};state.adventure.halloweenLevelUps=[];state.adventure.halloweenDrops=[];}const enemies=makeHalloweenWave(state,wave);recordHalloweenWaveEncounters(state,enemies);battleMeta={regionId:'event:halloween-2026',boss:wave===3,rematch:false,eventId:'halloween-2026',eventWave:wave,enemy:enemies[0],enemies,auditBefore:captureProgressionSnapshot(state)};battle=createAdventureBattle(enemies,{isBoss:wave===3});battle.gold=enemies.reduce((n,e)=>n+(e.gold??0),0);battle.exp=enemies.reduce((n,e)=>n+(e.exp??0),0);battle.jobExp=enemies.reduce((n,e)=>n+(e.jobExp??0),0);startTurn(battle);renderBattle();}
 function checkBattleState(){if(!battle||battlePlayback===battle)return;const out=outcomeOf(battle);if(out==='victory')return finishBattleVictory();if(out==='defeat')return finishBattleDefeat();if(battle.phase==='complete'){finishTurn(battle);startTurn(battle);const next=outcomeOf(battle);if(next==='defeat')return finishBattleDefeat();renderBattle();}}
 function auditVictory(meta,expAwarded=0){
@@ -390,6 +409,21 @@ function finishBattleVictory(){clearNormalAuto();syncPlayTime();syncBattlePartyT
    toast(stopped?`魔障の洞窟 連戦終了！ ${completed}/${total}戦`:`魔障の洞窟 10連戦クリア！`);return;
   }
   saveNow();battle=null;battleScreen.classList.remove('active');view='masho';renderGame();toast(`魔障の洞窟 第${floor}階層クリア！`);return;
+ }
+ if(battleMeta.eventId===ECLIPSE_EVENT.id){
+  const wave=battleMeta.eventWave??1;
+  const defeated=battleMeta.enemies??[e];
+  const result=recordAdventureVictory(state,{regionId:'event:eclipse-gate-2026',boss:false,enemyIds:defeated.map(x=>x.bestiaryId??x.id),exp:battle.exp??0,gold:battle.gold??0,jobExp:battle.jobExp??0,countsForExploration:false});
+  auditVictory(battleMeta,battle.exp??0);
+  state.adventure.eclipseLevelUps=mergeLatestLevelUps(state.adventure.eclipseLevelUps??[],result.levelUps);
+  const randomDrops=awardBattleDrops(state,defeated,Math.random,battleMeta.eventStartedAt);
+  const guaranteed=awardEclipseWaveBonus(state,defeated,wave,battleMeta.eventStartedAt);
+  state.adventure.eclipseDrops=mergeDropTotals(state.adventure.eclipseDrops??[],[...randomDrops,...guaranteed]);
+  const next=getNextEclipseWave(wave),canContinue=next&&getEclipseEventStatus().active;
+  state.adventure.message=[`🌌 星蝕の異界門 ${wave}/3戦 勝利！`,...state.adventure.eclipseLevelUps,...formatDropLines(state.adventure.eclipseDrops),wave===3?'🏆 星蝕の支配者・ノクス討伐！ 限定素材を獲得！':canContinue?'⚔️ 次の異界戦へ！':'開催期間が終了しました。獲得済み報酬は保存しました。'].join(String.fromCharCode(10));
+  saveNow();battle=null;
+  if(canContinue)return startEclipseWave(next);
+  battleScreen.classList.remove('active');view='adventure';renderGame();toast(wave===3?'🌌 星蝕の異界門をクリア！': 'イベント終了。獲得した素材を保存しました');return;
  }
  if([TRAINING_FESTIVAL.id,TWIN_STAR_FESTIVAL.id].includes(battleMeta.eventId)){
   const festival=battleMeta.eventId===TWIN_STAR_FESTIVAL.id?TWIN_STAR_FESTIVAL:TRAINING_FESTIVAL;
@@ -1050,6 +1084,7 @@ document.addEventListener('click',e=>{
  if(el.dataset.raidItemTarget)return chooseRaidItemTarget(el.dataset.raidItemId,el.dataset.raidItemTarget);
  if(el.dataset.raidAction)return doRaidAction(el.dataset.raidAction);
  if(el.hasAttribute('data-raid-exit')){if(raidEndedReason!=='timeout')void tryClaimRaidReward(raidRoom,{silent:false});cancelRaidSession();closeModal();renderGame();raidLobbyPoller.start();return toast('レイドから退出しました。');}
+ if(el.hasAttribute('data-eclipse-event-start'))return startEclipseWave(1);
  if(el.hasAttribute('data-twin-star-festival-start'))return startTrainingFestivalWave(1,TWIN_STAR_FESTIVAL);
  if(el.hasAttribute('data-training-festival-start'))return startTrainingFestivalWave(1);
  if(el.hasAttribute('data-halloween-start'))return startHalloweenWave(1);
