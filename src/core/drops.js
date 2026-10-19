@@ -3,7 +3,7 @@ import { getItemDef } from './items.js';
 import { syncRecipeUnlocks } from './crafting.js';
 import { recordObservedDrop } from './bestiary.js';
 import { updateQuestProgress } from './quests.js';
-import { isHalloweenActive, isTrainingFestivalActive } from './events.js';
+import { isHalloweenActive, isTrainingFestivalActive, getEclipseEventStatus } from './events.js';
 import { TRAINING_FESTIVAL } from '../data/events.js';
 import { getDailyTravelBonus } from './daily-travel-bonus.js';
 import { BOOST_SCROLLS, BOOST_SCROLL_DROP_RATE, isBoostScrollActive } from './boost-scrolls.js';
@@ -44,6 +44,8 @@ export function awardBattleDrops(state,enemies=[],rng=Math.random,now=Date.now()
  for(const enemy of enemies){
   if(enemy.mashoBoss)continue;
   const base=ENEMIES[enemy.bestiaryId]??ENEMIES[enemy.id]??{};
+  // Only authentic live eclipse fights may award seasonal materials. No bestiary rematches.
+  if((enemy.eclipseEvent||base.eclipseEvent)&&((enemy.rematch||base.rematch)||!getEclipseEventStatus(now).active))continue;
   const eventEnemy=isEventEnemy(enemy,base);
   const monsterId=String(enemy.bestiaryId??enemy.id??'');
   const chapterRegion=base.regionId??enemy.regionId??'';
