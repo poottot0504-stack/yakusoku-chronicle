@@ -20,6 +20,8 @@ export const STATUS_LABELS={poison:'毒',burn:'火傷',paralysis:'麻痺',sleep:
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 BOSS_ART['trial-gunbreaker']=descriptor('specialJobs',2);
 BOSS_ART['trial-astrologian']=descriptor('specialJobs',3);
+// Nox reuses a dark boss pixel sprite from the existing oath atlas.
+BOSS_ART['event-eclipse-nox']=descriptor('oaths',4);
 const jobArt=job=>['gunbreaker','astrologian'].includes(job)?descriptor('specialJobs',job==='gunbreaker'?0:1):job==='highWizard'?descriptor('highWizardFemale',0):descriptor('jobs',Math.max(0,JOB_ART_IDS.indexOf(job)));
 export function actorArt(actor={}){
  if(actor.side==='ally')return jobArt(actor.currentJob);
@@ -30,7 +32,7 @@ export function actorArt(actor={}){
  const known=Object.keys(BOSS_ART).sort((a,b)=>b.length-a.length).find(k=>id.startsWith(k+'-w'));
  if(known)return BOSS_ART[known];
  if(id.startsWith('event-training-')){const job=id.slice(15).split('-w')[0];return {...jobArt(job),mirror:true};}
- const events={'event-halloween-pumpkin-slime':13,'event-halloween-ghost-wolf':14,'event-halloween-candy-mimic':15,'event-halloween-moon-wraith':8};
+ const events={'event-halloween-pumpkin-slime':13,'event-halloween-ghost-wolf':14,'event-halloween-candy-mimic':15,'event-halloween-moon-wraith':8,'event-eclipse-slime':13,'event-eclipse-mimic':15,'event-eclipse-wraith':8,'event-eclipse-dragonet':9};
  for(const [key,n]of Object.entries(events))if(id.startsWith(key))return descriptor('normal',n);
  if(id.startsWith('stormSiren'))return descriptor('normal',10);
  if(id.startsWith('mimic'))return descriptor('normal',11);
@@ -43,7 +45,7 @@ export function actorArt(actor={}){
 }
 export function liveStatuses(actor={}){return (actor.hp??1)>0&&!actor.escaped?(actor.statusAilments??[]).filter(x=>STATUS_LABELS[x.id]&&(x.turns==null||x.turns>0)):[];}
 function effects(actor){return liveStatuses(actor).map((s,i)=>`<span class="sprite-effect fx-${s.id}" style="--effect-delay:${i*.15}s" aria-hidden="true"><i></i><i></i><i></i>${s.id==='sleep'?'<b>Zzz</b>':s.id==='confusion'?'<b>★</b>':''}</span>`).join('');}
-export function backgroundIndex(state={},actors=[]){const ids=actors.map(a=>a.bestiaryId??a.id??'').join(' ');if(ids.includes('event-halloween'))return 10;if(ids.includes('event-training'))return 11;if(actors.some(a=>a.mashoBoss))return 3;if(actors.some(a=>a.raidBoss))return 9;const region=actors.find(a=>a.side==='enemy'&&a.regionId)?.regionId??state.adventure?.regionId;return Math.max(0,REGIONS.indexOf(region));}
+export function backgroundIndex(state={},actors=[]){const ids=actors.map(a=>a.bestiaryId??a.id??'').join(' ');if(ids.includes('event-halloween')||ids.includes('event-eclipse'))return 10;if(ids.includes('event-training'))return 11;if(actors.some(a=>a.mashoBoss))return 3;if(actors.some(a=>a.raidBoss))return 9;const region=actors.find(a=>a.side==='enemy'&&a.regionId)?.regionId??state.adventure?.regionId;return Math.max(0,REGIONS.indexOf(region));}
 // Three transparent cells in one shared image preserve the approved pixel design.
 function elementalSeal(element){
  const cell={fire:0,thunder:1,ice:2}[element];
