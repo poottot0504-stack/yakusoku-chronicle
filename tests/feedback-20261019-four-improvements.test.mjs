@@ -94,7 +94,7 @@ test('equipment details include per-instance locked/available sale states and gu
  assert.match(html,/data-equip-sell-ask="gold-3"/);
  assert.match(html,/data-equipment-details-key=/);
  assert.match(html,/詳細・売却・ロック/);
- assert.match(html,/🔒 ロック解除/);
+ assert.match(html,/🔓 ロック解除/);
 });
 
 test('ten Masho battles settle one at a time, keep rare drop rate, and grant fifth-clear materials',()=>{
