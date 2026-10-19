@@ -1,4 +1,5 @@
 import { ENEMY_LIST } from '../data/enemies.js';
+import { ECLIPSE_MATERIALS } from '../data/eclipse-2026.js';
 import { getCharacterResourceCaps } from './combat-stats.js';
 
 export const ITEMS={
@@ -69,7 +70,8 @@ export const ITEMS={
  mythrilPick:{id:'mythrilPick',name:'ミスリルのつるはし',icon:'⛏️',description:'希少な鉱石を採掘できる丈夫な道具'},
  firstPromise:{id:'firstPromise',name:'最初の約束',icon:'📜',description:'ヴァルゼインが遺した大事なもの'},promiseChronicleFragment:{id:'promiseChronicleFragment',name:'約束のクロニクルのかけら',icon:'✨',description:'12個集めると失われた約束を復元できる'},promiseChronicle:{id:'promiseChronicle',name:'約束のクロニクル',icon:'📖',description:'エイデルのHPが50%以下の時だけ使える特別なアイテム'},
  memoryBark:{id:'memoryBark',name:'忘却樹の樹皮',icon:'🌲',description:'Lv200帯の鍛冶素材'},blazeOre:{id:'blazeOre',name:'灼熱鉱',icon:'🔥',description:'Lv220帯の鍛冶素材'},nightRelic:{id:'nightRelic',name:'常闇の遺物',icon:'🌑',description:'Lv240帯の鍛冶素材'},thunderCrystal:{id:'thunderCrystal',name:'天雷結晶',icon:'⚡',description:'Lv260帯の鍛冶素材'},riftShard:{id:'riftShard',name:'狭間の欠片',icon:'👁️',description:'Lv280帯の鍛冶素材'},promiseOre:{id:'promiseOre',name:'約束鉱',icon:'✦',description:'Lv300帯の最高級鍛冶素材'},
- 'promise-memory':{id:'promise-memory',name:'約束の思い出',icon:'💍',description:'すべての魔物との戦いを記した指輪'}
+ 'promise-memory':{id:'promise-memory',name:'約束の思い出',icon:'💍',description:'すべての魔物との戦いを記した指輪'},
+ ...ECLIPSE_MATERIALS
 };
 
 function enemyMaterialDef(id){

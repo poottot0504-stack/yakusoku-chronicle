@@ -1,4 +1,5 @@
 import { EQUIPMENT } from './equipment.js';
+import { ECLIPSE_EVENT,ECLIPSE_TIERS,ECLIPSE_WEAPONS,ECLIPSE_ARMOR,ECLIPSE_MATERIALS,eclipseRecipeMaterials } from './eclipse-2026.js';
 import { NORMAL_ENEMY_LIST } from './enemies.js';
 const R={};let order=1;const add=(r)=>{R[r.id]={tier:1,displayOrder:order++,...r};};
 const metals=[['copper','銅','copperOre','copperIngot',1],['iron','鉄','ironOre','ironIngot',2],['gold','金','goldOre','goldIngot',3],['platinum','プラチナ','platinumOre','platinumIngot',4],['mythril','ミスリル','mythrilOre','mythrilIngot',5],['star','星晶','starCrystal','starIngot',6]];
@@ -176,3 +177,17 @@ for(const tier of HIGH_FORGE_RECIPE_TIERS)for(const job of HIGH_FORGE_JOB_IDS)fo
 }
 
 add({id:'leatherWaistRecipe',name:'革の腰帯',category:'armor',tier:1,gold:90,output:{kind:'equipment',equipmentId:'leatherWaist',quantity:1},materials:{'monster001-material':1},unlock:{type:'story'}});
+
+// Star-eclipse Halloween event: equipment recipes may be crafted after the event,
+// but never before its actual opening. Receiving ingredients is handled separately.
+const ECLIPSE_PARTS=[
+ ...ECLIPSE_WEAPONS.map(w=>({part:w.id,category:'weapon'})),
+ ...ECLIPSE_ARMOR.map(a=>({part:a.id,category:'armor'})),
+ {part:'ring',category:'ring'},{part:'charm',category:'charm'}
+];
+for(const tier of ECLIPSE_TIERS)for(const {part,category} of ECLIPSE_PARTS){
+ const equipmentId=`eclipse-${tier.id}-${part}`,def=EQUIPMENT[equipmentId];
+ if(!def)throw new Error(`星蝕装備が見つかりません: ${equipmentId}`);
+ const materials=eclipseRecipeMaterials(tier.id,part);
+ add({id:`craft-${equipmentId}`,name:`🌘 ${def.name}`,category,tier:tier.id==='i'?7:12,gold:category==='weapon'?tier.gold:category==='armor'?Math.round(tier.gold*.75):Math.round(tier.gold*.6),eventId:ECLIPSE_EVENT.id,eventName:ECLIPSE_EVENT.name,eventStartsAt:ECLIPSE_EVENT.startsAt,eventEndsAt:ECLIPSE_EVENT.endsAt,output:{kind:'equipment',equipmentId,quantity:1},materials,unlock:{type:'anyMaterial',materialIds:Object.keys(ECLIPSE_MATERIALS)}});
+}

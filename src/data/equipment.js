@@ -1,6 +1,7 @@
 import { MASHO_ABYSS_WEAPONS } from './masho-abyss-weapons.js';
 import { FESTIVAL_EQUIPMENT } from './hunt-festival.js';
 import { MASHO_EQUIPMENT } from './masho-equipment.js';
+import { ECLIPSE_EQUIPMENT } from './eclipse-2026.js';
 import { OATHBREAKER_DATA } from './oathbreakers.js';
 import { NORMAL_ENEMY_LIST } from './enemies.js';
 export const WEAPON_TYPES=['oneHandSword','greatSword','dagger','fist','staff','greatStaff','spear','axe','bow','mace','dualBlades','katana','instrument','cards'];
@@ -368,6 +369,9 @@ for(const def of Object.values(EQUIPMENT)){
 Object.assign(EQUIPMENT,FESTIVAL_EQUIPMENT);
 
 Object.assign(EQUIPMENT,MASHO_ABYSS_WEAPONS);
+
+// Limited 2026 eclipse gear follows normal equip, resistance, upgrade and save rules.
+for(const def of Object.values(ECLIPSE_EQUIPMENT))EQUIPMENT[def.id]=E(def.id,def.name,def.slot,def);
 
 // 2026-10-15 全装備の緩やかな基礎能力向上。既存品・未入手品の両方に適用。
 // ゲームデータとセーブに倍率を二重記録しないため、読み込み時だけ一度計算する。
