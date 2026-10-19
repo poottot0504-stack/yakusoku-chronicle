@@ -2,6 +2,8 @@ import { HALLOWEEN_EVENT, TRAINING_FESTIVAL, TWIN_STAR_FESTIVAL } from '../data/
 import { getHalloweenStatus, getTrainingFestivalStatus, getTwinStarFestivalStatus } from '../core/events.js';
 import { getJobReleaseStatus } from '../core/job-release.js';
 import { raidAnnouncementMarkup } from './raid.js';
+import { ECLIPSE_EVENT } from '../data/eclipse-2026.js';
+import { getEclipseEventStatus } from '../core/events.js';
 
 export function getTrueEndingSequence(){return ['真ラスボスを倒した。','長い旅の果て、約束は果たされた。','なんだ…夢か…もう一回寝よう…'];}
 
@@ -15,12 +17,23 @@ export function jobReleaseDetailsMarkup(now=Date.now()){
 }
 
 
+// The announcement is a title-only promotion; it does not unlock event battles.
+export function eclipseEventNoticeMarkup(now=Date.now()){
+ const status=getEclipseEventStatus(now);
+ if(!status.announced)return '';
+ return `<button class="title-event-notice eclipse-event-notice ${status.active?'is-active':''}" data-eclipse-event-notice aria-label="星蝕の異界門・ハロウィン特別編の開催案内と詳細を表示"><img class="event-notice-banner" src="${ECLIPSE_EVENT.banner}" alt="星蝕の異界門 ハロウィン特別編 10月31日0時から11月1日23時59分"><span><b>${status.active?'🌌 星蝕の異界門 開催期間中！':'📢 10月31日より新イベント開催！'}</b><small>10/31 0:00 ～ 11/1 23:59（日本時間）</small><em class="title-event-cta">イベント詳細を見る 〉</em></span></button>`;
+}
+
+export function eclipseEventDetailsMarkup(){
+ return `<div class="event-details eclipse-event-details"><img class="event-detail-banner" src="${ECLIPSE_EVENT.banner}" alt="星蝕の異界門 ハロウィン特別編の開催案内"><h2>🌌 星蝕の異界門 ～ハロウィン特別編～</h2><p class="event-period">開催期間：2026年10月31日 0:00 ～ 11月1日 23:59（日本時間）</p><div class="event-benefits"><p><b>⚔️ 新たな異界のモンスターが登場予定！</b></p><p>🌘 星蝕の欠片・異界の魔石・亡霊の霊布・虚星の結晶・ノクスの心核の5つの限定素材を集めよう。</p><p>🎁 新たな武器16系統・防具6部位・指輪・チャーム。ランクⅠ・Ⅱの<b>限定装備48種類</b>が登場！</p><p>✨ 星蝕装備はすべて<b>ジョブLv1から装備可能</b>。強化しても必要ジョブLvは上がりません。職業ごとの武器制限は通常どおりです。</p><p>🔨 集めた素材は鍛冶屋のイベント装備で利用可能。<b>イベント終了後も生産できます。</b></p></div><p class="notice">📢 10月28日0時からの事前告知です。イベントへの参加・素材入手は10月31日の開催に向けて準備中です。開催期間前には挑戦できません。</p></div>`;
+}
+
 export function titleEventNoticeMarkup(now=Date.now()){
  const halloweenStatus=getHalloweenStatus(now),trainingStatus=getTrainingFestivalStatus(now);
  let notices='',trainingNotice='';
  if(halloweenStatus.announced){const active=halloweenStatus.active;notices+=`<button class="title-event-notice ${active?'is-active':''}" data-event-notice><img class="event-notice-banner" src="${HALLOWEEN_EVENT.banner}" alt="ハロウィンイベント 幻月祭"><span><b>${active?'🔥 イベント期間中！！':'📢 イベント実施のお知らせ'}</b><small>${active?'10/5 23:59まで開催中！':'10月3日より期間限定イベント開催！'}</small><em class="title-event-cta">詳細を見る 〉</em></span></button>`;}
  if(trainingStatus.announced){const active=trainingStatus.active;trainingNotice+=`<button class="title-event-notice training-festival-notice ${active?'is-active':''}" data-training-event-notice><img class="event-notice-banner" src="${TRAINING_FESTIVAL.banner}" alt="英雄の修練祭 ジョブ経験値2倍"><span><b>${active?'🔥 英雄の修練祭 開催中！':'📢 10月10日より開催！'}</b><small>${active?'ジョブ経験値2倍！ 10/12 23:59まで':'ジョブ経験値2倍イベント「英雄の修練祭」開催！'}</small><em class="title-event-cta">詳細を見る 〉</em></span></button>`;}
- return trainingNotice+twinStarFestivalNoticeMarkup(now)+raidAnnouncementMarkup(now)+notices+jobReleaseNoticeMarkup(now);
+ return eclipseEventNoticeMarkup(now)+trainingNotice+twinStarFestivalNoticeMarkup(now)+raidAnnouncementMarkup(now)+notices+jobReleaseNoticeMarkup(now);
 }
 export function halloweenEventDetailsMarkup(){return `<div class="event-details"><img class="event-detail-banner" src="${HALLOWEEN_EVENT.banner}" alt="ハロウィンイベント 幻月祭"><h2>🎃 幻月祭 ～パンプキンキングの夜～</h2><p class="event-period">開催期間：2026年10月3日 0:00 ～ 10月5日 23:59（JST）</p><div class="event-benefits"><p>⭐ <b>キャラクター経験値2倍</b></p><p>🎁 <b>イベント期間中はアイテムドロップ率1.5倍</b></p><p>⚔️ 全3連戦。<b>戦闘メンバーの最高Lv30以上：敵Lvは最高Lv＋3／＋4／＋5（全3戦）、HP・MP・攻撃・防御・魔法・素早さ2倍。最高Lv30未満は通常設定。</b></p><p>🔁 期間中は何度でも挑戦可能</p><p>🎃 限定素材からハロウィン装備 I / II / III を生産可能</p></div><p class="notice">イベント終了後も、入手済み素材と解放済みハロウィン装備レシピは残ります。</p></div>`;}
 export function trainingFestivalDetailsMarkup(){

@@ -1,4 +1,5 @@
 import { TWIN_STAR_FESTIVAL, HALLOWEEN_EVENT, HALLOWEEN_ENEMIES, TRAINING_FESTIVAL, TRAINING_FESTIVAL_ENEMIES } from '../data/events.js';
+import { ECLIPSE_EVENT } from '../data/eclipse-2026.js';
 import { recordEncounter } from './bestiary.js';
 import { bossAreaAttack } from './boss-skills.js';
 
@@ -10,6 +11,17 @@ export function getHalloweenStatus(now=Date.now()){
  return {phase:'ended',announced:false,active:false};
 }
 export const isHalloweenActive=(now=Date.now())=>getHalloweenStatus(now).active;
+
+// Event promotion appears at 2026-10-28 00:00 JST; battles start Oct 31.
+// Never resurrect the advertisement after 2026-11-02 00:00 JST.
+export function getEclipseEventStatus(now=Date.now()){
+ const t=Number(now);
+ if(t<ECLIPSE_EVENT.announcementStart)return {phase:'hidden',announced:false,active:false};
+ if(t<ECLIPSE_EVENT.startsAt)return {phase:'announced',announced:true,active:false};
+ if(t<ECLIPSE_EVENT.endsAt)return {phase:'active',announced:true,active:true};
+ return {phase:'ended',announced:false,active:false};
+}
+
 
 export function eventBossLevel(partyAverage){return Math.min(300,Math.max(1,Math.floor(Number(partyAverage)||1)+5));}
 
@@ -30,7 +42,7 @@ export function getTrainingFestivalStatus(now=Date.now()){
 }
 export const isTrainingFestivalActive=(now=Date.now())=>getTrainingFestivalStatus(now).active;
 export function getNextEventBoundary(now=Date.now()){
- const boundaries=[HALLOWEEN_EVENT,TRAINING_FESTIVAL,TWIN_STAR_FESTIVAL].flatMap(event=>[event.announcementStart,event.startsAt,event.endsAt]);
+ const boundaries=[HALLOWEEN_EVENT,TRAINING_FESTIVAL,TWIN_STAR_FESTIVAL,ECLIPSE_EVENT].flatMap(event=>[event.announcementStart,event.startsAt,event.endsAt]);
  return boundaries.filter(time=>time>now).sort((a,b)=>a-b)[0]??null;
 }
 /* Event difficulty: party average +3/+4/+5 by wave. */
