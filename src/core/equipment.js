@@ -59,6 +59,16 @@ export function equipItem(state,characterId,instanceId,slot){
  if(item.slot==='weapon'&&item.twoHanded&&c.equipment.shield)c.equipment.shield=null;
  c.equipment[slot]=instanceId;for(const wearer of changed)clampResources(state,wearer);return c;
 }
+export function unequipAllEquipment(state,characterId){
+ const character=(state.characters??[]).find(c=>c.id===characterId);
+ if(!character)throw new Error('キャラクターが見つかりません');
+ const slots=Object.keys(character.equipment??{});
+ const changed=slots.filter(slot=>Boolean(character.equipment[slot]));
+ for(const slot of changed)character.equipment[slot]=null;
+ clampResources(state,character);
+ return {character,removed:changed.length};
+}
+
 export function unequipItem(state,characterId,slot){const c=state.characters.find(x=>x.id===characterId);if(!c)throw new Error('キャラクターが見つかりません');const old=c.equipment[slot];c.equipment[slot]=null;return old;}
 export function getEquippedItems(character,state){return Object.values(character.equipment??{}).filter(Boolean).map(ref=>typeof ref==='object'?ref:state?.equipmentInventory?.find(x=>x.instanceId===ref)??null).filter(Boolean);}
 
