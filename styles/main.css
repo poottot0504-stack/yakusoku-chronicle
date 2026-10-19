@@ -888,3 +888,11 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
  .masho-floor-actions{gap:6px}
  .masho-floor-actions .wide-button{padding:.5rem .25rem;font-size:.7rem}
 }
+
+/* 2026 星蝕の異界門 title announcement: readable 3:1 event banner. */
+#title-screen .title-event-notice.eclipse-event-notice{background:linear-gradient(145deg,#1e133d,#431c62 65%,#372036);border-color:#b685ed;box-shadow:0 0 0 2px #493060,0 0 0 3px #dcb3ff,0 8px 28px rgba(82,21,136,.45)}
+#title-screen .title-event-notice.eclipse-event-notice>.event-notice-banner{display:block;width:100%;aspect-ratio:3/1;object-fit:contain;background:#170e2e}
+#title-screen .title-event-notice.eclipse-event-notice>span{background:linear-gradient(90deg,#221037,#402058,#221037)}
+#title-screen .title-event-notice.eclipse-event-notice b{color:#f9ddae}
+#title-screen .title-event-notice.eclipse-event-notice small{color:#f2dfff}
+.eclipse-event-details .event-detail-banner{width:100%;aspect-ratio:3/1;object-fit:contain;background:#160d2d}
