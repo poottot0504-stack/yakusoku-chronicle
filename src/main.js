@@ -73,7 +73,7 @@ import { craftPromiseChronicle, usePromiseChronicle } from './core/promise-chron
 import { formatPlayTime, addElapsedPlayTime } from './core/play-time.js';
 import { isTwinStarFestivalActive, isHalloweenActive, makeHalloweenWave, getNextHalloweenWave, recordHalloweenWaveEncounters, halloweenCharacterExpMultiplier, isTrainingFestivalActive, makeTrainingFestivalWave, getNextTrainingFestivalWave, getNextEventBoundary } from './core/events.js?v=training-easier-20261010';
 import { HALLOWEEN_EVENT, TRAINING_FESTIVAL, TWIN_STAR_FESTIVAL } from './data/events.js';
-import { twinStarFestivalDetailsMarkup, titleEventNoticeMarkup, halloweenEventDetailsMarkup, trainingFestivalDetailsMarkup, jobReleaseDetailsMarkup } from './ui/events.js?v=market-reopen-20261014';
+import { twinStarFestivalDetailsMarkup, titleEventNoticeMarkup, halloweenEventDetailsMarkup, trainingFestivalDetailsMarkup, jobReleaseDetailsMarkup, eclipseEventDetailsMarkup } from './ui/events.js?v=market-reopen-20261014-eclipse-20261020';
 import { raidDetailsMarkup } from './ui/raid.js?v=material2x-raid10-20261009';
 import { createRaidApi,getRaidPlayerId } from './raid/raidApi.js';
 import { raidJoinButtonState,raidJoinLoadingMarkup,withRaidJoinTimeout } from './raid/raidJoinUi.js?v=material2x-raid10-20261009';
@@ -1030,6 +1030,7 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-account-logout'))return void logoutAccount();
  if(el.dataset.accountCopyRecovery){const code=el.dataset.accountCopyRecovery;if(navigator.clipboard?.writeText){void navigator.clipboard.writeText(code).then(()=>toast('復帰コードをコピーしました')).catch(()=>toast('復帰コードを選択してコピーしてください'));}else toast('復帰コードを選択してコピーしてください');return;}
  if(el.hasAttribute('data-raid-notice'))return openModal(raidDetailsMarkup());
+ if(el.hasAttribute('data-eclipse-event-notice'))return openModal(eclipseEventDetailsMarkup());
  if(el.hasAttribute('data-event-notice'))return openModal(halloweenEventDetailsMarkup());
  if(el.hasAttribute('data-twin-star-event-notice'))return openModal(twinStarFestivalDetailsMarkup());
  if(el.hasAttribute('data-training-event-notice'))return openModal(trainingFestivalDetailsMarkup());
