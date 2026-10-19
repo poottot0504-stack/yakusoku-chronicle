@@ -30,7 +30,7 @@ import { sell, sellEquipmentInstance, getSellPrice, getSellDefinition, getSellWa
 import { changeJob } from './core/jobs.js';
 import { setActiveParty } from './core/party.js';
 import { equipItem,equipRecommendedEquipment,unequipAllEquipment,toggleEquipmentLock } from './core/equipment.js';
-import { enhanceEquipment } from './core/forge.js';
+import { enhanceEquipment,getEnhancedStats } from './core/forge.js';
 import { craftItem } from './core/crafting.js';
 import { gatherAtPoint, getGatherPointForState } from './core/gathering.js';
 import { startAdventureNewGamePlus } from './core/adventure.js';
@@ -453,6 +453,18 @@ function shopBuyQuantityUpdate(value){
  const unit=Number(modal.querySelector('[data-shop-buy-price]')?.dataset.shopBuyPrice??0);
  const total=modal.querySelector('[data-shop-buy-total]');
  if(total)total.textContent=`合計：${(quantity*unit).toLocaleString('ja-JP')}G`;
+}
+function openEquipmentSellConfirm(instanceId){
+ const instance=(state.equipmentInventory??[]).find(item=>item.instanceId===instanceId);
+ if(!instance)return toast('装備が見つかりません');
+ if(instance.locked===true)return toast('ロック中の装備は売却できません');
+ if((state.characters??[]).some(c=>Object.values(c.equipment??{}).some(ref=>(typeof ref==='object'?ref?.instanceId:ref)===instanceId)))return toast('装備中のアイテムは売却できません');
+ const def=getSellDefinition('equipment',instance.equipmentId),price=getSellPrice(def);
+ if(price<=0)return toast('この装備は売却できません');
+ const stats=getEnhancedStats(instance),statNames=[['attack','攻撃'],['defense','防御'],['magic','魔法'],['speed','素早さ'],['maxHp','HP'],['maxMp','MP']];
+ const statText=statNames.filter(([key])=>Number(stats[key]??0)!==0).map(([key,label])=>`${label} +${stats[key]}`).join(' / ');
+ const warning=getSellWarning(def);
+ openModal(`<h2>💰 この装備1個を売却しますか？</h2><p><b>${esc(def.name)} +${Number(instance.enhanceLevel??0)}</b></p><p class="notice">${esc(statText||'能力補正なし')}</p>${warning?`<p class="notice warning">${esc(warning)}</p>`:''}<p class="notice">売却すると元に戻せません。同名の別装備やロック中の装備は売却しません。</p><p class="shop-total">売却価格：${price.toLocaleString('ja-JP')}G</p><div class="shop-purchase-actions"><button class="action-main" data-equip-sell-confirm="${esc(instanceId)}">この1個を売却する</button><button data-close-modal>やめる</button></div>`);
 }
 function openSellShop(){openModal(sellShopMarkup(state));}
 function openSellConfirm(kind,id,quantity=1){
@@ -1068,6 +1080,11 @@ document.addEventListener('click',e=>{
  if(el.dataset.shopCategory)return syncShopCategory(el.dataset.shopCategory);
  if(el.dataset.town==='forge'){view='forge';state.forgeCategory='home';return renderGame();}
  if(el.dataset.town==='jobs'){view='jobs';return renderGame();}
+ if(el.hasAttribute('data-unequip-all')){const c=state.characters.find(x=>x.id===selectedId());if(!c)return;const count=Object.values(c.equipment??{}).filter(Boolean).length;if(!count)return toast('外す装備がありません');return openModal(`<h2>⚔️ 装備をすべて外しますか？</h2><p><b>${esc(c.name)}</b>の装備${count}部位を解除します。アイテムは売却せず、所持品に残ります。</p><div class="shop-purchase-actions"><button class="action-main" data-unequip-all-confirm="${esc(c.id)}">すべて外す</button><button data-close-modal>やめる</button></div>`);}
+ if(el.dataset.unequipAllConfirm){try{const r=unequipAllEquipment(state,el.dataset.unequipAllConfirm);saveNow();closeModal();renderGameKeepVertical();toast(`${r.removed}部位の装備を外しました`);}catch(err){toast(err.message);}return;}
+ if(el.dataset.equipLock){try{const r=toggleEquipmentLock(state,el.dataset.equipLock);saveNow();renderGameKeepVertical();toast(r.locked?'装備をロックしました':'装備のロックを解除しました');}catch(err){toast(err.message);}return;}
+ if(el.dataset.equipSellAsk)return openEquipmentSellConfirm(el.dataset.equipSellAsk);
+ if(el.dataset.equipSellConfirm){try{const r=sellEquipmentInstance(state,el.dataset.equipSellConfirm);saveNow();closeModal();renderGameKeepVertical();toast(`装備1個を売却して ${r.total.toLocaleString('ja-JP')}G獲得！`);}catch(err){toast(err.message);}return;}
  if(el.dataset.equip){try{equipItem(state,selectedId(),el.dataset.equip,el.dataset.slot);saveNow();renderGameKeepVertical();toast('装備しました');}catch(err){toast(err.message);}return;}
  if(el.hasAttribute('data-recommend-equipment')){try{const r=equipRecommendedEquipment(state,selectedId());saveNow();renderGameKeepVertical();toast(r.changedSlots.length?`おすすめ装備に変更しました（${r.changedSlots.length}部位）`:'現在の装備がおすすめです');}catch(err){toast(err.message);}return;}
  if(el.dataset.forgePage){state.forgeCategory=el.dataset.forgePage;saveNow();return renderGame();}
