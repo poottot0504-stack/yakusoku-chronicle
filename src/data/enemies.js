@@ -1,5 +1,6 @@
 import { STORY_CHAPTERS } from './story.js';
 import { HALLOWEEN_ENEMY_LIST } from './events.js';
+import { ECLIPSE_ENEMY_LIST } from './eclipse-enemies.js';
 import { RARE_MONSTER_LIST } from './rare-monsters.js';
 import { elementProfile, regionElement, normalizeElement } from '../core/elements.js';
 const regions=['field','forest','coast','cave','snow','desert','swamp','volcano','ruins','abyss'];
@@ -44,4 +45,4 @@ export const STORY_BOSS_FIRST_LIST=storyBosses;
 export const STORY_BOSS_NGP_LIST=newGamePlusStoryBosses;
 export const ENEMY_LIST=[...NORMAL_ENEMY_LIST,...STORY_BOSS_LIST];
 export { RARE_MONSTER_LIST };
-export const ENEMIES=Object.fromEntries([...ENEMY_LIST,...HALLOWEEN_ENEMY_LIST,...RARE_MONSTER_LIST].map(e=>[e.id,e]));
+export const ENEMIES=Object.fromEntries([...ENEMY_LIST,...HALLOWEEN_ENEMY_LIST,...ECLIPSE_ENEMY_LIST,...RARE_MONSTER_LIST].map(e=>[e.id,e]));
