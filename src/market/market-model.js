@@ -72,6 +72,7 @@ export function isMarketSellable(state,candidate={}){
   const inst=(state.equipmentInventory??[]).find(x=>x.instanceId===candidate.instanceId);
   if(!inst)return {ok:false,reason:'装備が見つかりません'};
   if(isEquippedInstance(state,inst.instanceId))return {ok:false,reason:'装備中の装備は出品できません'};
+   if(inst.locked===true)return {ok:false,reason:'ロック中の装備は出品できません'};
   if(isShopSoldCandidate({kind:'equipment',equipmentId:inst.equipmentId}))return {ok:false,reason:'ショップで購入できる装備は出品できません'};
   if(protectedEquipment(EQUIPMENT[inst.equipmentId],inst.equipmentId))return {ok:false,reason:'この固有装備は出品できません'};
   if(quantity!==1)return {ok:false,reason:'装備品は1点ずつ出品してください'};

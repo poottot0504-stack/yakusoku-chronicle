@@ -859,3 +859,32 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .equipment-search-controls>input:focus-visible{outline:2px solid #f1ce80;outline-offset:2px}
 .equipment-search-controls>button{flex:0 0 auto;min-height:44px;padding:.5rem .75rem}
 .equipment-search-controls>[hidden]{display:none!important}
+
+
+/* Player feedback 2026-10-19: MP dock, safe equipment management, Masho ×10. */
+.party-dock .dock-member{grid-template-rows:auto 4px 4px;align-content:center;row-gap:4px}
+.party-dock .dock-member>span{grid-row:1/4;align-self:center}
+.party-dock .dock-member>small{grid-column:2;grid-row:1;min-width:0;overflow-wrap:anywhere}
+.party-dock .dock-member>.dock-hp{grid-column:2;grid-row:2;height:4px}
+.party-dock .dock-member>.dock-mp{grid-column:2;grid-row:3;height:4px}
+.party-dock .dock-member>.dock-mp b{background:linear-gradient(90deg,#347bcf,#68c3ff)}
+.equipment-unequip-all{border-color:#8e6d64;background:#352526;color:#f3dbd8;padding:.42rem .65rem;font-size:.73rem}
+.equipment-unequip-all:disabled{opacity:.48}
+.equipment-instance-list{display:grid;gap:.45rem;margin-top:.55rem;min-width:0}
+.equipment-details[open] .equipment-instance-row{display:grid;gap:.4rem;min-width:0;padding:.48rem;border:1px solid #354761;border-radius:9px;background:#152138}
+.equipment-instance-row>small{overflow-wrap:anywhere;color:#e0e8f7}
+.equipment-instance-row>div{display:flex;flex-wrap:wrap;gap:.35rem;margin:0;padding:0;background:none}
+.equipment-instance-row button{flex:1 1 106px;min-height:36px;font-size:.7rem;padding:.35rem .45rem;white-space:normal}
+.equipment-instance-row button:disabled{opacity:.46}
+.masho-floor-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:auto}
+.masho-floor-actions .wide-button{min-width:0;margin:0;font-size:.75rem;overflow-wrap:anywhere}
+.masho-ten-run{border-color:#af8b4b;color:#ffe19c;background:#352c22}
+.masho-run-summary{margin:12px 0;border-color:#b79a5d}
+.masho-run-summary p{overflow-wrap:anywhere}
+.battle-header:has(.masho-run-stop){display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+.battle-header .masho-run-stop{flex:0 1 auto;min-height:33px;padding:.35rem .48rem;font-size:.66rem;white-space:normal}
+@media(max-width:520px){
+ .equipment-overview .equipment-recommend-button,.equipment-overview .equipment-unequip-all{flex:1 1 calc(50% - .35rem);min-width:125px;width:auto;margin:0}
+ .masho-floor-actions{gap:6px}
+ .masho-floor-actions .wide-button{padding:.5rem .25rem;font-size:.7rem}
+}

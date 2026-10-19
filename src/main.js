@@ -9,7 +9,8 @@ import { festivalView,festivalMarkup,festivalTitleMarkup,festivalDetailsMarkup,f
 import { grantFestivalReward,grantFestivalBonus,nextFestivalBoundary } from './core/hunt-festival.js';
 import { HUNT_FESTIVAL } from './data/hunt-festival.js';
 import { hasFirstClear } from './core/progression-caps.js';
-import { createMashoEnemy, settleMashoVictory } from './core/masho-cave.js';
+import { createMashoEnemy, settleMashoVictory, canEnterMashoFloor } from './core/masho-cave.js';
+import { createMashoRun, recordMashoRunVictory, mashoRunCanContinue, mashoRunSummary } from './core/masho-chain.js';
 import { mashoCaveMarkup } from './ui/masho-cave.js';
 import { deathWarningText } from './ui/death-warning.js';
 import { frameDuration, renderMotionFrame, captureNumberTails, appendNumberTails } from './ui/battle-motion.js';
@@ -25,11 +26,11 @@ import { getBattleSkills, skillMetricLabel, getSelectedSkillIds, setBattleSkillL
 import { restAtInn, handlePartyWipe, getInnPrice } from './core/inn.js';
 import { bankBalance, depositGold, withdrawGold } from './core/bank.js';
 import { getShopInventory, buyItem } from './core/shop.js';
-import { sell, getSellDefinition, getSellWarning, getSellableQuantity } from './core/selling.js';
+import { sell, sellEquipmentInstance, getSellPrice, getSellDefinition, getSellWarning, getSellableQuantity } from './core/selling.js';
 import { changeJob } from './core/jobs.js';
 import { setActiveParty } from './core/party.js';
-import { equipItem,equipRecommendedEquipment } from './core/equipment.js';
-import { enhanceEquipment } from './core/forge.js';
+import { equipItem,equipRecommendedEquipment,unequipAllEquipment,toggleEquipmentLock } from './core/equipment.js';
+import { enhanceEquipment,getEnhancedStats } from './core/forge.js';
 import { craftItem } from './core/crafting.js';
 import { gatherAtPoint, getGatherPointForState } from './core/gathering.js';
 import { startAdventureNewGamePlus } from './core/adventure.js';
@@ -130,7 +131,7 @@ let raidRoom=null,raidStartedAt=0,raidPendingBossAction=null,raidRewardClaimBusy
 const raidPoller=createRaidPoller({api:raidApi,getPayload:()=>({playerId:getRaidPlayerId(session.storage)}),intervalMs:1000,onSnapshot:r=>{if(!raidRoom||(r.sessionId&&r.sessionId!==raidRoom.sessionId)||(r.roomId&&r.roomId!==raidRoom.roomId))return;if(isRaidTimedOutSnapshot(r)){raidExecutionId++;raidPoller.stop();raidEndedReason='timeout';raidTurnExecuting=false;raidTurnState=null;raidPendingBossAction=null;addRaidBattleLog(`${raidRoom.boss?.name??'レイドボス'}は逃げ出した…`);renderRaidBattleScreen();return;}const motion={visualAction:raidRoom.visualAction,visualEvents:raidRoom.visualEvents};raidRoom={...raidRoomView(r),...motion};rememberRaidSnapshot(r);if(raidTurnExecuting)return;updateRaidBattleModal(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers());void tryClaimRaidReward(r,{silent:true});if(r.currentHp===0){raidPoller.stop();raidTurnState=null;raidPendingBossAction=null;saveNow();renderRaidBattleScreen();}},onError:()=>{}});
 const raidLobbyPoller=createRaidPoller({api:raidApi,getPayload:()=>({playerId:getRaidPlayerId(session.storage)}),intervalMs:3000,onSnapshot:r=>{rememberRaidSnapshot(r);if(!r?.active&&r.currentHp!==0){raidLobbyPoller.stop();return;}updateRaidAdventureCard(r);void tryClaimRaidReward(r,{silent:false});},onError:()=>{}});
 const $=s=>document.querySelector(s);const title=$('#title-screen'),game=$('#game-screen'),battleScreen=$('#battle-screen'),modal=$('#modal-root'),toastRoot=$('#toast-root');
-let currentSlot=1;let state=ensureAdventureState(createNewGame(createDefaultRoster()));let view='adventure',battle=null,battleMeta=null;let playStartedAt=null,boostClockLastAt=null,lastPlayerInputAt=Date.now();
+let currentSlot=1;let state=ensureAdventureState(createNewGame(createDefaultRoster()));let view='adventure',battle=null,battleMeta=null,mashoRun=null;let playStartedAt=null,boostClockLastAt=null,lastPlayerInputAt=Date.now();
 const selectedId=()=>state.selectedCharacterId??state.characters?.[0]?.id;
 const autoSettings=()=>normalizeAutoSettings(state.ui?.autoPlay);
 function saveAutoSettings(patch){
@@ -195,7 +196,7 @@ function openRankingApologyModal(content){modal.classList.add('ranking-apology-o
 function updateRankingApologyModalContent(content){const card=modal.querySelector('.modal-card');if(!card)return openRankingApologyModal(content);card.innerHTML=`<button class="modal-close" data-close-modal>×</button>${content}`;}
 function closeModal(){modal.classList.remove('open','ranking-apology-open','raid-ui-open');modal.innerHTML='';if(battle&&battle.phase==='planning')queueMicrotask(scheduleNormalAuto);}
 function topbar(){const hero=state.characters.find(c=>c.isHero)??state.characters[0];return `<header class="topbar"><button class="brand" data-nav="adventure"><span class="brand-mark">✦</span><span>約束のクロニクル</span></button><div class="top-resources"><span>💰 ${state.gold??0}G</span><span>⭐ Lv${hero?.level??1}</span></div></header>`;}
-function partyDock(){const active=new Set(state.activePartyIds??[]);return `<div class="party-dock">${state.characters.filter(c=>active.has(c.id)).map(c=>`<button data-character-id="${c.id}" class="dock-member ${c.id===selectedId()?'selected':''}"><span>${c.name.slice(0,1)}</span><small>${c.name}<br>Lv${c.level}</small><i><b style="width:${Math.min(100,Math.round(c.hp/Math.max(1,getCharacterResourceCaps(state,c).maxHP)*100))}%"></b></i></button>`).join('')}</div>`;}
+function partyDock(){const active=new Set(state.activePartyIds??[]);return `<div class="party-dock">${state.characters.filter(c=>active.has(c.id)).map(c=>{const caps=getCharacterResourceCaps(state,c),hp=Math.max(0,Math.min(100,Math.round((c.hp??0)/Math.max(1,caps.maxHP)*100))),mp=Math.max(0,Math.min(100,Math.round((c.mp??0)/Math.max(1,caps.maxMP)*100)));return `<button data-character-id="${esc(c.id)}" class="dock-member ${c.id===selectedId()?'selected':''}"><span>${esc(c.name.slice(0,1))}</span><small>${esc(c.name)}<br>Lv${c.level}</small><i class="dock-hp" role="progressbar" aria-label="HP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${hp}"><b style="width:${hp}%"></b></i><i class="dock-mp" role="progressbar" aria-label="MP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${mp}"><b style="width:${mp}%"></b></i></button>`;}).join('')}</div>`;}
 const nav=()=>`<nav class="main-nav"><button data-nav="adventure">🗺️<span>冒険</span></button><button data-nav="party">👥<span>仲間</span></button><button data-nav="status">📊<span>能力</span></button><button data-nav="jobs">🔯<span>転職</span></button><button data-nav="equipment">⚔️<span>装備</span></button><button data-nav="items">🎒<span>アイテム</span></button><button data-nav="more">☰<span>その他</span></button></nav>`;
 function panelForView(){if(view==='exploreResult')return `<section class="panel exploration-result"><h2>探索を続けますか？</h2><p>${esc(state.adventure?.message??'戦闘終了！').replace(/\n/g,'<br>')}</p><div class="hunt-actions"><button class="action-main" data-explore-continue>はい</button><button data-explore-return>いいえ（町へ戻る）</button></div></section>`;if(view==='masho')return mashoCaveMarkup(state);const switcher=()=>characterSwitcherMarkup(state,selectedId());if(view==='town')return townMarkup(state,huntCountApologyStatus,currentSlot);if(view==='market')return marketMarkup(state,marketUi);if(view==='party')return partyMarkup(state);if(view==='status')return switcher()+statusMarkup(state,selectedId());if(view==='skillList')return switcher()+skillLoadoutMarkup(state,selectedId());if(view==='jobs')return switcher()+jobsMarkup(state,selectedId())+skillsMarkup(state,selectedId());if(view==='equipment')return switcher()+equipmentMarkup(state,selectedId(),equipmentSearch);if(view==='items')return itemsMarkup(state);if(view==='bestiary')return bestiaryMarkup(state);if(view==='quests')return questsMarkup(state,getVisibleQuestDefinitions(state));if(view==='achievements')return achievementsMarkup(state,Object.values(ACHIEVEMENTS));if(view==='forge')return forgeMarkup(state);if(view==='ending')return endingMarkup(state);if(view==='guide')return adventureGuideMarkup(state);if(view==='eidelEnding')return eidelEndingMarkup(state,state.ui?.eidelEndingView??(state.endgame?.complete?'saved':state.endgame?.eidelEnding));if(view==='endgame')return endgameMarkup(state);return adventureMarkup(state);}
 function syncEquipmentCandidateFilters(){
@@ -223,7 +224,7 @@ function syncEquipmentCandidateFilters(){
  const clear=candidates.querySelector('[data-equipment-search-clear]');
  if(clear)clear.hidden=!equipmentSearch.trim();
 }
-function renderGameKeepVertical(){const scroller=game.querySelector('.game-scroll');const scrollTop=scroller?.scrollTop??0;const detailOpen=!!game.querySelector('.forge-advanced[open]');renderGame();const detail=game.querySelector('.forge-advanced');if(detail&&detailOpen)detail.open=true;const next=game.querySelector('.game-scroll');if(next)requestAnimationFrame(()=>{next.scrollTop=scrollTop;});}
+function renderGameKeepVertical(){const scroller=game.querySelector('.game-scroll');const scrollTop=scroller?.scrollTop??0;const detailOpen=!!game.querySelector('.forge-advanced[open]');const equipmentDetails=new Set([...game.querySelectorAll('.equipment-details[open][data-equipment-details-key]')].map(el=>el.dataset.equipmentDetailsKey));renderGame();const detail=game.querySelector('.forge-advanced');if(detail&&detailOpen)detail.open=true;game.querySelectorAll('.equipment-details[data-equipment-details-key]').forEach(el=>{if(equipmentDetails.has(el.dataset.equipmentDetailsKey))el.open=true;});const next=game.querySelector('.game-scroll');if(next)requestAnimationFrame(()=>{next.scrollTop=scrollTop;});}
 
 function renderGame(){restoreRaidDefeats(state,session.storage);rememberRaidDefeat(state,state.raid?.liveSnapshot,{storage:session.storage});const forgeScroll=captureHorizontalScroll(game,'.forge-categories'),characterScroll=captureHorizontalScroll(game,'.character-switcher-list'),itemCategoryScroll=captureHorizontalScroll(game,'.item-category-tabs');title.classList.remove('active');battleScreen.classList.remove('active');game.classList.add('active');game.innerHTML=`${topbar()}<main class="game-scroll ${view==='exploreResult'?'explore-result-scroll':''}">${panelForView()}</main>${partyDock()}${nav()}`;restoreHorizontalScroll(game,'.forge-categories',forgeScroll,'.selected');restoreHorizontalScroll(game,'.character-switcher-list',characterScroll,'.selected');restoreHorizontalScroll(game,'.item-category-tabs',itemCategoryScroll,'.active');if(view==='adventure'&&!raidRoom&&getRaidWindow()&&!isRaidWindowDefeated(state))raidLobbyPoller.start();else if(!raidRoom)raidLobbyPoller.stop();scheduleEventRefresh();void refreshFestival();}
 function showGame(){void refreshFestival(true);state.rankingApologyEligible=null;huntCountApologyStatus=null;renderGame();saveNow();void refreshRankingApologyEligibility();void refreshHuntCountApologyStatus();}
@@ -283,8 +284,8 @@ async function claimHuntCountApology(){
  }catch(err){updateRankingApologyModalContent(`<section class="npc-dialogue"><h2>🎁 お詫びの案内人</h2><p>${esc(err?.message??'通信エラーが発生しました')}</p><button data-hunt-count-apology-npc>受取状況を確認する</button></section>`);}
  finally{huntCountApologyClaimBusy=false;}
 }
-function startFresh(slot=currentSlot){clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();state=ensureAdventureState(createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId='hero';view='adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();toast('新しい物語が始まりました');}
-function continueGame(slot=currentSlot){clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();const loaded=loadFromSlot(session,currentSlot);state=ensureAdventureState(loaded??createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=state.rankingApologyReceived===true||wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId??=state.characters[0]?.id;view=state.story?.firstEndingSeen&&!state.story?.trueEndingSeen&&state.adventure?.completedRegions?.includes('abyss')?'ending':'adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();if(state.market?.everUsed)void syncMarketSettlement({notify:true});}
+function startFresh(slot=currentSlot){mashoRun=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();state=ensureAdventureState(createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId='hero';view='adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();toast('新しい物語が始まりました');}
+function continueGame(slot=currentSlot){mashoRun=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();const loaded=loadFromSlot(session,currentSlot);state=ensureAdventureState(loaded??createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=state.rankingApologyReceived===true||wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId??=state.characters[0]?.id;view=state.story?.firstEndingSeen&&!state.story?.trueEndingSeen&&state.adventure?.completedRegions?.includes('abyss')?'ending':'adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();if(state.market?.everUsed)void syncMarketSettlement({notify:true});}
 function outcomeOf(b){const a=b.actors.some(x=>x.side==='ally'&&x.hp>0),e=b.actors.some(x=>x.side==='enemy'&&x.hp>0);return !e?'victory':!a?'defeat':null;}
 let battlePlayback=null;
 function renderBattle(){
@@ -362,8 +363,34 @@ function auditVictory(meta,expAwarded=0){
   }
  }catch{}
 }
+function startMashoFloorBattle(floor){
+ if(!canEnterMashoFloor(state,floor))throw new Error('まだ挑戦できない階層です');
+ const enemy=createMashoEnemy(state,floor);
+ battleMeta={regionId:'masho',boss:true,enemy,mashoFloor:floor};
+ battle=createAdventureBattle(enemy,{isBoss:true});
+ battle.mashoFloor=floor;
+ if(mashoRun){battle.mashoRun={index:mashoRun.completed+1,total:mashoRun.total,stopAfterCurrent:mashoRun.stopAfterCurrent};if(mashoRun.manualOnly)battle.autoPlayStopped=true;}
+ startTurn(battle);closeModal();renderBattle();
+}
 function finishBattleVictory(){clearNormalAuto();syncPlayTime();syncBattlePartyToState(state,battle);const e=battleMeta.enemy;
- if(battleMeta.mashoFloor){settleMashoVictory(state,battle);auditVictory(battleMeta,battle.exp??0);saveNow();battle=null;battleScreen.classList.remove('active');view='masho';renderGame();toast(`魔障の洞窟 第${battleMeta.mashoFloor}階層クリア！`);return;}
+ if(battleMeta.mashoFloor){
+  const floor=battleMeta.mashoFloor,beforeGold=Number(state.gold??0),receipt=settleMashoVictory(state,battle);
+  auditVictory(battleMeta,battle.exp??0);
+  if(mashoRun&&mashoRun.floor===floor){
+   recordMashoRunVictory(mashoRun,receipt,Math.max(0,Number(state.gold??0)-beforeGold));
+   mashoRun.manualOnly ||= battle.autoPlayStopped===true;
+   saveNow();battle=null;
+   if(mashoRunCanContinue(mashoRun)){
+    try{startMashoFloorBattle(floor);return;}
+    catch(error){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'stopped');mashoRun=null;saveNow();battleScreen.classList.remove('active');view='masho';renderGame();toast(error.message??'連戦を中断しました');return;}
+   }
+   const completed=mashoRun.completed,total=mashoRun.total,stopped=completed<total;
+   state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,stopped?'stopped':'completed');
+   mashoRun=null;saveNow();battleScreen.classList.remove('active');view='masho';renderGame();
+   toast(stopped?`魔障の洞窟 連戦終了！ ${completed}/${total}戦`:`魔障の洞窟 10連戦クリア！`);return;
+  }
+  saveNow();battle=null;battleScreen.classList.remove('active');view='masho';renderGame();toast(`魔障の洞窟 第${floor}階層クリア！`);return;
+ }
  if([TRAINING_FESTIVAL.id,TWIN_STAR_FESTIVAL.id].includes(battleMeta.eventId)){
   const festival=battleMeta.eventId===TWIN_STAR_FESTIVAL.id?TWIN_STAR_FESTIVAL:TRAINING_FESTIVAL;
   const wave=battleMeta.eventWave??1;
@@ -388,7 +415,7 @@ function finishBattleVictory(){clearNormalAuto();syncPlayTime();syncBattlePartyT
  if(battleMeta.rematch){recordAdventureVictory(state,{regionId:battleMeta.regionId,enemyIds:(battleMeta.enemies??[e]).map(x=>x.bestiaryId??x.id),exp:0,jobExp:0,gold:battle.gold??0,countsForExploration:false});const drops=awardBattleDrops(state,battleMeta.enemies??[e],Math.random,Date.now(),{allowBoostScrollDrops:false});state.adventure.message=['図鑑再戦勝利！ Gとドロップを獲得した。',...formatDropLines(drops)].join('\n');for(const defeated of (battleMeta.enemies??[e]))updateQuestProgress(state,{type:'defeat',id:defeated.bestiaryId??defeated.id,amount:1,source:'bestiaryRematch'});}
  if(!battleMeta.rematch){recordAdventureVictory(state,{regionId:battleMeta.trainingArea?`training:${battleMeta.trainingArea}`:battleMeta.regionId,boss:battleMeta.boss,enemyIds:(battleMeta.enemies??[e]).map(x=>x.bestiaryId??x.id),exp:battle.exp??0,gold:battle.gold??0,jobExp:battle.jobExp??0,countsForExploration:!battleMeta.guildQuestId});auditVictory(battleMeta,battle.exp??0);const drops=awardBattleDrops(state,battleMeta.enemies??[e]);const dropLines=formatDropLines(drops);const msg=state.adventure.message?.split('\n')??[];state.adventure.message=[msg[0],...dropLines,...msg.slice(1)].filter(Boolean).join('\n');for(const defeated of (battleMeta.enemies??[e]))updateQuestProgress(state,{type:'defeat',id:defeated.bestiaryId??defeated.id,amount:1});if(battleMeta.guildQuestId){const q=QUESTS[battleMeta.guildQuestId],rec=state.quests?.[battleMeta.guildQuestId];state.adventure.message=[`🎯 ${q?.name??'ギルド依頼'}：${e.name}を討伐！`,...dropLines,rec?.status==='ready'?'✅ 目標達成！ 街のギルドマスターに報告しよう。':`依頼進捗 ${rec?.progress??0}/${q?.goal?.amount??1}。ギルドマスターから続けて挑戦できます。`].join('\n');}if(battleMeta.boss){const idx=getUnlockedRegions(state).findIndex(x=>x.id===battleMeta.regionId);if(battleMeta.regionId==='field')recordSpecialProgress(state,'emblem');const specialKey=grantSpecialBossKeyItem(state,battleMeta.regionId);if(specialKey)state.adventure.message+=`\n🎁 ${getItemDef(specialKey.id).name} ×1 を手に入れた！`;recordSpecialProgress(state,'treasure');if(['volcano','ruins','abyss'].includes(battleMeta.regionId))recordSpecialProgress(state,'strongEnemy');}if(getActiveParty(state).some(c=>c.hp>0&&c.hp<=c.maxHp*.25))recordSpecialProgress(state,'lowHpWin');}
  recordAchievementEvent(state,{type:'firstWin'});saveNow();battle=null;battleScreen.classList.remove('active');if(battleMeta.boss&&battleMeta.regionId==='abyss'){view=state.cycle>=2?'endgame':'ending';}else if(battleMeta.trainingArea)view='endgame';else if(battleMeta.guildQuestId)view='town';else view=battleMeta.exploration?'exploreResult':'adventure';renderGame();if(battleMeta.trainingArea){const area=TRAINING_AREAS.find(x=>x.id===battleMeta.trainingArea);openEndgameReplayPrompt('training',battleMeta.trainingArea,area?.name??'修練',state.adventure.message);}else if(battleMeta.guildQuestId)openModal(`<h2>🎯 ギルド指定討伐・勝利！</h2><p class="notice endgame-replay-message">${esc(state.adventure.message)}</p><div class="endgame-replay-actions"><button class="action-main" data-npc="guildMaster">ギルドマスターに報告・続けて挑戦</button><button data-close-modal>街に戻る</button></div>`);if(!battleMeta.exploration)toast(`勝利！ ${battleMeta.enemies?.length??1}体撃破`);}
-function finishBattleDefeat(){clearNormalAuto();syncBattlePartyToState(state,battle);const {loss}=handlePartyWipe(state);battle=null;view='town';saveNow();renderGame();toast(`全滅… ${loss}Gを失い宿屋へ戻った`);}
+function finishBattleDefeat(){clearNormalAuto();syncBattlePartyToState(state,battle);if(mashoRun){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'defeat');mashoRun=null;}const {loss}=handlePartyWipe(state);battle=null;view='town';saveNow();renderGame();toast(`全滅… ${loss}Gを失い宿屋へ戻った`);}
 function act(action){if(!battle||battle.phase==='complete')return;const result=resolveAction(battle,action);if(result?.ok===false){toast(result.message);return;}syncBattlePartyToState(state,battle);renderBattle();}
 function openEndgameReplayPrompt(kind,id,name,message){const action=kind==='training'?`data-training-area="${esc(id)}"`:`data-oathbreaker="${esc(id)}"`;openModal(`<h2>⚔️ ${esc(name)}・勝利！</h2><p class="notice endgame-replay-message">${esc(message)}</p><div class="endgame-replay-actions"><button class="action-main" ${action}>⚔️ 同じ敵ともう一度戦う</button><button data-close-modal>星の彼方の試練へ戻る</button></div>`);}
 function openEnemyTargets(mode,skill=null){const enemies=battle.actors.filter(x=>x.side==='enemy'&&x.hp>0);openModal(`<h2>🎯 攻撃する敵</h2><div class="choice-list">${enemies.map(x=>`<button data-enemy-target="${x.id}" data-target-mode="${mode}" ${skill?`data-target-skill="${skill.id}"`:''}><span><b>${esc(x.name)}</b><small>HP ${x.hp} / ${x.maxHp}</small></span><em>攻撃</em></button>`).join('')}</div>`);}
@@ -426,6 +453,18 @@ function shopBuyQuantityUpdate(value){
  const unit=Number(modal.querySelector('[data-shop-buy-price]')?.dataset.shopBuyPrice??0);
  const total=modal.querySelector('[data-shop-buy-total]');
  if(total)total.textContent=`合計：${(quantity*unit).toLocaleString('ja-JP')}G`;
+}
+function openEquipmentSellConfirm(instanceId){
+ const instance=(state.equipmentInventory??[]).find(item=>item.instanceId===instanceId);
+ if(!instance)return toast('装備が見つかりません');
+ if(instance.locked===true)return toast('ロック中の装備は売却できません');
+ if((state.characters??[]).some(c=>Object.values(c.equipment??{}).some(ref=>(typeof ref==='object'?ref?.instanceId:ref)===instanceId)))return toast('装備中のアイテムは売却できません');
+ const def=getSellDefinition('equipment',instance.equipmentId),price=getSellPrice(def);
+ if(price<=0)return toast('この装備は売却できません');
+ const stats=getEnhancedStats(instance),statNames=[['attack','攻撃'],['defense','防御'],['magic','魔法'],['speed','素早さ'],['maxHp','HP'],['maxMp','MP']];
+ const statText=statNames.filter(([key])=>Number(stats[key]??0)!==0).map(([key,label])=>`${label} +${stats[key]}`).join(' / ');
+ const warning=getSellWarning(def);
+ openModal(`<h2>💰 この装備1個を売却しますか？</h2><p><b>${esc(def.name)} +${Number(instance.enhanceLevel??0)}</b></p><p class="notice">${esc(statText||'能力補正なし')}</p>${warning?`<p class="notice warning">${esc(warning)}</p>`:''}<p class="notice">売却すると元に戻せません。同名の別装備やロック中の装備は売却しません。</p><p class="shop-total">売却価格：${price.toLocaleString('ja-JP')}G</p><div class="shop-purchase-actions"><button class="action-main" data-equip-sell-confirm="${esc(instanceId)}">この1個を売却する</button><button data-close-modal>やめる</button></div>`);
 }
 function openSellShop(){openModal(sellShopMarkup(state));}
 function openSellConfirm(kind,id,quantity=1){
@@ -1041,6 +1080,11 @@ document.addEventListener('click',e=>{
  if(el.dataset.shopCategory)return syncShopCategory(el.dataset.shopCategory);
  if(el.dataset.town==='forge'){view='forge';state.forgeCategory='home';return renderGame();}
  if(el.dataset.town==='jobs'){view='jobs';return renderGame();}
+ if(el.hasAttribute('data-unequip-all')){const c=state.characters.find(x=>x.id===selectedId());if(!c)return;const count=Object.values(c.equipment??{}).filter(Boolean).length;if(!count)return toast('外す装備がありません');return openModal(`<h2>⚔️ 装備をすべて外しますか？</h2><p><b>${esc(c.name)}</b>の装備${count}部位を解除します。アイテムは売却せず、所持品に残ります。</p><div class="shop-purchase-actions"><button class="action-main" data-unequip-all-confirm="${esc(c.id)}">すべて外す</button><button data-close-modal>やめる</button></div>`);}
+ if(el.dataset.unequipAllConfirm){try{const r=unequipAllEquipment(state,el.dataset.unequipAllConfirm);saveNow();closeModal();renderGameKeepVertical();toast(`${r.removed}部位の装備を外しました`);}catch(err){toast(err.message);}return;}
+ if(el.dataset.equipLock){try{const r=toggleEquipmentLock(state,el.dataset.equipLock);saveNow();renderGameKeepVertical();toast(r.locked?'装備をロックしました':'装備のロックを解除しました');}catch(err){toast(err.message);}return;}
+ if(el.dataset.equipSellAsk)return openEquipmentSellConfirm(el.dataset.equipSellAsk);
+ if(el.dataset.equipSellConfirm){try{const r=sellEquipmentInstance(state,el.dataset.equipSellConfirm);saveNow();closeModal();renderGameKeepVertical();toast(`装備1個を売却して ${r.total.toLocaleString('ja-JP')}G獲得！`);}catch(err){toast(err.message);}return;}
  if(el.dataset.equip){try{equipItem(state,selectedId(),el.dataset.equip,el.dataset.slot);saveNow();renderGameKeepVertical();toast('装備しました');}catch(err){toast(err.message);}return;}
  if(el.hasAttribute('data-recommend-equipment')){try{const r=equipRecommendedEquipment(state,selectedId());saveNow();renderGameKeepVertical();toast(r.changedSlots.length?`おすすめ装備に変更しました（${r.changedSlots.length}部位）`:'現在の装備がおすすめです');}catch(err){toast(err.message);}return;}
  if(el.dataset.forgePage){state.forgeCategory=el.dataset.forgePage;saveNow();return renderGame();}
@@ -1098,7 +1142,10 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-masho-open')){if(!hasFirstClear(state))return toast('一周目クリアで解放されます');view='masho';closeModal();return renderGame();}
  if(el.hasAttribute('data-masho-back')){view='adventure';return renderGame();}
  if(el.dataset.mashoJob){state.ui??={};state.ui.mashoJob=el.dataset.mashoJob;return renderGameKeepVertical();}
- if(el.dataset.mashoFloor){if(battle)return;try{const floor=Number(el.dataset.mashoFloor),enemy=createMashoEnemy(state,floor);battleMeta={regionId:'masho',boss:true,enemy,mashoFloor:floor};battle=createAdventureBattle(enemy,{isBoss:true});battle.mashoFloor=floor;startTurn(battle);closeModal();return renderBattle();}catch(err){toast(err.message);return;}}
+ if(el.dataset.mashoRun10){if(battle)return;const floor=Number(el.dataset.mashoRun10);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)return toast('クリア済みの階層のみ10連戦できます');return openModal(`<h2>⚔️ 魔障の洞窟 第${floor}階層・10連戦</h2><p class="notice">敵を10回連続で倒します。HP・MPは各戦闘後も引き継がれ、各勝利の経験値・G・ドロップは1戦ずつ確定して保存されます。</p><p class="notice">全滅すると即終了し、通常の全滅ペナルティが発生します。「この戦い後に終了」で途中停止も可能です。</p><div class="shop-purchase-actions"><button class="action-main" data-masho-run-confirm="${floor}">10連戦を開始</button><button data-close-modal>やめる</button></div>`);}
+ if(el.dataset.mashoRunConfirm){if(battle)return;try{const floor=Number(el.dataset.mashoRunConfirm);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)throw new Error('クリア済みの階層のみ10連戦できます');mashoRun=createMashoRun(floor);state.mashoCave.lastRunSummary=null;return startMashoFloorBattle(floor);}catch(err){mashoRun=null;toast(err.message);return;}}
+ if(el.hasAttribute('data-masho-run-stop')){if(!mashoRun||!battle?.mashoRun)return;mashoRun.stopAfterCurrent=true;battle.mashoRun.stopAfterCurrent=true;renderBattle();toast('この戦闘に勝利したら連戦を終了します');return;}
+ if(el.dataset.mashoFloor){if(battle)return;try{mashoRun=null;return startMashoFloorBattle(Number(el.dataset.mashoFloor));}catch(err){toast(err.message);return;}}
  if(el.hasAttribute('data-eidel-replay')){if(!state.endgame?.eidelEnding&&!state.endgame?.complete)return;state.ui??={};state.ui.eidelEndingView=state.endgame?.complete?'saved':state.endgame.eidelEnding;view='eidelEnding';closeModal();return renderGame();}
  if(el.hasAttribute('data-eidel')){try{const enemy=createEidelEnemy(state);battleMeta={regionId:'endgame',boss:true,rematch:false,enemy,eidel:true};battle=createAdventureBattle(enemy,{isBoss:true});battle.gold=enemy.gold??0;startTurn(battle);return renderBattle();}catch(err){toast(err.message);return;}}
  if(el.dataset.oathbreaker){try{const enemy=createOathbreakerEnemy(state,el.dataset.oathbreaker);battleMeta={regionId:'endgame',boss:true,rematch:false,enemy,oathbreaker:el.dataset.oathbreaker};battle=createAdventureBattle(enemy,{isBoss:true});battle.gold=enemy.gold??0;battle.exp=enemy.exp??0;battle.jobExp=enemy.jobExp??0;startTurn(battle);closeModal();return renderBattle();}catch(err){toast(err.message);return;}}
