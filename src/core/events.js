@@ -1,5 +1,6 @@
 import { TWIN_STAR_FESTIVAL, HALLOWEEN_EVENT, HALLOWEEN_ENEMIES, TRAINING_FESTIVAL, TRAINING_FESTIVAL_ENEMIES } from '../data/events.js';
 import { ECLIPSE_EVENT } from '../data/eclipse-2026.js';
+import { ECLIPSE_ENEMIES } from '../data/eclipse-enemies.js';
 import { recordEncounter } from './bestiary.js';
 import { bossAreaAttack } from './boss-skills.js';
 
@@ -29,6 +30,35 @@ function partyAverageLevel(state){const active=new Set(state.activePartyIds??[])
 function stats(level,scale=1){return {attack:Math.round((7+level*1.02)*scale),defense:Math.round((4+level*.44)*scale),magic:Math.round((6+level*.88)*scale),speed:Math.round(7+level*.46)};}
 function enemy(def,level,wave,slot,scale=1){const boss=def.isBoss===true,eventBoost=boss?1:1.40;const maxHp=Math.max(40,Math.round(((boss?260:64)+level*(boss?31:12)*scale)*eventBoost));const enemyStats=stats(level,boss?1.25*scale:scale);if(!boss)for(const k of ['attack','defense','magic','speed'])enemyStats[k]=Math.round(enemyStats[k]*eventBoost);return {...structuredClone(def),id:`${def.id}-w${wave}-${slot}-${Date.now()}`,bestiaryId:def.id,level,maxHp,hp:maxHp,maxMp:30+level*2,mp:30+level*2,stats:enemyStats,ai:boss?[{type:'attack'},{type:'attack',power:118},bossAreaAttack('パンプキン・ナイト',62,{kind:'magic',element:'dark'})]:[{type:'attack'}],exp:Math.round((115+level*30)*(boss?2.3:1)),jobExp:Math.round((52+level*13)*(boss?2:1)),gold:Math.round((22+level*6)*(boss?2.2:1)),isBoss:boss,enemyClass:def.enemyClass,eventEnemy:true,eventBoss:boss,eventInstantDeathChance:boss?.05:undefined,eventInstantDeathName:boss?'死の宣告':undefined};}
 function makeHalloweenWaveBase(state,wave=1,levelOverride=null){const avg=partyAverageLevel(state),w=Math.max(1,Math.min(3,Number(wave)||1)),level=levelOverride??(w===3?eventBossLevel(avg):Math.min(300,avg+w-1));if(w===1)return [enemy(HALLOWEEN_ENEMIES.pumpkinSlime,level,w,1,.82),enemy(HALLOWEEN_ENEMIES.pumpkinSlime,level,w,2,.82),enemy(HALLOWEEN_ENEMIES.ghostWolf,level,w,3,.86)];if(w===2)return [enemy(HALLOWEEN_ENEMIES.candyMimic,level,w,1,.92),enemy(HALLOWEEN_ENEMIES.moonWraith,level,w,2,.9),enemy(HALLOWEEN_ENEMIES.moonWraith,level,w,3,.9)];return [enemy(HALLOWEEN_ENEMIES.pumpkinKing,level,w,1,1)];}
+
+// Short-run three-wave encounter for the October 31 - November 1 eclipse event.
+// Difficulty follows the active party, without doubling all stats for high-level players.
+function eclipseMonster(def,level,wave,slot,{hpScale=1,statScale=1}={}){
+ const boss=!!def.isBoss,lv=Math.max(1,Math.min(300,Math.floor(Number(level)||1)));
+ const hp=Math.max(45,Math.round(((boss?280:boss===false&&def.enemyClass==='strong'?94:65)+lv*(boss?24:def.enemyClass==='strong'?11:9))*hpScale));
+ const profile=stats(lv,statScale);
+ return {...structuredClone(def),id:`${def.id}-w${wave}-${slot}-${Date.now()}`,bestiaryId:def.id,level:lv,maxHp:hp,hp,maxMp:40+lv*2,mp:40+lv*2,stats:profile,
+  ai:boss?[{type:'attack'},{type:'attack',power:108},bossAreaAttack('虚星の衝撃',60,{kind:'magic',element:'dark'})]:[{type:'attack'}],
+  exp:Math.round((95+lv*24)*(boss?2.2:def.enemyClass==='strong'?1.3:1)),
+  jobExp:Math.round((46+lv*10)*(boss?2:1)),gold:Math.round((18+lv*5)*(boss?2:1)),
+  isBoss:boss,enemyClass:def.enemyClass,eventEnemy:true,eventBoss:boss};
+}
+
+export function makeEclipseWave(state,wave=1){
+ const w=Math.max(1,Math.min(3,Math.floor(Number(wave)||1)));
+ const highest=eventPartyHighestLevel(state);
+ const lv=Math.min(300,highest+(w-1));
+ const hpScale=highest<30?.8:highest>=150?1.15:1;
+ const statScale=highest<30?.85:highest>=150?1.06:1;
+ const defs=w===1?[ECLIPSE_ENEMIES.slime,ECLIPSE_ENEMIES.mimic]
+  :w===2?[ECLIPSE_ENEMIES.wraith,ECLIPSE_ENEMIES.dragonet]
+  :[ECLIPSE_ENEMIES.nox];
+ return defs.map((def,index)=>eclipseMonster(def,lv,w,index+1,{hpScale,statScale}));
+}
+export function getNextEclipseWave(wave){
+ const w=Number(wave)||1;
+ return w>=3?null:w+1;
+}
 
 export function getNextHalloweenWave(wave){const w=Number(wave)||1;return w>=3?null:w+1;}
 export function recordHalloweenWaveEncounters(state,enemies=[]){for(const e of enemies){const id=e.bestiaryId??e.id;if(id)recordEncounter(state,id);}return state.bestiary;}
