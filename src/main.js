@@ -5,7 +5,7 @@ import { createFestivalApi } from './online/hunt-festival-api.js';
 import { createFestivalKillRecorder } from './online/hunt-festival-record.js';
 import { reserveFestivalBattle,buildRecordedFestivalVictory,festivalBattleType } from './online/hunt-festival-security.js';
 import { normalizeAutoSettings, chooseAutoAction } from './core/auto-play.js';
-import { festivalView,festivalMarkup,festivalTitleMarkup,festivalDetailsMarkup,festivalRewardMarkup } from './ui/hunt-festival.js';
+import { festivalView,festivalMarkup,festivalTitleMarkup,festivalDetailsMarkup,festivalRewardMarkup,festivalArchiveMarkup } from './ui/hunt-festival.js';
 import { grantFestivalReward,grantFestivalBonus,nextFestivalBoundary } from './core/hunt-festival.js';
 import { HUNT_FESTIVAL } from './data/hunt-festival.js';
 import { hasFirstClear } from './core/progression-caps.js';
@@ -994,13 +994,14 @@ async function submitFeedback(){
  }catch(error){if(errorEl)errorEl.textContent=error?.message??'送信に失敗しました。';}
  finally{feedbackBusy=false;if(sendButton){sendButton.disabled=false;sendButton.textContent='送信する';}}
 }
-function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button><button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
+function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
 function toggleParty(id){const ids=[...(state.activePartyIds??[])],has=ids.includes(id);if(has){if(ids.length===1)return toast('戦闘メンバーは1人以上必要です');setActiveParty(state,ids.filter(x=>x!==id));}else{if(ids.length>=4)return toast('戦闘メンバーは4人までです');setActiveParty(state,[...ids,id]);}saveNow();renderGame();}
 
 document.addEventListener('click',e=>{
  const el=e.target.closest('button,[data-modal-backdrop]');if(!el)return;
  if(el.hasAttribute('data-hunt-title-details')){titleHuntDetailsOpen=true;return renderTitleHuntDetails();}
  if(el.hasAttribute('data-hunt-title-back')){titleHuntDetailsOpen=false;renderTitle();title.scrollTop=0;return;}
+ if(el.hasAttribute('data-hunt-archive')){openModal(festivalArchiveMarkup());return void refreshFestival(true);}
  if(el.hasAttribute('data-hunt-details'))return openModal(festivalDetailsMarkup());
  if(el.hasAttribute('data-hunt-raid-guide')){const card=game.querySelector('.raid-event-panel');if(card){card.scrollIntoView({behavior:'smooth',block:'start'});return;}return openModal(raidDetailsMarkup());}
  if(el.hasAttribute('data-hunt-refresh'))return void refreshFestival(true);
@@ -1224,6 +1225,8 @@ function updateFestivalPanel(){
  }));
  const element=document.getElementById('hunt-festival');
  if(element)element.outerHTML=festivalMarkup();
+ const archive=document.getElementById('hunt-festival-archive');
+ if(archive)archive.outerHTML=festivalArchiveMarkup();
 }
 async function refreshFestival(force=false){
  if(Date.now()<HUNT_FESTIVAL.announce)return;
