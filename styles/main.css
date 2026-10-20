@@ -896,3 +896,20 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 #title-screen .title-event-notice.eclipse-event-notice b{color:#f9ddae}
 #title-screen .title-event-notice.eclipse-event-notice small{color:#f2dfff}
 .eclipse-event-details .event-detail-banner{width:100%;aspect-ratio:3/1;object-fit:contain;background:#160d2d}
+
+/* Player feedback: keep the compact, four-member HP/MP dock visible on phones.
+   This intentionally overrides the legacy @media(max-width:520px) display:none. */
+@media (max-width:520px){
+ .party-dock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));flex:0 0 auto;width:100%;gap:4px;padding:5px 4px;overflow-x:hidden;overflow-y:visible}
+ .party-dock .dock-member{min-width:0;width:100%;grid-template-columns:20px minmax(0,1fr);grid-template-rows:minmax(25px,auto) 4px 4px;gap:3px 3px;padding:4px 3px;align-content:center;border-radius:9px}
+ .party-dock .dock-member>span{width:20px;height:20px;font-size:.7rem}
+ .party-dock .dock-member>small{font-size:.54rem;line-height:1.2;min-width:0;white-space:normal;overflow-wrap:anywhere}
+ .party-dock .dock-member>.dock-hp,.party-dock .dock-member>.dock-mp{height:4px}
+ .party-dock .dock-member>.dock-mp b{background:linear-gradient(90deg,#347bcf,#68c3ff)}
+}
+@media (max-width:350px){
+ .party-dock{gap:2px;padding:4px 2px}
+ .party-dock .dock-member{grid-template-columns:16px minmax(0,1fr);gap:3px 2px;padding:3px 2px}
+ .party-dock .dock-member>span{width:16px;height:16px;font-size:.6rem}
+ .party-dock .dock-member>small{font-size:.49rem}
+}
