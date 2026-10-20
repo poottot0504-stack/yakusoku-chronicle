@@ -144,6 +144,41 @@ for(const d of Object.values(EQUIPMENT).filter(d=>d.specialJobGear&&!d.raidGear&
  add({id:`craft-${d.id}`,name:d.name,category:d.slot==='accessory'?d.accessoryType:['weapon','spellbook'].includes(d.slot)?'weapon':'armor',tier:[2,5,6,9,12][n],gold:[250,1000,3500,10000,25000][n],output:{kind:'equipment',equipmentId:d.id,quantity:1},materials:{[mat]:['weapon','spellbook','body'].includes(d.slot)?3:2},unlock:{type:'specialJob',jobId:d.specialJobGear}});
 }
 
+// Alternative monster-drop crafting routes for summoner's secondary spellbooks.
+// Existing ingot recipes remain intact. Both ordinary regional mobs and the five
+// permanent all-area monsters can supply materials for each book tier.
+const SUMMONER_BOOK_HUNT_TIERS=[
+  {stage:'novice',regular:0,companion:1,normal:5,other:3,newNormal:5,newUncommon:2,newRare:0,gold:300,grade:1},
+  {stage:'veteran',regular:20,companion:21,normal:8,other:1,newNormal:7,newUncommon:3,newRare:0,gold:1250,grade:3},
+  {stage:'astral',regular:40,companion:41,normal:10,other:1,newNormal:8,newUncommon:4,newRare:1,gold:4500,grade:5},
+  {stage:'celestial',regular:70,companion:71,normal:12,other:2,newNormal:10,newUncommon:5,newRare:1,gold:12500,grade:8},
+  {stage:'eternal',regular:90,companion:91,normal:15,other:3,newNormal:12,newUncommon:6,newRare:2,gold:30000,grade:10}
+];
+for(const [index,config] of SUMMONER_BOOK_HUNT_TIERS.entries()){
+ const id=`summoner-${config.stage}-spellbook`,def=EQUIPMENT[id];
+ const first=NORMAL_ENEMY_LIST[config.regular],second=NORMAL_ENEMY_LIST[config.companion],allRegionMonster=NEW_MONSTERS[index];
+ if(!def||!first?.materials?.normal||!second?.materials?.normal||!allRegionMonster)throw new Error(`魔本の魔物素材レシピ定義が不足: ${id}`);
+ const regularMaterials={
+  [first.materials.normal]:config.normal,
+  [index===0?second.materials.normal:second.materials.rare]:config.other
+ };
+ const newerMaterials={
+  [newMonsterMaterialId(allRegionMonster,'normal')]:config.newNormal,
+  [newMonsterMaterialId(allRegionMonster,'uncommon')]:config.newUncommon,
+  ...(config.newRare?{[newMonsterMaterialId(allRegionMonster,'rare')]:config.newRare}:{})
+ };
+ for(const [type,materials,sourceMonsterId,flavor] of [
+  ['regular',regularMaterials,first.id,'通常モンスター素材'],
+  ['new',newerMaterials,allRegionMonster.id,'新モンスター素材']
+ ]){
+  add({id:`craft-${id}-${type}-materials`,name:`${def.name}（${flavor}）`,
+   category:'weapon',tier:config.grade,gold:config.gold,materialGrade:config.grade,
+   monsterMaterialRecipe:true,sourceMonsterId,
+   output:{kind:'equipment',equipmentId:id,quantity:1},materials,
+   unlock:{type:'specialJob',jobId:'summoner'}});
+ }
+}
+
 // Job-specific recipes preserve the ordinary raid material costs and unlock checks.
 for(const d of Object.values(EQUIPMENT).filter(d=>d.specialJobGear&&(d.raidGear||d.legendJobGear))){
  const category=d.slot==='accessory'?d.accessoryType:d.slot==='weapon'?'weapon':'armor';
