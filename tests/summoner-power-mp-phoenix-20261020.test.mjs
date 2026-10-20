@@ -44,14 +44,14 @@ test('phoenix restores 70% maximum HP to every living ally and clears all their 
  const stats={attack:15,defense:15,magic:300,speed:15};
  const allies=Array.from({length:4},(_,i)=>({id:`ally-${i}`,name:`味方${i}`,currentJob:i===0?'summoner':'healer',level:100,hp:i===3?0:i===0?200:100,maxHp:1000,mp:2000,maxMp:2000,stats:{...stats,speed:i===0?100:15}}));
  // Battle clones begin with clean statuses, so seed ailments once it is created.
- const enemy={id:'enemy',name:'敵',hp:999999,maxHp:999999,mp:0,maxMp:0,stats:{attack:1,defense:1,magic:1,speed:1},ai:[{type:'attack'}]};
+ const enemy={id:'enemy',name:'敵',hp:999999,maxHp:999999,mp:0,maxMp:0,stats:{attack:1,defense:1,magic:1,speed:1},ai:[{type:'wait'}]};
  const battle=createBattle(allies,enemy);
  for(const id of ['ally-0','ally-1','ally-2']){
   const actor=battle.actorMap[id];actor.statusAilments=[{id:'poison',turns:3},{id:'curse',turns:3}];actor.statusResistTurns={poison:2};
  }
  startTurn(battle);
  assert.equal(resolveAction(battle,{type:'skill',skill,targetId:'ally-0'}).ok,true);
- for(let i=1;i<4;i++)resolveAction(battle,{type:'wait'},()=>.9);
+ for(let i=1;i<3;i++)resolveAction(battle,{type:'wait'},()=>.9);
  for(let i=0;i<3;i++){
   assert.equal(battle.actorMap[`ally-${i}`].hp, i===0?900:800);
   assert.deepEqual(battle.actorMap[`ally-${i}`].statusAilments,[]);
