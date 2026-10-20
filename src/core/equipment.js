@@ -4,8 +4,12 @@ import { getCharacterResourceCaps } from './combat-stats.js';
 import { getEnhancedStats } from './forge.js';
 import { getRequiredJobLevel } from './equipment-requirements.js';
 
+// Only weapons that explicitly declare alternate types can use the added job paths.
+// Existing instrument copies keep working for bards after Elgancio's fist correction.
+const compatibleWeaponTypes=item=>[item.weaponType,...(item.alternateWeaponTypes??[])];
+const weaponJobCompatible=(job,item)=>job.weaponTypes?.some(type=>compatibleWeaponTypes(item).includes(type))===true;
 function weaponJobLabel(item){
- const jobs=Object.values(JOBS).filter(job=>job.weaponTypes?.includes(item.weaponType)&&(!item.allowedJobs||item.allowedJobs.includes(job.id)));
+ const jobs=Object.values(JOBS).filter(job=>weaponJobCompatible(job,item)&&(!item.allowedJobs||item.allowedJobs.includes(job.id)));
  if(!jobs.length)return '';
  return `${jobs.map(job=>job.name).join('・')}装備可`;
 }
@@ -30,7 +34,7 @@ export function canEquipForJob(character,item,state){
  const job=JOBS[character.currentJob];if(!job)return false;
  if(item.armorGroup&&!job.equipmentGroups?.includes(item.armorGroup))return false;
  if(item.slot==='spellbook')return character.currentJob==='summoner'&&item.weaponType==='spellbook';
- if(item.slot==='weapon')return job.weaponTypes.includes(item.weaponType);
+ if(item.slot==='weapon')return weaponJobCompatible(job,item);
  if(item.slot==='shield'&&!item.mashoOffhand&&!item.festivalOffhand){
    if(job.shield==='none')return false;
    if(job.shield==='small'&&item.shieldSize!=='small')return false;

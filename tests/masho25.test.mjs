@@ -27,7 +27,7 @@ test('0.2 percent boundary, only five weapons, no ore and once-only rewards',()=
  assert.equal(win(state(),20,()=>1).promiseOre,2);
 });
 test('five originally 400-power weapons are buffed, require job150 and remain market sellable',()=>{
- const jobs=['swordsman','mage','thief','archer','bard'];Object.values(MASHO_ABYSS_WEAPONS).forEach((d,i)=>{assert.equal(EQUIPMENT[d.id],d);assert.equal(d.slot,'weapon');assert.equal(d[i===1?'magic':'attack'],440);const c={currentJob:jobs[i],jobLevels:{[jobs[i]]:149}};assert.ok(!canEquip(c,d,{}));c.jobLevels[jobs[i]]=150;assert.ok(canEquip(c,d,{}));const inst=createEquipmentInstance(d.id);assert.ok(isMarketSellable({characters:[],equipmentInventory:[inst]},{kind:'equipment',instanceId:inst.instanceId,quantity:1}).ok);});
+ const jobs=['swordsman','mage','thief','archer','fighter'];Object.values(MASHO_ABYSS_WEAPONS).forEach((d,i)=>{assert.equal(EQUIPMENT[d.id],d);assert.equal(d.slot,'weapon');assert.equal(d[i===1?'magic':'attack'],440);const c={currentJob:jobs[i],jobLevels:{[jobs[i]]:149}};assert.ok(!canEquip(c,d,{}));c.jobLevels[jobs[i]]=150;assert.ok(canEquip(c,d,{}));const inst=createEquipmentInstance(d.id);assert.ok(isMarketSellable({characters:[],equipmentInventory:[inst]},{kind:'equipment',instanceId:inst.instanceId,quantity:1}).ok);});
  const old=Object.values(EQUIPMENT).filter(d=>d.slot==='weapon'&&!MASHO_ABYSS_WEAPONS[d.id]);assert.ok(old.some(d=>d.attack>0));assert.ok(old.some(d=>d.magic>0));
 });
 import {createBattle,startTurn,resolveAction} from '../src/core/battle.js';
