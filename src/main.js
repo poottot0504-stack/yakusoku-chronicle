@@ -78,6 +78,7 @@ import { HALLOWEEN_EVENT, TRAINING_FESTIVAL, TWIN_STAR_FESTIVAL } from './data/e
 import { ECLIPSE_EVENT } from './data/eclipse-2026.js';
 import { twinStarFestivalDetailsMarkup, titleEventNoticeMarkup, halloweenEventDetailsMarkup, trainingFestivalDetailsMarkup, jobReleaseDetailsMarkup, eclipseEventDetailsMarkup } from './ui/events.js?v=market-reopen-20261014-eclipse-20261020-battles-lv50-new-jobs-title-20261020-jobdetail-clean-20261020';
 import { raidDetailsMarkup } from './ui/raid.js?v=material2x-raid10-20261009';
+import { prepareRaidDamageSubmission } from './raid/raidDamageGuard.js';
 import { createRaidApi,getRaidPlayerId } from './raid/raidApi.js';
 import { raidJoinButtonState,raidJoinLoadingMarkup,withRaidJoinTimeout } from './raid/raidJoinUi.js?v=material2x-raid10-20261009';
 import { captureProgressionSnapshot,buildProgressionAuditEvents,createProgressionAuditApi } from './online/progression-audit.js';
@@ -685,7 +686,7 @@ function cancelRaidSession(){
  raidExecutionId++;raidPoller.stop();raidLobbyPoller.stop();raidRoom=null;raidPendingBossAction=null;raidTurnState=null;raidTurnExecuting=false;raidEndedReason=null;raidJoinBusy=false;
  if(cleared){try{saveNow();}catch{}}
 }
-function raidRoomView(r){const boss=RAID_BOSSES.find(b=>b.id===r?.bossId)??null,prev=raidRoom&&(!r?.sessionId||r.sessionId===raidRoom.sessionId)&&(!r?.roomId||r.roomId===raidRoom.roomId)?raidRoom:null;return {...r,boss,bossStatusAilments:structuredClone(prev?.bossStatusAilments??[]),bossStatusResistTurns:{...(prev?.bossStatusResistTurns??{})}};}
+function raidRoomView(r){const boss=RAID_BOSSES.find(b=>b.id===r?.bossId)??null,prev=raidRoom&&(!r?.sessionId||r.sessionId===raidRoom.sessionId)&&(!r?.roomId||r.roomId===raidRoom.roomId)?raidRoom:null;return {...r,boss,verifiedLevel:r?.verifiedLevel??prev?.verifiedLevel??null,bossStatusAilments:structuredClone(prev?.bossStatusAilments??[]),bossStatusResistTurns:{...(prev?.bossStatusResistTurns??{})}};}
 function raidHeroDefense(hero){const bonus=getEquipmentStatBonus(state,hero);return Math.max(0,(hero?.stats?.defense??0)+(bonus.defense??0));}
 function rememberRaidSnapshot(snapshot){storeRaidSnapshot(state,snapshot,{storage:session.storage});}
 function raidPhaseText(room){const ratio=Math.max(0,(room?.currentHp??0)/Math.max(1,room?.maxHp??1));return ratio<=.25?'⚠️ 最終フェーズ +30%':ratio<=.50?'🔥 強化フェーズ +15%':'通常フェーズ';}
@@ -812,6 +813,14 @@ async function executeRaidPartyTurn(){
     payload=raidActionPayload(action.type,actor,bossStats,raidActorBonus(actor));
     log=action.type==='guard'?`🛡️ ${actor.name}は防御！`:`⚔️ ${actor.name}の攻撃！ ${Number(payload.damage??0).toLocaleString()}ダメージ`;
    }
+   // Client-side soft cap mirrors the verified server ceiling but never overrides
+   // server rejection. Legitimate high-output skills no longer send unpayable hits.
+   const safeSubmission=prepareRaidDamageSubmission(payload,actor,raidRoom?.verifiedLevel);
+   if(safeSubmission.adjusted){
+    log=log.replace(Number(safeSubmission.requested).toLocaleString(),Number(safeSubmission.submitted).toLocaleString());
+    log+='（レイドの安全上限に調整）';
+   }
+   payload=safeSubmission.payload;
    if(!survivalSent){payload.survivalSeconds=Math.min(30,Math.floor((Date.now()-raidStartedAt)/1000));raidStartedAt=Date.now();survivalSent=true;}
    syncRaidParty(party);
    await limitAutoRaidCalls(executionId);
@@ -844,7 +853,8 @@ async function executeRaidPartyTurn(){
   const dot=getRaidBossDotTick(raidRoom);
   if(dot.damage>0){
    await limitAutoRaidCalls(executionId);
-   const r=await raidApi.act({playerId,damage:dot.damage});if(executionId!==raidExecutionId||!raidRoom)return;raidRoom=raidRoomView(r);rememberRaidSnapshot(r);if(isRaidWindowDefeated(state))raidRoom.currentHp=0;
+   const safeDot=prepareRaidDamageSubmission({damage:dot.damage},raidHero(),raidRoom?.verifiedLevel);
+   const r=await raidApi.act({playerId,...safeDot.payload});if(executionId!==raidExecutionId||!raidRoom)return;raidRoom=raidRoomView(r);rememberRaidSnapshot(r);if(isRaidWindowDefeated(state))raidRoom.currentHp=0;
    const applied=Math.max(0,Number(r.damageApplied??dot.damage)),labels=dot.details.map(x=>x.label).join('・');addRaidBattleLog(r.damageRejected?'⚠️ 状態異常ダメージはサーバー検証で反映されませんでした。':`☠️ ${raidRoom.boss?.name??'レイドボス'}：${labels} ${applied.toLocaleString()}ダメージ`);updateRaidBattleModal();await tryClaimRaidReward(r,{silent:true});
    if((raidRoom.currentHp??0)<=0){raidPoller.stop();raidPendingBossAction=null;raidTurnState=null;raidTurnExecuting=false;raidEndedReason=null;saveNow();renderRaidBattleScreen();return toast(`🏆 ${raidRoom.boss?.name??'レイドボス'}討伐！`);}
   }
