@@ -22,7 +22,7 @@ BOSS_ART['trial-gunbreaker']=descriptor('specialJobs',2);
 BOSS_ART['trial-astrologian']=descriptor('specialJobs',3);
 // Nox reuses a dark boss pixel sprite from the existing oath atlas.
 BOSS_ART['event-eclipse-nox']=descriptor('oaths',4);
-const jobArt=job=>['dragoon','summoner'].includes(job)?{sheet:job,index:0,cols:1,rows:1,aspect:.75,src:`./assets/battle/${job}.svg`}:['gunbreaker','astrologian'].includes(job)?descriptor('specialJobs',job==='gunbreaker'?0:1):job==='highWizard'?descriptor('highWizardFemale',0):descriptor('jobs',Math.max(0,JOB_ART_IDS.indexOf(job)));
+const jobArt=job=>['dragoon','summoner'].includes(job)?{sheet:job,index:0,cols:1,rows:1,aspect:.75,src:`./assets/battle/${job}.png?v=approved-height-20261020`}:['gunbreaker','astrologian'].includes(job)?descriptor('specialJobs',job==='gunbreaker'?0:1):job==='highWizard'?descriptor('highWizardFemale',0):descriptor('jobs',Math.max(0,JOB_ART_IDS.indexOf(job)));
 export function actorArt(actor={}){
  if(actor.side==='ally')return jobArt(actor.currentJob);
  if(actor.raidBoss&&['fenrir','chryps'].includes(actor.bossId??actor.id))return descriptor(actor.bossId??actor.id,0);
@@ -67,7 +67,7 @@ function sprite(actor,activeId,event={},action={}){
  const magicColor=({fire:'#ff9562',ice:'#8ce6ff',water:'#70caff',thunder:'#fff17b',lightning:'#fff17b',wind:'#a2ffd2',earth:'#e6b874',light:'#fff2ae',dark:'#c19aff'})[event.element]??'#bca6ff';
  const filter=art.tint?`filter:hue-rotate(${art.tint}deg);`:'';
  return `<div class="scene-actor ${actor.side} ${isBoss?'scene-boss':''} ${ko?'scene-ko':''} ${ko&&damage>0?'scene-finishing':''} ${actor.escaped?'scene-escaped':''} ${activeId===actor.id?'scene-active':''} ${damage>0?'scene-hit':damage<0?'scene-healed':''} ${action.actorId===actor.id?'scene-performing':''}" data-scene-actor="${esc(actor.id)}" data-art-key="${art.sheet}:${art.index}" style="--sprite-aspect:${art.aspect};--sprite-cols:${art.cols};--sprite-rows:${art.rows};--sprite-x:${art.index%art.cols};--sprite-y:${Math.floor(art.index/art.cols)};${filter}">
- <span class="actor-shadow" aria-hidden="true"></span><span class="sprite-viewport ${art.mirror?'sprite-mirror':''}"><img src="${spriteSrc}" style="${imageStyle}" alt="${esc(actor.name)}${actor.side==='ally'?'（ジョブの姿）':''}" width="1536" height="1024" draggable="false"></span>
+ <span class="actor-shadow" aria-hidden="true"></span><span class="sprite-viewport ${art.mirror?'sprite-mirror':''}"><img src="${spriteSrc}" style="${imageStyle}" alt="${esc(actor.name)}${actor.side==='ally'?'（ジョブの姿）':''}" width="${art.src?90:1536}" height="${art.src?120:1024}" draggable="false"></span>
  ${effects(actor)}${actor.guarding&&!ko?'<span class="sprite-guard" aria-hidden="true"></span>':''}
  ${damage?`<span class="scene-number ${damage<0?'is-heal':''}">${damage<0?'+':''}${Math.abs(damage)}</span>${actionEffect(event,damage,magicColor)}`:''}
  <span class="scene-name">${esc(actor.name)}</span>${statusText?`<span class="scene-status">${statusText}</span>`:ko?'<span class="scene-status">戦闘不能</span>':''}</div>`;

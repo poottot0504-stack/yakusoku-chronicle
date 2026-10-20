@@ -137,13 +137,16 @@ test('new gear unlocks once prerequisite level reached, can craft, and all six h
 test('jobs, forging, and native combat sprites include Dragoon and Summoner',()=>{
  for(const job of ['dragoon','summoner']){
   const a=actorArt({side:'ally',currentJob:job,id:'hero'});
-  assert.equal(a.src,`./assets/battle/${job}.svg`);
-  assert.deepEqual([a.cols,a.rows,a.index],[1,1,0]);
-  const svg=readFileSync(new URL(`../assets/battle/${job}.svg`,import.meta.url),'utf8');
-  assert.match(svg,/shape-rendering="crispEdges"/);
-  assert.match(svg,/viewBox="0 0 36 48"/);
+  assert.equal(a.src,`./assets/battle/${job}.png?v=approved-height-20261020`);
+  assert.deepEqual([a.cols,a.rows,a.index,a.aspect],[1,1,0,.75]);
+  const png=readFileSync(new URL(`../assets/battle/${job}.png`,import.meta.url));
+  assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+  assert.equal(png.readUInt32BE(16),90,'all sprites share exactly the same 90px width');
+  assert.equal(png.readUInt32BE(20),120,'all sprites share exactly the same 120px height');
+  assert.ok(png.includes(Buffer.from('tRNS')),'background must be transparent');
   const markup=battleStageMarkup({}, {actors:[{id:'hero',side:'ally',currentJob:job,name:'冒険者',hp:100,maxHp:100}]});
-  assert.match(markup,new RegExp(`assets/battle/${job}\\.svg`));
+  assert.match(markup,new RegExp(`assets/battle/${job}\\.png`));
+  assert.match(markup,/width="90" height="120"/);
   const {s,c}=ready(job),jobs=jobsMarkup(s,c.id),forge=['weapon','armor','ring','charm'].map(page=>forgeMarkup(s,page)).join('');
   assert.match(jobs,new RegExp(JOBS[job].name));
   assert.match(jobs,/Lv30/);
