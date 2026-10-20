@@ -20,10 +20,10 @@ export const ECLIPSE_MATERIALS=Object.freeze({
 
 export const ECLIPSE_TIERS=Object.freeze([
  Object.freeze({id:'i',label:'Ⅰ',requiredLevel:1,rarity:'rare',weapon:26,armor:12,ring:9,charm:10,hp:45,mp:20,speed:2,gold:550}),
- Object.freeze({id:'ii',label:'Ⅱ',requiredLevel:1,rarity:'epic',weapon:92,armor:48,ring:27,charm:32,hp:180,mp:70,speed:8,gold:3800})
+ Object.freeze({id:'ii',label:'Ⅱ',requiredLevel:50,rarity:'epic',weapon:92,armor:48,ring:27,charm:32,hp:180,mp:70,speed:8,gold:3800})
 ]);
 
-// Rank I and II are both equippable at Job Lv 1, even after enhancement.
+// Rank I needs Job Lv 1 and rank II needs Job Lv 50, even after enhancement.
 // Include advanced weapon types (gunblade and starGlobe) so none of the 20 jobs
 // are left without an event weapon. The equipment job rules remain authoritative.
 export const ECLIPSE_WEAPONS=Object.freeze([
