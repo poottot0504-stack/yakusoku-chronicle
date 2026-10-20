@@ -23,3 +23,10 @@ export function mashoRunSummary(run,status='completed'){
  if(!run)throw new Error('連戦記録がありません');
  return {floor:run.floor,total:run.total,completed:run.completed,status,earnedGold:run.earnedGold,exp:run.exp,jobExp:run.jobExp,promiseOre:run.promiseOre,materials:{...run.materials},equipment:[...run.equipment]};
 }
+
+/** Result receipts stay saved; only the temporary cave notice is dismissible. */
+export function setMashoResultVisibility(state,visible=false){
+ state.ui??={};
+ state.ui.mashoResultVisible=visible===true;
+ return state.ui.mashoResultVisible;
+}

@@ -11,7 +11,7 @@ import { grantFestivalReward,grantFestivalBonus,nextFestivalBoundary } from './c
 import { HUNT_FESTIVAL } from './data/hunt-festival.js';
 import { hasFirstClear } from './core/progression-caps.js';
 import { createMashoEnemy, settleMashoVictory, canEnterMashoFloor } from './core/masho-cave.js';
-import { createMashoRun, recordMashoRunVictory, mashoRunCanContinue, mashoRunSummary } from './core/masho-chain.js';
+import { createMashoRun, recordMashoRunVictory, mashoRunCanContinue, mashoRunSummary, setMashoResultVisibility } from './core/masho-chain.js';
 import { mashoCaveMarkup } from './ui/masho-cave.js';
 import { deathWarningText } from './ui/death-warning.js';
 import { frameDuration, renderMotionFrame, captureNumberTails, appendNumberTails } from './ui/battle-motion.js';
@@ -385,6 +385,7 @@ function auditVictory(meta,expAwarded=0){
 }
 function startMashoFloorBattle(floor){
  if(!canEnterMashoFloor(state,floor))throw new Error('まだ挑戦できない階層です');
+ setMashoResultVisibility(state,false);
  const enemy=createMashoEnemy(state,floor);
  battleMeta={regionId:'masho',boss:true,enemy,mashoFloor:floor};
  battle=createAdventureBattle(enemy,{isBoss:true});
@@ -402,14 +403,14 @@ function finishBattleVictory(){clearNormalAuto();syncPlayTime();syncBattlePartyT
    saveNow();battle=null;
    if(mashoRunCanContinue(mashoRun)){
     try{startMashoFloorBattle(floor);return;}
-    catch(error){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'stopped');mashoRun=null;saveNow();battleScreen.classList.remove('active');view='masho';renderGame();toast(error.message??'連戦を中断しました');return;}
+    catch(error){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'stopped');setMashoResultVisibility(state,true);mashoRun=null;saveNow();battleScreen.classList.remove('active');view='masho';renderGame();toast(error.message??'連戦を中断しました');return;}
    }
    const completed=mashoRun.completed,total=mashoRun.total,stopped=completed<total;
    state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,stopped?'stopped':'completed');
-   mashoRun=null;saveNow();battleScreen.classList.remove('active');view='masho';renderGame();
+   setMashoResultVisibility(state,true);mashoRun=null;saveNow();battleScreen.classList.remove('active');view='masho';renderGame();
    toast(stopped?`魔障の洞窟 連戦終了！ ${completed}/${total}戦`:`魔障の洞窟 10連戦クリア！`);return;
   }
-  saveNow();battle=null;battleScreen.classList.remove('active');view='masho';renderGame();toast(`魔障の洞窟 第${floor}階層クリア！`);return;
+  setMashoResultVisibility(state,true);saveNow();battle=null;battleScreen.classList.remove('active');view='masho';renderGame();toast(`魔障の洞窟 第${floor}階層クリア！`);return;
  }
  if(battleMeta.eventId===ECLIPSE_EVENT.id){
   const wave=battleMeta.eventWave??1;
@@ -450,7 +451,7 @@ function finishBattleVictory(){clearNormalAuto();syncPlayTime();syncBattlePartyT
  if(battleMeta.rematch){recordAdventureVictory(state,{regionId:battleMeta.regionId,enemyIds:(battleMeta.enemies??[e]).map(x=>x.bestiaryId??x.id),exp:0,jobExp:0,gold:battle.gold??0,countsForExploration:false});const drops=awardBattleDrops(state,battleMeta.enemies??[e],Math.random,Date.now(),{allowBoostScrollDrops:false});state.adventure.message=['図鑑再戦勝利！ Gとドロップを獲得した。',...formatDropLines(drops)].join('\n');for(const defeated of (battleMeta.enemies??[e]))updateQuestProgress(state,{type:'defeat',id:defeated.bestiaryId??defeated.id,amount:1,source:'bestiaryRematch'});}
  if(!battleMeta.rematch){recordAdventureVictory(state,{regionId:battleMeta.trainingArea?`training:${battleMeta.trainingArea}`:battleMeta.regionId,boss:battleMeta.boss,enemyIds:(battleMeta.enemies??[e]).map(x=>x.bestiaryId??x.id),exp:battle.exp??0,gold:battle.gold??0,jobExp:battle.jobExp??0,countsForExploration:!battleMeta.guildQuestId});auditVictory(battleMeta,battle.exp??0);const drops=awardBattleDrops(state,battleMeta.enemies??[e]);const dropLines=formatDropLines(drops);const msg=state.adventure.message?.split('\n')??[];state.adventure.message=[msg[0],...dropLines,...msg.slice(1)].filter(Boolean).join('\n');for(const defeated of (battleMeta.enemies??[e]))updateQuestProgress(state,{type:'defeat',id:defeated.bestiaryId??defeated.id,amount:1});if(battleMeta.guildQuestId){const q=QUESTS[battleMeta.guildQuestId],rec=state.quests?.[battleMeta.guildQuestId];state.adventure.message=[`🎯 ${q?.name??'ギルド依頼'}：${e.name}を討伐！`,...dropLines,rec?.status==='ready'?'✅ 目標達成！ 街のギルドマスターに報告しよう。':`依頼進捗 ${rec?.progress??0}/${q?.goal?.amount??1}。ギルドマスターから続けて挑戦できます。`].join('\n');}if(battleMeta.boss){const idx=getUnlockedRegions(state).findIndex(x=>x.id===battleMeta.regionId);if(battleMeta.regionId==='field')recordSpecialProgress(state,'emblem');const specialKey=grantSpecialBossKeyItem(state,battleMeta.regionId);if(specialKey)state.adventure.message+=`\n🎁 ${getItemDef(specialKey.id).name} ×1 を手に入れた！`;recordSpecialProgress(state,'treasure');if(['volcano','ruins','abyss'].includes(battleMeta.regionId))recordSpecialProgress(state,'strongEnemy');}if(getActiveParty(state).some(c=>c.hp>0&&c.hp<=c.maxHp*.25))recordSpecialProgress(state,'lowHpWin');}
  recordAchievementEvent(state,{type:'firstWin'});saveNow();battle=null;battleScreen.classList.remove('active');if(battleMeta.boss&&battleMeta.regionId==='abyss'){view=state.cycle>=2?'endgame':'ending';}else if(battleMeta.trainingArea)view='endgame';else if(battleMeta.guildQuestId)view='town';else view=battleMeta.exploration?'exploreResult':'adventure';renderGame();if(battleMeta.trainingArea){const area=TRAINING_AREAS.find(x=>x.id===battleMeta.trainingArea);openEndgameReplayPrompt('training',battleMeta.trainingArea,area?.name??'修練',state.adventure.message);}else if(battleMeta.guildQuestId)openModal(`<h2>🎯 ギルド指定討伐・勝利！</h2><p class="notice endgame-replay-message">${esc(state.adventure.message)}</p><div class="endgame-replay-actions"><button class="action-main" data-npc="guildMaster">ギルドマスターに報告・続けて挑戦</button><button data-close-modal>街に戻る</button></div>`);if(!battleMeta.exploration)toast(`勝利！ ${battleMeta.enemies?.length??1}体撃破`);}
-function finishBattleDefeat(){clearNormalAuto();syncBattlePartyToState(state,battle);if(mashoRun){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'defeat');mashoRun=null;}const {loss}=handlePartyWipe(state);battle=null;view='town';saveNow();renderGame();toast(`全滅… ${loss}Gを失い宿屋へ戻った`);}
+function finishBattleDefeat(){clearNormalAuto();syncBattlePartyToState(state,battle);if(mashoRun){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'defeat');setMashoResultVisibility(state,false);mashoRun=null;}const {loss}=handlePartyWipe(state);battle=null;view='town';saveNow();renderGame();toast(`全滅… ${loss}Gを失い宿屋へ戻った`);}
 function act(action){if(!battle||battle.phase==='complete')return;const result=resolveAction(battle,action);if(result?.ok===false){toast(result.message);return;}syncBattlePartyToState(state,battle);renderBattle();}
 function openEndgameReplayPrompt(kind,id,name,message){const action=kind==='training'?`data-training-area="${esc(id)}"`:`data-oathbreaker="${esc(id)}"`;openModal(`<h2>⚔️ ${esc(name)}・勝利！</h2><p class="notice endgame-replay-message">${esc(message)}</p><div class="endgame-replay-actions"><button class="action-main" ${action}>⚔️ 同じ敵ともう一度戦う</button><button data-close-modal>星の彼方の試練へ戻る</button></div>`);}
 function openEnemyTargets(mode,skill=null){const enemies=battle.actors.filter(x=>x.side==='enemy'&&x.hp>0);openModal(`<h2>🎯 攻撃する敵</h2><div class="choice-list">${enemies.map(x=>`<button data-enemy-target="${x.id}" data-target-mode="${mode}" ${skill?`data-target-skill="${skill.id}"`:''}><span><b>${esc(x.name)}</b><small>HP ${x.hp} / ${x.maxHp}</small></span><em>攻撃</em></button>`).join('')}</div>`);}
@@ -1177,11 +1178,12 @@ document.addEventListener('click',e=>{
  if(el.dataset.toggleBattleSkill){if(battle||raidRoom)return toast('戦闘中は変更できません');const c=state.characters.find(x=>x.id===el.dataset.skillCharacter);if(!c)return;try{const ids=getSelectedSkillIds(c),id=el.dataset.toggleBattleSkill;setBattleSkillLoadout(c,ids.includes(id)?ids.filter(x=>x!==id):[...ids,id]);saveNow();renderGameKeepVertical();}catch(err){toast(err.message);}return;}
  if(el.dataset.characterId){state.selectedCharacterId=el.dataset.characterId;saveNow();return renderGame();}
  if(el.dataset.toggleParty)return toggleParty(el.dataset.toggleParty);
- if(el.hasAttribute('data-masho-open')){if(!hasFirstClear(state))return toast('一周目クリアで解放されます');view='masho';closeModal();return renderGame();}
- if(el.hasAttribute('data-masho-back')){view='adventure';return renderGame();}
+ if(el.hasAttribute('data-masho-open')){if(!hasFirstClear(state))return toast('一周目クリアで解放されます');setMashoResultVisibility(state,false);view='masho';closeModal();return renderGame();}
+ if(el.hasAttribute('data-masho-back')){setMashoResultVisibility(state,false);view='adventure';return renderGame();}
+ if(el.hasAttribute('data-masho-dismiss-result')){setMashoResultVisibility(state,false);saveNow();return renderGameKeepVertical();}
  if(el.dataset.mashoJob){state.ui??={};state.ui.mashoJob=el.dataset.mashoJob;return renderGameKeepVertical();}
  if(el.dataset.mashoRun10){if(battle)return;const floor=Number(el.dataset.mashoRun10);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)return toast('クリア済みの階層のみ10連戦できます');return openModal(`<h2>⚔️ 魔障の洞窟 第${floor}階層・10連戦</h2><p class="notice">敵を10回連続で倒します。HP・MPは各戦闘後も引き継がれ、各勝利の経験値・G・ドロップは1戦ずつ確定して保存されます。</p><p class="notice">全滅すると即終了し、通常の全滅ペナルティが発生します。「この戦い後に終了」で途中停止も可能です。</p><div class="shop-purchase-actions"><button class="action-main" data-masho-run-confirm="${floor}">10連戦を開始</button><button data-close-modal>やめる</button></div>`);}
- if(el.dataset.mashoRunConfirm){if(battle)return;try{const floor=Number(el.dataset.mashoRunConfirm);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)throw new Error('クリア済みの階層のみ10連戦できます');mashoRun=createMashoRun(floor);state.mashoCave.lastRunSummary=null;return startMashoFloorBattle(floor);}catch(err){mashoRun=null;toast(err.message);return;}}
+ if(el.dataset.mashoRunConfirm){if(battle)return;try{const floor=Number(el.dataset.mashoRunConfirm);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)throw new Error('クリア済みの階層のみ10連戦できます');mashoRun=createMashoRun(floor);state.mashoCave.lastRunSummary=null;setMashoResultVisibility(state,false);return startMashoFloorBattle(floor);}catch(err){mashoRun=null;toast(err.message);return;}}
  if(el.hasAttribute('data-masho-run-stop')){if(!mashoRun||!battle?.mashoRun)return;mashoRun.stopAfterCurrent=true;battle.mashoRun.stopAfterCurrent=true;renderBattle();toast('この戦闘に勝利したら連戦を終了します');return;}
  if(el.dataset.mashoFloor){if(battle)return;try{mashoRun=null;return startMashoFloorBattle(Number(el.dataset.mashoFloor));}catch(err){toast(err.message);return;}}
  if(el.hasAttribute('data-eidel-replay')){if(!state.endgame?.eidelEnding&&!state.endgame?.complete)return;state.ui??={};state.ui.eidelEndingView=state.endgame?.complete?'saved':state.endgame.eidelEnding;view='eidelEnding';closeModal();return renderGame();}

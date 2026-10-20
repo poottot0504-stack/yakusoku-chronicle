@@ -13,7 +13,7 @@ function win(s,floor,rng){return settleMashoVictory(s,{mashoFloor:floor,actors:[
 test('25 floors, sequential access and old save continuation',()=>{
  assert.equal(MASHO_FLOORS.length,25);const s=state(20);assert.ok(canEnterMashoFloor(s,21));assert.ok(!canEnterMashoFloor(s,22));win(s,21,()=>1);assert.ok(canEnterMashoFloor(s,22));
  assert.equal(normalizeMashoProgress(state(25)).highestCleared,25);assert.ok(!canEnterMashoFloor(state(),26));
- assert.match(mashoCaveMarkup(state(20)),/25階層/);assert.match(mashoCaveMarkup({...state(20),mashoCave:{highestCleared:20,lastReward:{floor:20}}}),/第21階層へ/);
+ assert.match(mashoCaveMarkup(state(20)),/25階層/);assert.match(mashoCaveMarkup({...state(20),mashoCave:{highestCleared:20,lastReward:{floor:20}},ui:{mashoResultVisible:true}}),/第21階層へ/);
 });
 test('new raid enemies have progressively 5 to 25 percent higher floor20 stats and existing unique art',()=>{
  const s=state(),base=createMashoEnemy(s,20,()=>0);

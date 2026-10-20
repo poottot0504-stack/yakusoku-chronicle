@@ -916,3 +916,6 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 
 /* Keep the initial title readable while modules and account status load. */
 #title-screen [data-title-boot-skeleton] .title-copy{margin:8px 0 24px;min-height:34px}
+
+/* Cave summaries are one-time notices, not permanent entries in the floor list. */
+.masho-dismiss-notice{display:block;margin:0 0 .75rem auto;min-height:40px;padding:.4rem .75rem;font-size:.8rem}
