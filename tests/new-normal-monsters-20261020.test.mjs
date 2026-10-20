@@ -8,6 +8,7 @@ import {RECIPES} from '../src/data/recipes.js';
 import {getItemDef} from '../src/core/items.js';
 import {actorArt} from '../src/ui/battle-art.js';
 import {getEncounterCandidates} from '../src/core/encounters.js';
+import {REGIONS} from '../src/ui/battle-art.js';
 import {craftingGoldCost} from '../src/core/crafting.js';
 
 test('five ordinary monsters have individual sprites, skills and encounters',()=>{
@@ -27,6 +28,19 @@ test('five ordinary monsters have individual sprites, skills and encounters',()=
   assert.equal(png.readUInt32BE(16),96);
   assert.equal(png.readUInt32BE(20),72);
   assert.ok(e.ai.length>=3);
+ }
+});
+test('all five new monsters appear in ordinary random encounters in every story area',()=>{
+ assert.equal(REGIONS.length,10);
+ for(const region of REGIONS){
+  const candidates=getEncounterCandidates({},region);
+  for(const monster of NEW_MONSTERS){
+   const matching=candidates.filter(enemy=>enemy.id===monster.id);
+   assert.equal(matching.length,1,monster.name+' should be available exactly once in '+region);
+   assert.equal(matching[0].allRegions,true);
+   assert.ok(matching[0].weight>0);
+   assert.equal(ENEMIES[monster.id].regionId,monster.regionId,'keep original encyclopedia metadata');
+  }
  }
 });
 test('fifteen named material drops and twenty craft-only equipment entries',()=>{

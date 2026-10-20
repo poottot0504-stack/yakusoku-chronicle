@@ -15,7 +15,7 @@ list[0]={...list[0],id:'slime',name:'スライム'};
 list[24]={...list[24],id:'stormSiren',name:'嵐歌のセイレーン',regionId:'coast',rare:true,weight:1,conditions:{time:'night',weather:'rain',storyFlag:'rareGate',itemId:'moonToken'}};
 // Keep the chapter 8 volcano Golem: the Mimic is an EXTRA rare ruins encounter.
 list.push({...list[77],id:'mimic',name:'ミミック',regionId:'ruins',rare:true,weight:.5,materials:{normal:'ミミックの欠片',rare:'ミミックの魔核'}});
-for(const monster of NEW_MONSTERS)list.push({id:monster.id,name:monster.name,regionId:monster.regionId,weight:monster.weight,level:monster.level,enemyClass:'normal',materials:Object.fromEntries(['normal','uncommon','rare'].map(kind=>[kind,newMonsterMaterialId(monster,kind)])),materialNames:monster.materialNames,materialChances:{normal:.28,uncommon:.12,rare:.03},combatScale:monster.combatScale,ai:monster.ai,...elementProfile(monster.element)});
+for(const monster of NEW_MONSTERS)list.push({id:monster.id,name:monster.name,regionId:monster.regionId,allRegions:true,weight:monster.weight,level:monster.level,enemyClass:'normal',materials:Object.fromEntries(['normal','uncommon','rare'].map(kind=>[kind,newMonsterMaterialId(monster,kind)])),materialNames:monster.materialNames,materialChances:{normal:.28,uncommon:.12,rare:.03},combatScale:monster.combatScale,ai:monster.ai,...elementProfile(monster.element)});
 const storyBosses=STORY_CHAPTERS.map((chapter,index)=>({
  id:`storyBoss-${chapter.regionId}`,
  name:chapter.bossName,
