@@ -61,6 +61,8 @@ for(const tier of ECLIPSE_TIERS){
   const id=`eclipse-${tier.id}-${w.id}`;
   ECLIPSE_EQUIPMENT[id]={...shared,id,name:`${w.name} ${tier.label}`,slot:'weapon',weaponType:w.type,...(w.twoHanded?{twoHanded:true}:{}),[w.stat]:tier.weapon,...(w.fast?{speed:tier.speed}:{})};
  }
+ const bookId=`eclipse-${tier.id}-spellbook`;
+ ECLIPSE_EQUIPMENT[bookId]={...shared,id:bookId,name:`星蝕の禁呪魔本 ${tier.label}`,slot:'spellbook',weaponType:'spellbook',allowedJobs:['summoner'],magic:Math.round(tier.weapon*.82),maxMp:tier.mp*3};
  for(const a of ECLIPSE_ARMOR){
   const id=`eclipse-${tier.id}-${a.id}`;
   ECLIPSE_EQUIPMENT[id]={...shared,id,name:`${a.name} ${tier.label}`,slot:a.slot,defense:Math.round(tier.armor*a.defenseRatio),...(a.slot==='shield'?{shieldSize:'small'}:{}),...(a.slot==='body'?{maxHp:tier.hp}:{}),...(a.slot==='legs'?{speed:tier.speed}:{}),...(a.slot==='head'?{maxMp:tier.mp}: {})};
@@ -76,7 +78,7 @@ for(const tier of ECLIPSE_TIERS){
 export function eclipseRecipeMaterials(tierId,part){
  const t=ECLIPSE_TIERS.find(x=>x.id===tierId);
  if(!t)throw new Error('未登録の星蝕装備ランクです');
- const high=tierId==='ii',weapon=ECLIPSE_WEAPONS.some(x=>x.id===part);
+ const high=tierId==='ii',weapon=part==='spellbook'||ECLIPSE_WEAPONS.some(x=>x.id===part);
  if(weapon)return high?{eclipseShard:6,riftStone:4,voidCrystal:2,noxCore:1}:{eclipseShard:3,riftStone:2};
  if(part==='body')return high?{eclipseShard:4,wraithVeil:4,voidCrystal:2,noxCore:1}:{eclipseShard:2,wraithVeil:2};
  if(part==='ring')return high?{eclipseShard:3,voidCrystal:2,noxCore:1}:{eclipseShard:2,voidCrystal:1};

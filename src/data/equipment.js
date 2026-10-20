@@ -181,6 +181,7 @@ for(const [key,label,requiredLevel,p] of HALLOWEEN_TIERS){
  EQUIPMENT[`halloween-${key}-fist`]=E(`halloween-${key}-fist`,`🎃 パンプキンナックル ${label}`,'weapon',{weaponType:'fist',requiredLevel,rarity:'rare',attack:p.weapon,eventLimited:true,eventJobGroup:'fighter'});
  EQUIPMENT[`halloween-${key}-bow`]=E(`halloween-${key}-bow`,`🌙 幻月の弓 ${label}`,'weapon',{weaponType:'bow',requiredLevel,rarity:'rare',attack:p.weapon,speed:eventSpeed,eventLimited:true,eventJobGroup:'archer'});
  EQUIPMENT[`halloween-${key}-instrument`]=E(`halloween-${key}-instrument`,`🎵 幻月の竪琴 ${label}`,'weapon',{weaponType:'instrument',requiredLevel,rarity:'rare',magic:p.weapon,speed:eventSpeed,eventLimited:true,eventJobGroup:'bard'});
+ EQUIPMENT[`halloween-${key}-spellbook`]=E(`halloween-${key}-spellbook`,`🌙 幻月の召喚魔本 ${label}`,'spellbook',{weaponType:'spellbook',allowedJobs:['summoner'],requiredLevel,rarity:'rare',magic:Math.round(p.weapon*.8),maxMp:p.mp*3,eventLimited:true,eventJobGroup:'summoner'});
  EQUIPMENT[`halloween-${key}-head`]=E(`halloween-${key}-head`,`👻 ゴーストハット ${label}`,'head',{requiredLevel,rarity:'rare',defense:p.armor,eventLimited:true});
  EQUIPMENT[`halloween-${key}-body`]=E(`halloween-${key}-body`,`🎃 パンプキンコート ${label}`,'body',{requiredLevel,rarity:'rare',defense:p.armor+2,eventLimited:true});
  EQUIPMENT[`halloween-${key}-arms`]=E(`halloween-${key}-arms`,`🍬 キャンディグローブ ${label}`,'arms',{requiredLevel,rarity:'rare',defense:p.armor,eventLimited:true});
@@ -216,6 +217,7 @@ const raidSets={
 };
 const raidSlots={head:'兜',body:'鎧',arms:'小手',waist:'腰当て',legs:'具足'};
 for(const [group,[name,stats]] of Object.entries(raidSets))for(const [slot,label] of Object.entries(raidSlots))raidE(`raid-${group}-${slot}`,`${name}の${label}`,slot,{armorGroup:group,...stats});
+raidE('raid-summoner-spellbook','神典オリハルの契約書','spellbook',{weaponType:'spellbook',allowedJobs:['summoner'],magic:115,maxMp:400,noEnhance:true});
 raidE('raid-orichalcum-ring','神環オリハルコンリング','accessory',{accessoryType:'ring',attack:18,defense:18,magic:18,speed:18,maxHp:50});
 raidE('raid-orihal-charm','星核のオリハルチャーム','accessory',{accessoryType:'charm',attack:12,defense:20,magic:20,speed:12,maxHp:70,maxMp:30});
 
@@ -290,6 +292,18 @@ for(const [job,names] of Object.entries(SPECIAL_GEAR_NAMES))for(const [tier,labe
 }
 
 // v52: complete craftable legendary and raid sets for the two special jobs.
+// Secondary summoner-only weapon. Unlike staffs, this occupies the dedicated book slot.
+export const SUMMONER_SPELLBOOK_TIERS=Object.freeze([
+ ['novice','見習いの精霊魔本',1,9,30,'common'],
+ ['veteran','熟練の契約魔本',30,23,85,'rare'],
+ ['astral','星晶の幻獣魔本',65,42,155,'rare'],
+ ['celestial','天極の召喚魔典',100,75,280,'legendary'],
+ ['eternal','約束の万象魔本',150,120,480,'legendary']
+]);
+for(const [tier,name,requiredLevel,magic,maxMp,rarity] of SUMMONER_SPELLBOOK_TIERS){
+ const id=`summoner-${tier}-spellbook`;
+ EQUIPMENT[id]=E(id,name,'spellbook',{weaponType:'spellbook',allowedJobs:['summoner'],specialJobGear:'summoner',requiredLevel,rarity,magic,maxMp,description:'召喚士の専用魔本枠に装備して魔力と最大MPを上げる。'});
+}
 for(const job of ['gunbreaker','astrologian'])for(const tier of ['legend','raid'])for(const [part,baseName] of Object.entries(SPECIAL_GEAR_NAMES[job])){
  const magic=job==='astrologian',raid=tier==='raid',id=`${tier}-${job}-${part}`,slot=['ring','charm'].includes(part)?'accessory':part;
  const names=magic?{legend:'伝説星天球ステラ・オラクル',raid:'星導天球セレスティア'}:{legend:'伝説銃剣レガリア',raid:'神銃剣ヴァンガード'};
@@ -389,7 +403,7 @@ for(const def of Object.values(ECLIPSE_EQUIPMENT))EQUIPMENT[def.id]=E(def.id,def
 // 強化Lv、イベント報酬、耐性、装備条件、セットボーナスは変更しない。
 export const EQUIPMENT_BALANCE_REVISION = '2026-10-15-balanced-buff';
 for(const gear of Object.values(EQUIPMENT)) {
- if(!['weapon','shield','head','body','arms','waist','legs','accessory'].includes(gear.slot))continue;
+ if(!['weapon','spellbook','shield','head','body','arms','waist','legs','accessory'].includes(gear.slot))continue;
  const lv=Number(gear.requiredLevel??1);
  const rate=lv<=30?.15:lv<=100?.12:lv<=200?.10:.08;
  for(const key of ['attack','defense','magic','speed','maxHp','maxMp']) {

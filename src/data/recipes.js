@@ -62,9 +62,9 @@ const halloweenMaterials=['pumpkinShard','magicCandy','ghostCloth','moonCrystal'
 const halloweenTiers=[['i','I',1],['ii','II',2],['iii','III',3]];
 const halloweenParts=[
  ['blade','パンプキンブレード','weapon'],['staff','幻月の杖','weapon'],['dagger','ゴーストダガー','weapon'],['fist','パンプキンナックル','weapon'],['bow','幻月の弓','weapon'],['instrument','幻月の竪琴','weapon'],
- ['ring','パンプキンリング','ring'],['charm','ゴーストチャーム','charm']
+ ['spellbook','幻月の召喚魔本','weapon'],['ring','パンプキンリング','ring'],['charm','ゴーストチャーム','charm']
 ];
-const halloweenWeaponParts=new Set(['blade','staff','dagger','fist','bow','instrument']);
+const halloweenWeaponParts=new Set(['blade','staff','dagger','fist','bow','instrument','spellbook']);
 for(const [tier,label,m] of halloweenTiers)for(const [part,name,category] of halloweenParts){
  const materials=halloweenWeaponParts.has(part)?{pumpkinShard:3*m,magicCandy:2*m}:part==='ring'?{pumpkinShard:2*m,moonCrystal:1*m}:part==='charm'?{ghostCloth:2*m,moonCrystal:1*m}:{ghostCloth:2*m,pumpkinShard:2*m,...(m>=2?{magicCandy:m}:{}),...(m>=3?{moonCrystal:2}:{})};
  add({id:`craft-halloween-${tier}-${part}`,name:`🎃 ${name} ${label}`,category,tier:6+m,gold:300*m,eventId:'halloween-2026',eventName:'幻月祭',eventStartsAt:Date.parse('2026-10-02T15:00:00Z'),eventEndsAt:Date.parse('2026-10-05T15:00:00Z'),output:{kind:'equipment',equipmentId:`halloween-${tier}-${part}`,quantity:1},materials,unlock:{type:'anyMaterial',materialIds:halloweenMaterials}});
@@ -128,7 +128,7 @@ for(const [tier,label,m] of halloweenTiers)for(const group of halloweenJobArmorG
 const raidRecipe=(r)=>add({...r,eventId:'five-gods-raid',eventName:'五神の試練',eventStartsAt:Date.parse('2026-10-04T09:00:00Z'),unlock:{type:'story'}});
 raidRecipe({id:'raid-refine-orichalcum',name:'💠 オリハルコン',category:'refine',tier:20,gold:0,output:{kind:'material',itemId:'orichalcum',quantity:1},materials:{orichalcumShard:5}});
 raidRecipe({id:'raid-refine-orihal',name:'🔷 オリハル',category:'refine',tier:20,gold:0,output:{kind:'material',itemId:'orihal',quantity:1},materials:{orihalShard:5}});
-for(const id of ['raid-eternalia','raid-astra-nova','raid-phantom-edge','raid-gaia-breaker','raid-artemis','raid-orpheus'])raidRecipe({id:`craft-${id}`,name:`👑 ${EQUIPMENT[id]?.name??id}`,category:'weapon',tier:20,gold:0,output:{kind:'equipment',equipmentId:id,quantity:1},materials:{orichalcum:2,orihal:2}});
+for(const id of ['raid-eternalia','raid-astra-nova','raid-phantom-edge','raid-gaia-breaker','raid-artemis','raid-orpheus','raid-summoner-spellbook'])raidRecipe({id:`craft-${id}`,name:`👑 ${EQUIPMENT[id]?.name??id}`,category:'weapon',tier:20,gold:0,output:{kind:'equipment',equipmentId:id,quantity:1},materials:{orichalcum:2,orihal:2}});
 for(const id of Object.keys(EQUIPMENT).filter(id=>/^raid-(swordsman|magic|fighter|thief|archer)-(head|body|arms|waist|legs)$/.test(id)))raidRecipe({id:`craft-${id}`,name:`👑 ${EQUIPMENT[id].name}`,category:'armor',tier:20,gold:0,output:{kind:'equipment',equipmentId:id,quantity:1},materials:{orihal:1}});
 raidRecipe({id:'craft-raid-orichalcum-ring',name:'👑 神環オリハルコンリング',category:'ring',tier:20,gold:0,output:{kind:'equipment',equipmentId:'raid-orichalcum-ring',quantity:1},materials:{orichalcum:1}});
 raidRecipe({id:'craft-raid-orihal-charm',name:'👑 星核のオリハルチャーム',category:'charm',tier:20,gold:0,output:{kind:'equipment',equipmentId:'raid-orihal-charm',quantity:1},materials:{orihal:1}});
@@ -141,7 +141,7 @@ add({id:'refine-rare-core',name:'希少な魔核',category:'refine',gold:0,outpu
 for(const d of Object.values(EQUIPMENT).filter(d=>d.specialJobGear&&!d.raidGear&&!d.legendJobGear)){
  const stage=d.id.split('-')[1],n=({novice:0,veteran:1,astral:2,celestial:3,eternal:4})[stage]??0;
  const mat=['ironIngot','mythrilIngot','starIngot','starIngot','orihal'][n];
- add({id:`craft-${d.id}`,name:d.name,category:d.slot==='accessory'?d.accessoryType:d.slot==='weapon'?'weapon':'armor',tier:[2,5,6,9,12][n],gold:[250,1000,3500,10000,25000][n],output:{kind:'equipment',equipmentId:d.id,quantity:1},materials:{[mat]:d.slot==='weapon'||d.slot==='body'?3:2},unlock:{type:'specialJob',jobId:d.specialJobGear}});
+ add({id:`craft-${d.id}`,name:d.name,category:d.slot==='accessory'?d.accessoryType:['weapon','spellbook'].includes(d.slot)?'weapon':'armor',tier:[2,5,6,9,12][n],gold:[250,1000,3500,10000,25000][n],output:{kind:'equipment',equipmentId:d.id,quantity:1},materials:{[mat]:['weapon','spellbook','body'].includes(d.slot)?3:2},unlock:{type:'specialJob',jobId:d.specialJobGear}});
 }
 
 // Job-specific recipes preserve the ordinary raid material costs and unlock checks.
@@ -189,6 +189,7 @@ add({id:'leatherWaistRecipe',name:'革の腰帯',category:'armor',tier:1,gold:90
 // but never before its actual opening. Receiving ingredients is handled separately.
 const ECLIPSE_PARTS=[
  ...ECLIPSE_WEAPONS.map(w=>({part:w.id,category:'weapon'})),
+ {part:'spellbook',category:'weapon'},
  ...ECLIPSE_ARMOR.map(a=>({part:a.id,category:'armor'})),
  {part:'ring',category:'ring'},{part:'charm',category:'charm'}
 ];

@@ -1,5 +1,5 @@
 export const CURRENT_SAVE_VERSION = 7;
-export const EQUIPMENT_SLOTS = ['weapon','shield','head','body','arms','waist','legs','accessory1','accessory2'];
+export const EQUIPMENT_SLOTS = ['weapon','spellbook','shield','head','body','arms','waist','legs','accessory1','accessory2'];
 
 export function createEmptyEquipment() {
   return Object.fromEntries(EQUIPMENT_SLOTS.map(slot => [slot, null]));

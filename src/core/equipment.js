@@ -14,6 +14,7 @@ const ARMOR_JOB_LABELS={
 };
 export function equipmentJobLabel(item){
  if(!item)return '';
+ if(item.slot==='spellbook')return '召喚士専用・魔本枠';
  if(item.slot==='weapon')return weaponJobLabel(item);
  if(item.eventJobGroup){const m={swordsman:'剣士専用',mage:'魔法使い専用',healer:'ヒーラー専用',thief:'盗賊専用',fighter:'格闘家専用',archer:'アーチャー専用',bard:'吟遊詩人専用'};return m[item.eventJobGroup]??'';}
  if(item.allowedJobs)return item.allowedJobs.map(id=>JOBS[id]?.name??id).join('・')+'専用';
@@ -28,6 +29,7 @@ export function canEquipForJob(character,item,state){
  if(item.allowedJobs&&!item.allowedJobs.includes(character.currentJob))return false;
  const job=JOBS[character.currentJob];if(!job)return false;
  if(item.armorGroup&&!job.equipmentGroups?.includes(item.armorGroup))return false;
+ if(item.slot==='spellbook')return character.currentJob==='summoner'&&item.weaponType==='spellbook';
  if(item.slot==='weapon')return job.weaponTypes.includes(item.weaponType);
  if(item.slot==='shield'&&!item.mashoOffhand&&!item.festivalOffhand){
    if(job.shield==='none')return false;
@@ -121,7 +123,7 @@ export function equipRecommendedEquipment(state,characterId){
  const before={...(c.equipment??{})};c.equipment??={};
  if(bestWeapon) equipItem(state,c.id,bestWeapon.instanceId,'weapon');
  if(bestShield){try{equipItem(state,c.id,bestShield.instanceId,'shield');}catch{}}
- for(const slot of ['head','body','arms','waist','legs','accessory1','accessory2']){const best=bestBySlot(c,pool,slot,state);if(best){try{equipItem(state,c.id,best.instanceId,slot);}catch{}}}
+ for(const slot of ['spellbook','head','body','arms','waist','legs','accessory1','accessory2']){if(slot==='spellbook'&&c.currentJob!=='summoner')continue;const best=bestBySlot(c,pool,slot,state);if(best){try{equipItem(state,c.id,best.instanceId,slot);}catch{}}}
  normalizeEquipmentOwnership(state);clampResources(state,c);
  const changed=Object.keys(c.equipment??{}).filter(slot=>(before[slot]??null)!==(c.equipment?.[slot]??null));
  return {character:c,changedSlots:changed};

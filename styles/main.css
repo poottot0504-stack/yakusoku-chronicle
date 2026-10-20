@@ -919,3 +919,7 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 
 /* Cave summaries are one-time notices, not permanent entries in the floor list. */
 .masho-dismiss-notice{display:block;margin:0 0 .75rem auto;min-height:40px;padding:.4rem .75rem;font-size:.8rem}
+
+/* Extra summoner spellbook slot; other equipment icons remain unchanged. */
+.equipment-spellbook-icon{display:grid;place-items:center;width:48px;height:42px;font-size:30px;background:linear-gradient(145deg,#20284d,#11182b);border:1px solid #8976bc;border-radius:4px}
+.equipment-summoner-book-note{font-size:.75rem;color:#b9a8f2}

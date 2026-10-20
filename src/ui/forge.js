@@ -26,7 +26,7 @@ const ARMOR_SLOT_LABEL={shield:'盾',head:'頭',body:'体',arms:'腕',waist:'腰
 
 function statsText(def){const map=[['attack','攻撃'],['defense','防御'],['magic','魔法'],['speed','素早さ'],['maxHp','HP'],['maxMp','MP']];return map.filter(([k])=>(def?.[k]??0)>0).map(([k,n])=>`${n}+${def[k]}`).join(' / ')||'素材';}
 function resistText(def={}){const text=Object.entries(def.elementResist??{}).filter(([,v])=>Number(v)>0).map(([k,v])=>`${elementLabel(k)}耐性+${Math.round(Number(v)*100)}%`).join(' / ');return text?`🛡️ ${text}`:'';}
-function equipmentCategory(def){if(!def)return 'armor';if(def.slot==='weapon')return 'weapon';if(def.slot==='accessory')return def.accessoryType==='ring'?'ring':'charm';return 'armor';}
+function equipmentCategory(def){if(!def)return 'armor';if(def.slot==='weapon'||def.slot==='spellbook')return 'weapon';if(def.slot==='accessory')return def.accessoryType==='ring'?'ring':'charm';return 'armor';}
 function armorSlotLabel(def){return ARMOR_SLOT_LABEL[def?.slot]??'防具';}
 function armorSlotMatches(def,slot){return slot==='all'||def?.slot===slot;}
 function categorySwitcher(selected){return `<div class="forge-primary-categories" aria-label="装備カテゴリ">${filterButtons(EQUIP_FILTERS.filter(([id])=>id!=='all'),selected,'forge-page')}</div>`;}
@@ -42,7 +42,7 @@ function countMarkup(n){return `<div class="forge-results-head"><b>装備一覧<
 function recipeCard(state,r,now=Date.now()){const check=canCraft(state,r.id,now),isNew=(state.newRecipes??[]).includes(r.id);const req=Object.entries(r.materials??{}).map(([id,n])=>{const have=getMaterialQuantity(state,id);return `${esc(matName(id))} ${have}/${n}`}).join('・');const def=r.output.kind==='equipment'?EQUIPMENT[r.output.equipmentId]:null;const jobLabel=equipmentJobLabel(def);const pieces=jobLabel?jobLabel.split('・').map(v=>v.trim()):[];const conciseJob=pieces.length>5?pieces.slice(0,4).join('・')+` ほか${pieces.length-4}職`:jobLabel;const reason=[check.eventClosed?'イベント終了':'',check.eventNotStarted?'開催前':'',check.locked&&!check.eventClosed&&!check.eventNotStarted?'未解放':'',check.missingMaterials.length?'素材不足':'',check.missingGold?'G不足':'',check.outputFull?'所持上限':''].filter(Boolean).join(' / ');return `<button data-craft="${r.id}" ${check.ok?'':'disabled'}><span><b>${isNew?'<i class="new-badge">NEW</i> ':''}${esc(r.name)}</b><small>${esc(statsText(def))}</small>${def&&resistText(def)?`<small>${esc(resistText(def))}</small>`:''}${def?`<small class="forge-kind-label">${equipmentCategory(def)==='armor'?`🛡️ ${armorSlotLabel(def)}防具`:equipmentCategory(def)==='weapon'?'⚔️ 武器':equipmentCategory(def)==='ring'?'💍 指輪':'🧿 チャーム'}</small>`:''}${jobLabel?`<small class="job-exclusive-label" title="${esc(jobLabel)}">${esc(conciseJob)}</small>`:''}${def?`<small>🔓 装備可能Lv ${def.requiredLevel??1}</small>`:''}<small>${req||'必要素材なし'}</small>${reason?`<small class="missing">${reason}</small>`:''}</span><em>${craftingGoldCost(r)}G</em></button>`;}
 
 // 装備名ではなくインスタンスIDで照合する。同名装備を複数所持していても誤表示しない。
-const EQUIPPED_SLOT_LABEL={weapon:'武器',shield:'盾',head:'頭',body:'体',arms:'腕',waist:'腰',legs:'足',accessory1:'指輪',accessory2:'チャーム'};
+const EQUIPPED_SLOT_LABEL={weapon:'武器',spellbook:'魔本',shield:'盾',head:'頭',body:'体',arms:'腕',waist:'腰',legs:'足',accessory1:'指輪',accessory2:'チャーム'};
 function buildEquipmentWearerMap(state){
  const equipped=new Map();
  for(const character of state.characters??[]){
