@@ -2,8 +2,8 @@ import { getBattleSkills, getSkillInheritanceFamily, getAllowedSkillSourceJobs, 
 import { JOBS } from '../data/jobs.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const SKILL_FAMILY_TEXT={
- swordsman:'剣士系（剣士・格闘家・暗黒騎士・パラディン・ガンブレイカー・ベルセルク）',
- mage:'魔法使い系（魔法使い・ヒーラー・白魔道士・黒魔術師・吟遊詩人・ビショップ・占星術師・ハイウィザード）',
+ swordsman:'剣士系（剣士・格闘家・暗黒騎士・パラディン・竜騎士・ガンブレイカー・ベルセルク）',
+ mage:'魔法使い系（魔法使い・ヒーラー・白魔道士・黒魔術師・召喚士・吟遊詩人・ビショップ・占星術師・ハイウィザード）',
  thief:'盗賊系（盗賊・アーチャー・スナイパー・海賊王・トリックスター）',
  redMage:'赤魔道士専用＋継承可能（剣士・魔法使い・ヒーラー・白魔道士・黒魔術師・ハイウィザード）'
 };
