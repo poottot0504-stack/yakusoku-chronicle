@@ -78,3 +78,7 @@
 .market-history-status.completed{background:rgba(66,150,112,.2);color:#9ee4ba}
 .market-history-status.pending{background:rgba(229,164,66,.15);color:#ffdc95}
 @media(max-width:600px){.market-history-head{flex-direction:column;gap:3px}.market-history-head small{white-space:normal}.market-tabs button{padding:10px 5px;font-size:.82rem}}
+
+/* Show comma-separated prices up to 30,000,000G without clipping on phones. */
+.market-own-row input[data-market-price]{width:132px;max-width:100%;text-align:right;font-variant-numeric:tabular-nums}
+.market-listing-form input[data-market-listing-price]{font-variant-numeric:tabular-nums}
