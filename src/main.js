@@ -92,7 +92,7 @@ import { getEquipmentStatBonus, getCharacterResourceCaps } from './core/combat-s
 import { getRareBattleRewards } from './core/rare-monsters.js';
 import { awardCharacterExp } from './core/progression.js';
 import { getNextDailyTravelBonusBoundary } from './core/daily-travel-bonus.js';
-import { applyBoostedBattleGold,useBoostScroll,isBoostScrollActive,advanceBoostPlaytime,remainingBoostMs,scrollDurationLabel,eligibleBoostPlaytimeMs } from './core/boost-scrolls.js';
+import { applyBoostedBattleGold,useBoostScroll,isBoostScrollActive,advanceBoostPlaytime,remainingBoostMs,scrollDurationLabel,eligibleBoostTickMs } from './core/boost-scrolls.js?v=mobile-scroll-clock-20261020';
 import { startPlayerStatsHeartbeat, PLAYER_STATS_STORAGE_KEY } from './core/player-stats.js';
 import { createAccountApi } from './online/account-api.js';
 import { createRankingApologyApi,grantRankingApologyReward,wasRankingApologyDelivered,markRankingApologyDelivered } from './core/ranking-apology.js';
@@ -186,7 +186,7 @@ function battlePresentationDelay(frame,last=false){return Math.max(85,Math.round
 function syncPlayTime(now=Date.now()){
  if(playStartedAt===null)return;
  const from=boostClockLastAt??now;
- advanceBoostPlaytime(state,eligibleBoostPlaytimeMs({from,now,lastInputAt:lastPlayerInputAt,inCombat:!!(battle||raidRoom)}));
+ advanceBoostPlaytime(state,eligibleBoostTickMs({from,now,lastInputAt:lastPlayerInputAt,inCombat:!!(battle||raidRoom)}));
  boostClockLastAt=now;
  const r=addElapsedPlayTime(state,playStartedAt,now);playStartedAt=r.accountedUntil;
 }
