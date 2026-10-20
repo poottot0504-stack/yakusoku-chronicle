@@ -168,7 +168,7 @@ const HIGH_FORGE_RECIPE_TIERS=[
  {id:'thunder',materialId:'thunderAlloy',tier:12,gold:22000},
  {id:'promise',materialId:'promiseAlloy',tier:15,gold:34000}
 ];
-const HIGH_FORGE_JOB_IDS=['swordsman','mage','thief','fighter','healer','archer','redMage','whiteMage','blackMage','darkKnight','pirateKing','sniper','paladin','bard','trickster','bishop','highWizard','gunbreaker','astrologian','berserker'];
+const HIGH_FORGE_JOB_IDS=['swordsman','mage','thief','fighter','healer','archer','redMage','whiteMage','blackMage','darkKnight','pirateKing','sniper','paladin','bard','trickster','bishop','highWizard','gunbreaker','astrologian','berserker','dragoon','summoner'];
 for(const tier of HIGH_FORGE_RECIPE_TIERS)for(const job of HIGH_FORGE_JOB_IDS)for(const part of ['weapon','body','ring','charm']){
  const equipmentId=`highforge-${tier.id}-${job}-${part}`,def=EQUIPMENT[equipmentId];
  const category=part==='body'?'armor':part;
