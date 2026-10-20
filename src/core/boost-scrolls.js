@@ -52,6 +52,14 @@ export function eligibleBoostPlaytimeMs({from,now,lastInputAt,inCombat=false,idl
  const until=inCombat?now:Math.min(now,Number(lastInputAt||0)+idleMs);
  return Math.max(0,Math.floor(until-from));
 }
+// Mobile browsers may suspend JavaScript while the page still appears to be in combat.
+// The real-time tick runs every second. A large gap means the page was frozen; do not
+// charge an hour of book duration for a single resume/suspended-frame callback.
+export const BOOST_MAX_FOREGROUND_TICK_MS = 60_000;
+export function eligibleBoostTickMs(options={}){
+ return Math.min(BOOST_MAX_FOREGROUND_TICK_MS,eligibleBoostPlaytimeMs(options));
+}
+
 export function scrollDurationLabel(ms) {
  const totalSeconds=Math.max(0,Math.ceil(ms/1000));
  const hours=Math.floor(totalSeconds/3600),minutes=Math.floor(totalSeconds%3600/60),seconds=totalSeconds%60;
