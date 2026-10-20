@@ -913,3 +913,6 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
  .party-dock .dock-member>span{width:16px;height:16px;font-size:.6rem}
  .party-dock .dock-member>small{font-size:.49rem}
 }
+
+/* Keep the initial title readable while modules and account status load. */
+#title-screen [data-title-boot-skeleton] .title-copy{margin:8px 0 24px;min-height:34px}
