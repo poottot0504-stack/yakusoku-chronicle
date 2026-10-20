@@ -12,7 +12,8 @@ test('market pricing accepts up to 30 million gold only',()=>{
  assert.equal(isValidMarketPrice(0),false);
  assert.equal(isValidMarketPrice(1.5),false);
  assert.match(marketListingFormMarkup([]),/30,000,000G/);
- assert.match(marketListingFormMarkup([]),/max="30000000"/);
+ assert.match(marketListingFormMarkup([]),/data-market-listing-price type="text" inputmode="numeric"/);
+ // Text inputs are required for comma grouping; the unchanged integer validator enforces the 30M cap.
 });
 
 test('player market history shows distinct buy and sell entries and receipt status',()=>{
