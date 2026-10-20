@@ -75,7 +75,7 @@ import { formatPlayTime, addElapsedPlayTime } from './core/play-time.js';
 import { isTwinStarFestivalActive, isHalloweenActive, makeHalloweenWave, getNextHalloweenWave, recordHalloweenWaveEncounters, halloweenCharacterExpMultiplier, isTrainingFestivalActive, makeTrainingFestivalWave, getNextTrainingFestivalWave, getNextEventBoundary, getEclipseEventStatus, makeEclipseWave, getNextEclipseWave } from './core/events.js?v=training-easier-20261010-eclipse20261020';
 import { HALLOWEEN_EVENT, TRAINING_FESTIVAL, TWIN_STAR_FESTIVAL } from './data/events.js';
 import { ECLIPSE_EVENT } from './data/eclipse-2026.js';
-import { twinStarFestivalDetailsMarkup, titleEventNoticeMarkup, halloweenEventDetailsMarkup, trainingFestivalDetailsMarkup, jobReleaseDetailsMarkup, eclipseEventDetailsMarkup } from './ui/events.js?v=market-reopen-20261014-eclipse-20261020-battles-lv50';
+import { twinStarFestivalDetailsMarkup, titleEventNoticeMarkup, halloweenEventDetailsMarkup, trainingFestivalDetailsMarkup, jobReleaseDetailsMarkup, eclipseEventDetailsMarkup } from './ui/events.js?v=market-reopen-20261014-eclipse-20261020-battles-lv50-new-jobs-title-20261020';
 import { raidDetailsMarkup } from './ui/raid.js?v=material2x-raid10-20261009';
 import { createRaidApi,getRaidPlayerId } from './raid/raidApi.js';
 import { raidJoinButtonState,raidJoinLoadingMarkup,withRaidJoinTimeout } from './raid/raidJoinUi.js?v=material2x-raid10-20261009';
