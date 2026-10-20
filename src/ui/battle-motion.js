@@ -19,4 +19,30 @@ export function appendNumberTails(root,tails){
  const stage=root?.querySelector('[data-battle-stage]');if(!stage)return;
  for(const tail of tails){const node=document.createElement('span');node.className=`scene-number scene-number-tail${tail.heal?' is-heal':''}`;node.textContent=tail.text;node.setAttribute('aria-hidden','true');Object.assign(node.style,{left:`${tail.x}%`,top:`${tail.y}%`,fontSize:tail.fontSize,'--tail-opacity':String(Math.min(.65,tail.opacity))});stage.append(node);setTimeout(()=>node.remove(),300);}
 }
-export function renderMotionFrame(root,markup){const tails=captureNumberTails(root);root.innerHTML=markup;appendNumberTails(root,tails);}
+/**
+ * Keep the Masho next-ten reservation button's DOM node through battle redraws.
+ * Recreating it in every animation frame used to restart emoji-icon loading
+ * and made the control visibly blink on iOS Safari.
+ */
+export function canReuseBattleQueueButton(current,next){
+ return Boolean(current&&next
+   &&current.getAttribute('aria-pressed')===next.getAttribute('aria-pressed')
+   &&current.hasAttribute('disabled')===next.hasAttribute('disabled')
+   &&current.textContent===next.textContent);
+}
+export function updateBattleView(root,markup){
+ const current=root.querySelector?.('[data-masho-run-queue]');
+ if(!current){root.innerHTML=markup;return;}
+ const doc=root.ownerDocument;
+ if(!doc?.createElement){root.innerHTML=markup;return;}
+ const template=doc.createElement('template');
+ template.innerHTML=markup;
+ const next=template.content.querySelector('[data-masho-run-queue]');
+ if(canReuseBattleQueueButton(current,next))next.replaceWith(current);
+ root.replaceChildren(template.content);
+}
+export function renderMotionFrame(root,markup){
+ const tails=captureNumberTails(root);
+ updateBattleView(root,markup);
+ appendNumberTails(root,tails);
+}

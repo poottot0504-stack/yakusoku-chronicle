@@ -14,7 +14,7 @@ import { createMashoEnemy, settleMashoVictory, canEnterMashoFloor } from './core
 import { createMashoRun, recordMashoRunVictory, mashoRunCanContinue, mashoRunSummary, setMashoResultVisibility, toggleMashoNextTen } from './core/masho-chain.js';
 import { mashoCaveMarkup } from './ui/masho-cave.js';
 import { deathWarningText } from './ui/death-warning.js';
-import { frameDuration, renderMotionFrame, captureNumberTails, appendNumberTails } from './ui/battle-motion.js';
+import { frameDuration, renderMotionFrame, updateBattleView, captureNumberTails, appendNumberTails } from './ui/battle-motion.js';
 import { adventureGuideMarkup, eidelEndingMarkup } from './ui/adventure-guide.js';
 import {raidStageMarkup} from './ui/battle-art.js';
 import { installPixelIconRenderer } from './ui/pixel-icons.js?v=stable-fallback-2';
@@ -296,7 +296,7 @@ function renderBattle(){
  if(battlePlayback===battle&&battle)return;
  title.classList.remove('active');game.classList.remove('active');battleScreen.classList.add('active');
  if(battle?.phase==='complete'&&battle.visualTimeline?.length){void playBattleTimeline(battle);return;}
- battleScreen.innerHTML=battleMarkup(state,battle);queueMicrotask(checkBattleState);scheduleNormalAuto();
+ updateBattleView(battleScreen,battleMarkup(state,battle));queueMicrotask(checkBattleState);scheduleNormalAuto();
 }
 async function playBattleTimeline(current){
  battlePlayback=current;
