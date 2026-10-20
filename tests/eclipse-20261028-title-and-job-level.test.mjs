@@ -11,17 +11,27 @@ const ann=Date.parse('2026-10-28T00:00:00+09:00');
 const open=Date.parse('2026-10-31T00:00:00+09:00');
 const end=Date.parse('2026-11-02T00:00:00+09:00');
 
-test('all 48 eclipse weapons armor rings and charms equip at Job Lv 1 before and after enhancement',()=>{
+test('rank I needs Job Lv 1, rank II Job Lv 50, both unchanged after enhancement',()=>{
  assert.equal(ECLIPSE_TIERS.length,2);
  assert.equal(Object.keys(ECLIPSE_EQUIPMENT).length,48);
  for(const d of Object.values(ECLIPSE_EQUIPMENT)){
-  assert.equal(d.requiredLevel,1,d.id);
+  const expected=d.id.startsWith('eclipse-ii-')?50:1;
+  assert.equal(d.requiredLevel,expected,d.id);
   assert.equal(d.noEventLevelScaling,true,d.id);
   const def=EQUIPMENT[d.id];
-  assert.equal(def.requiredLevel,1,d.id);
+  assert.equal(def.requiredLevel,expected,d.id);
   for(const level of [0,1,5,8,10,15]){
-   assert.equal(getRequiredJobLevel(def,{enhanceLevel:level}),1,`${d.id} +${level}`);
+   assert.equal(getRequiredJobLevel(def,{enhanceLevel:level}),expected,`${d.id} +${level}`);
   }
+ }
+});
+
+test('all star eclipse gear has dark-element resistance, with rank II slightly higher',()=>{
+ for(const [id,gear] of Object.entries(EQUIPMENT)){
+  if(!id.startsWith('eclipse-'))continue;
+  const rankII=id.startsWith('eclipse-ii-');
+  const expected=(gear.slot==='weapon'?1:gear.slot==='body'||gear.slot==='shield'?3:2)+(rankII?1:0);
+  assert.deepEqual(gear.elementResist,{dark:expected/100},`${id}: expected ${expected}% dark resistance`);
  }
 });
 
@@ -79,7 +89,7 @@ test('tapping the banner opens a detailed modal with accurate items, event time 
  assert.match(details,/虚星の結晶/);
  assert.match(details,/ノクスの心核/);
  assert.match(details,/限定装備48種類/);
- assert.match(details,/ジョブLv1から装備可能/);
+ assert.match(details,/ⅠはジョブLv1、ⅡはジョブLv50から装備可能/);
  assert.match(details,/イベント終了後も生産できます/);
  const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
  assert.match(main,/data-eclipse-event-notice/);
