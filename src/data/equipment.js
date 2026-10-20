@@ -119,7 +119,7 @@ for(const [index,enemy] of NORMAL_ENEMY_LIST.slice(0,101).entries()){
 // New normal-monster craft equipment: data-only, no additional equipment images.
 for(const monster of NEW_MONSTERS)for(const [part,gear] of Object.entries(monster.gear)){
  const id=newMonsterGearId(monster,part),slot=part==='ring'||part==='charm'?'accessory':part==='body'?'body':'weapon';
- EQUIPMENT[id]=E(id,gear.name,slot,{requiredLevel:monster.requiredLevel,rarity:monster.rarity,sourceMonsterId:monster.id,monsterMaterialGear:true,materialGrade:monster.materialGrade,...(slot==='accessory'?{accessoryType:part}:{}),...(gear.weaponType?{weaponType:gear.weaponType}:{}),...gear.stats,...(gear.elementResist?{elementResist:gear.elementResist}:{})});
+ EQUIPMENT[id]=E(id,gear.name,slot,{requiredLevel:monster.requiredLevel,rarity:monster.rarity,sourceMonsterId:monster.id,monsterMaterialGear:true,fixedRequiredJobLevel:true,materialGrade:monster.materialGrade,...(slot==='accessory'?{accessoryType:part}:{}),...(gear.weaponType?{weaponType:gear.weaponType}:{}),...gear.stats,...(gear.elementResist?{elementResist:gear.elementResist}:{})});
 }
 EQUIPMENT['promise-memory']=E('promise-memory','約束の思い出','accessory',{accessoryType:'ring',unique:true,rarity:'legendary',requiredLevel:80,maxHp:50,maxMp:20,attack:8,magic:8});
 EQUIPMENT['ranking-apology-star-ring']=E('ranking-apology-star-ring','星晶の指輪','accessory',{accessoryType:'ring',unique:true,rarity:'legendary',requiredLevel:1,attack:10,defense:10,magic:10,speed:10});
@@ -317,6 +317,7 @@ const REBALANCED_HIGH_FORGE_LEVELS={union:80,nova:110,star:140,blaze:170,thunder
 const REBALANCED_ENDGAME_LEVELS={200:80,220:90,240:100,260:110,280:120,300:130};
 function balancedEquipmentLevel(d){
  const original=Math.max(1,Math.floor(Number(d.requiredLevel??1)||1));
+ if(d.fixedRequiredJobLevel)return original;
  if(original===1)return 1;
  if(d.highForgeGear)return REBALANCED_HIGH_FORGE_LEVELS[d.highForgeTier]??original;
  if(d.id?.startsWith('oathgear-'))return 120;
