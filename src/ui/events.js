@@ -1,21 +1,21 @@
 import { HALLOWEEN_EVENT, TRAINING_FESTIVAL, TWIN_STAR_FESTIVAL } from '../data/events.js';
 import { getHalloweenStatus, getTrainingFestivalStatus, getTwinStarFestivalStatus } from '../core/events.js';
-import { getJobReleaseStatus } from '../core/job-release.js';
 import { raidAnnouncementMarkup } from './raid.js';
 import { ECLIPSE_EVENT } from '../data/eclipse-2026.js';
 import { getEclipseEventStatus } from '../core/events.js';
 
 export function getTrueEndingSequence(){return ['真ラスボスを倒した。','長い旅の果て、約束は果たされた。','なんだ…夢か…もう一回寝よう…'];}
 
+// Title promotion for the two special jobs released on 2026-10-20 (JST).
+// Archer and Sniper release restrictions are still independently managed in core/job-release.js.
+export const DRAGOON_SUMMONER_TITLE_AT = Date.parse('2026-10-19T15:00:00Z');
 export function jobReleaseNoticeMarkup(now=Date.now()){
- const status=getJobReleaseStatus(now);if(!status.announced)return '';
- return `<button class="title-event-notice job-release-notice ${status.released?'is-active':''}" data-job-release-notice><span><b>${status.released?'新ジョブ実装！':'新ジョブ追加予告！'}</b><small>${status.released?'アーチャー＆スナイパー解放！':'10月13日 新ジョブ解放！'}</small></span></button>`;
+ if(Number(now)<DRAGOON_SUMMONER_TITLE_AT)return '';
+ return `<button class="title-event-notice job-release-notice is-active" data-job-release-notice aria-label="新ジョブ追加！ 竜騎士＆召喚士 解放！"><span><b>新ジョブ追加！</b><small>竜騎士＆召喚士 解放！</small></span></button>`;
 }
-export function jobReleaseDetailsMarkup(now=Date.now()){
- const released=getJobReleaseStatus(now).released;
- return `<div class="event-details job-release-details"><h2>${released?'新ジョブ実装！':'新ジョブ追加予告！'}</h2><p class="event-period">${released?'2026年10月13日 0:00より解放！':'実装日：2026年10月13日 0:00'}</p><h3>新ジョブ　アーチャーを追加！</h3><p>素早さを活かした連続攻撃が得意な遠距離物理アタッカー。「二連射」「三連射」「神速連射」などの連続攻撃に加え、「五月雨撃ち」「アローレイン」で複数の敵にも対応。「鷹の眼」で攻撃力と会心率を高め、強烈な一撃を狙えます。</p><h3>さらに、上位職のスナイパーも追加！</h3><p>アーチャーをさらに単体火力・会心攻撃に特化させた上位職。「アーマーピアス」「バイタルブレイク」で敵の防御を崩し、「ホークアイ」で自身を強化。最終特技「ラスト・バレット」は強力な会心攻撃を狙える最大の一撃です。</p><p><b>転職条件：アーチャー Job Lv30以上</b></p><p>新武器「弓」と、アーチャー・スナイパー向けの武器・防具・指輪・チャームも追加します。</p></div>`;
+export function jobReleaseDetailsMarkup(){
+ return `<div class="event-details job-release-details"><h2>🐉🔮 新ジョブ追加！ 竜騎士＆召喚士</h2><p class="event-period">2026年10月20日より解放！</p><h3>🐉 竜騎士</h3><p>槍を操る攻撃・素早さ重視の特殊ジョブ。「竜牙突き」「雷竜の急降下」「竜王の咆哮」などの特技を習得。固有パッシブ「竜槍の極意」で攻撃力を高めます。</p><p><b>転職条件：パラディンのジョブLv30以上</b></p><h3>🔮 召喚士</h3><p>幻獣の力で多彩な属性魔法を使う特殊ジョブ。イフリート、シヴァ、ラムウ、フェニックス、バハムートなどを召喚。固有パッシブ「幻獣との盟約」で魔法力を高めます。</p><p><b>転職条件：黒魔術師のジョブLv30以上</b></p><p>それぞれの専用武器・防具・指輪・チャームは鍛冶屋で生産できます。戦闘用ドット絵も追加しています。</p></div>`;
 }
-
 
 // The announcement is a title-only promotion; it does not unlock event battles.
 export function eclipseEventNoticeMarkup(now=Date.now()){
