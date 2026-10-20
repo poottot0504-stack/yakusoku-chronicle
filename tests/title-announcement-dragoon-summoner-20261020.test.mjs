@@ -29,6 +29,7 @@ test('tapping the new title banner explains the real job effects and unlock leve
  assert.match(html,/バハムート/);
  assert.match(html,/竜牙突き/);
  assert.match(html,/武器・防具・指輪・チャーム/);
+ assert.doesNotMatch(html,/戦闘用ドット絵も追加しています。/);
  assert.doesNotMatch(html,/アーチャーを追加|スナイパーも追加|2026年10月13日/);
  assert.deepEqual(JOBS.dragoon.unlock.requires,{paladin:30});
  assert.deepEqual(JOBS.summoner.unlock.requires,{blackMage:30});
