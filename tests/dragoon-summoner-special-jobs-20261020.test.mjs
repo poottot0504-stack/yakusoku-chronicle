@@ -144,7 +144,7 @@ test('jobs, forging, and native combat sprites include Dragoon and Summoner',()=
   assert.match(svg,/viewBox="0 0 36 48"/);
   const markup=battleStageMarkup({}, {actors:[{id:'hero',side:'ally',currentJob:job,name:'冒険者',hp:100,maxHp:100}]});
   assert.match(markup,new RegExp(`assets/battle/${job}\\.svg`));
-  const {s,c}=ready(job),jobs=jobsMarkup(s,c.id),forge=forgeMarkup(s);
+  const {s,c}=ready(job),jobs=jobsMarkup(s,c.id),forge=['weapon','armor','ring','charm'].map(page=>forgeMarkup(s,page)).join('');
   assert.match(jobs,new RegExp(JOBS[job].name));
   assert.match(jobs,/Lv30/);
   assert.ok(forge.includes(JOBS[job].name));
