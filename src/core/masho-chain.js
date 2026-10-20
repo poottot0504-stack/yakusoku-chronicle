@@ -2,7 +2,7 @@
 export function createMashoRun(floor,total=10){
  if(!Number.isInteger(floor)||floor<1||floor>25)throw new Error('階層が不正です');
  if(total!==10)throw new Error('10連戦のみ選択できます');
- return {floor,total,completed:0,stopAfterCurrent:false,manualOnly:false,earnedGold:0,exp:0,jobExp:0,promiseOre:0,materials:{},equipment:[]};
+ return {floor,total,completed:0,stopAfterCurrent:false,queueNextTen:false,manualOnly:false,earnedGold:0,exp:0,jobExp:0,promiseOre:0,materials:{},equipment:[]};
 }
 export function recordMashoRunVictory(run,receipt,actualGold=0){
  if(!run||receipt?.floor!==run.floor||run.completed>=run.total)throw new Error('連戦の報酬を確認できません');
@@ -29,4 +29,11 @@ export function setMashoResultVisibility(state,visible=false){
  state.ui??={};
  state.ui.mashoResultVisible=visible===true;
  return state.ui.mashoResultVisible;
+}
+
+/** Queue one additional 10-battle group, without unlimited automatic repeats. */
+export function toggleMashoNextTen(run){
+ if(!run||run.stopAfterCurrent||run.completed>=run.total)return false;
+ run.queueNextTen=!run.queueNextTen;
+ return run.queueNextTen;
 }

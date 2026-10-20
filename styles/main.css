@@ -923,3 +923,16 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 /* Extra summoner spellbook slot; other equipment icons remain unchanged. */
 .equipment-spellbook-icon{display:grid;place-items:center;width:48px;height:42px;font-size:30px;background:linear-gradient(145deg,#20284d,#11182b);border:1px solid #8976bc;border-radius:4px}
 .equipment-summoner-book-note{font-size:.75rem;color:#b9a8f2}
+
+/* Cave feedback: immediate retry controls and an optional extra 10-run queue. */
+.masho-quick-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.45rem .8rem;margin:.45rem 0;padding:.65rem .85rem;border-color:#9f8156}
+.masho-quick-actions small{font-weight:700;color:#f6dba4}
+.masho-quick-actions>div,.masho-summary-actions{display:flex;flex-wrap:wrap;gap:.45rem}
+.masho-quick-actions button,.masho-summary-actions button{min-height:39px;padding:.35rem .65rem;font-size:.79rem}
+.masho-summary-actions{justify-content:space-between;align-items:center;margin-bottom:.65rem}
+.masho-summary-actions .masho-dismiss-notice{margin:0}
+.masho-repeat-ten{border-color:#af8b4b;background:#352c22;color:#ffe19c}
+.battle-header .masho-run-queue{min-height:33px;padding:.35rem .48rem;font-size:.67rem;flex:0 1 auto;white-space:normal}
+.battle-header .masho-run-queue[aria-pressed="true"]{background:#263c32;border-color:#80cf98;color:#d5ffe7}
+.masho-single-reward{font-size:.82rem;color:#f4ddaa}
+@media(max-width:520px){.masho-quick-actions>div{width:100%}.masho-quick-actions button{flex:1}}
