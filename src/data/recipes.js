@@ -1,6 +1,7 @@
 import { EQUIPMENT } from './equipment.js';
 import { ECLIPSE_EVENT,ECLIPSE_TIERS,ECLIPSE_WEAPONS,ECLIPSE_ARMOR,ECLIPSE_MATERIALS,eclipseRecipeMaterials } from './eclipse-2026.js';
 import { NORMAL_ENEMY_LIST } from './enemies.js';
+import { NEW_MONSTERS,newMonsterGearId,newMonsterMaterialId } from './new-monsters.js';
 const R={};let order=1;const add=(r)=>{R[r.id]={tier:1,displayOrder:order++,...r};};
 const metals=[['copper','銅','copperOre','copperIngot',1],['iron','鉄','ironOre','ironIngot',2],['gold','金','goldOre','goldIngot',3],['platinum','プラチナ','platinumOre','platinumIngot',4],['mythril','ミスリル','mythrilOre','mythrilIngot',5],['star','星晶','starCrystal','starIngot',6]];
 for(const [key,jp,ore,ingot,tier] of metals)add({id:`refine-${key}`,name:`${jp}インゴット`,category:'refine',tier,gold:20*tier,output:{kind:'material',itemId:ingot,quantity:1},materials:{[ore]:3},unlock:{type:'material',materialId:ore}});
@@ -72,7 +73,7 @@ for(const [tier,label,m] of halloweenTiers)for(const [part,name,category] of hal
 
 
 // V58: 100 monster-material sets. Normal drops make weapon/body; rare drops make ring/charm.
-for(const [index,enemy] of NORMAL_ENEMY_LIST.entries()){
+for(const [index,enemy] of NORMAL_ENEMY_LIST.slice(0,101).entries()){
  const n=index+1,grade=Math.floor(index/10)+1,key=String(n).padStart(3,'0');
  const normalMaterial=enemy.materials?.normal,rareMaterial=enemy.materials?.rare;
  if(!normalMaterial||!rareMaterial)continue;
@@ -87,6 +88,12 @@ for(const [index,enemy] of NORMAL_ENEMY_LIST.entries()){
  addMonsterRecipe('charm','charm',rareMaterial,1,baseGold+70);
 }
 
+// Craft fees are in base gold; craftingGoldCost applies the game's multipliers.
+for(const monster of NEW_MONSTERS)for(const [part,gear] of Object.entries(monster.gear)){
+ const equipmentId=newMonsterGearId(monster,part),category=part==='body'?'armor':part;
+ const materials=Object.fromEntries(Object.entries(gear.mats).map(([kind,qty])=>[newMonsterMaterialId(monster,kind),qty]));
+ add({id:`craft-${equipmentId}`,name:gear.name,category,tier:monster.materialGrade,gold:gear.gold,materialGrade:monster.materialGrade,monsterMaterialRecipe:true,sourceMonsterId:monster.id,output:{kind:'equipment',equipmentId,quantity:1},materials,unlock:{type:'anyMaterial',materialIds:Object.keys(materials)}});
+}
 export const RECIPES=R;
 
 const endBands=[200,220,240,260,280,300];const endBandNames={200:'高級',220:'英雄',240:'伝説',260:'星界',280:'終焉',300:'約束'};const endMats=['memoryBark','blazeOre','nightRelic','thunderCrystal','riftShard','promiseOre'];

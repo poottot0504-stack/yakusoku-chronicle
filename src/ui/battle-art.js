@@ -1,3 +1,4 @@
+import { NEW_MONSTERS } from '../data/new-monsters.js';
 // One shared atlas per family keeps deployment file counts small.
 export const JOB_ART_IDS=['swordsman','mage','thief','fighter','healer','archer','redMage','whiteMage','blackMage','darkKnight','pirateKing','sniper','paladin','bard','trickster','bishop','highWizard','berserker','gunbreaker','astrologian'];
 export const REGIONS=['field','forest','coast','cave','snow','desert','swamp','volcano','ruins','abyss'];
@@ -28,6 +29,8 @@ export function actorArt(actor={}){
  if(actor.raidBoss&&['fenrir','chryps'].includes(actor.bossId??actor.id))return descriptor(actor.bossId??actor.id,0);
  if(actor.raidBoss)return descriptor('raid',Math.max(0,RAID_ART_IDS.indexOf(actor.bossId??actor.id)));
  const id=actor.artId??actor.bestiaryId??actor.id??'';
+ const added=NEW_MONSTERS.find(monster=>id===monster.id||id.startsWith(monster.id+'-'));
+ if(added)return {sheet:'new-'+added.sprite,index:0,cols:1,rows:1,aspect:1.3042,src:`./assets/battle/new-monsters/${added.sprite}.png?v=20261020`};
  if(BOSS_ART[id])return BOSS_ART[id];
  const known=Object.keys(BOSS_ART).sort((a,b)=>b.length-a.length).find(k=>id.startsWith(k+'-w'));
  if(known)return BOSS_ART[known];

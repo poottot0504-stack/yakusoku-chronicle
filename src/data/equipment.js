@@ -4,6 +4,7 @@ import { MASHO_EQUIPMENT } from './masho-equipment.js';
 import { ECLIPSE_EQUIPMENT } from './eclipse-2026.js';
 import { OATHBREAKER_DATA } from './oathbreakers.js';
 import { NORMAL_ENEMY_LIST } from './enemies.js';
+import { NEW_MONSTERS,newMonsterGearId } from './new-monsters.js';
 export const WEAPON_TYPES=['oneHandSword','greatSword','dagger','fist','staff','greatStaff','spear','axe','bow','mace','dualBlades','katana','instrument','cards'];
 
 // 装備属性耐性。新しい装備を E(...) で追加すれば、自動で最低1種類の耐性が付きます。
@@ -102,7 +103,7 @@ const MONSTER_GEAR_FAMILIES=[
 const monsterGearName=(grade,family,part)=>`${MONSTER_GEAR_EPITHETS[Math.max(0,Math.min(MONSTER_GEAR_EPITHETS.length-1,grade-1))]}の${MONSTER_GEAR_FAMILIES[family][part]}`;
 const monsterRarity=grade=>grade>=9?'legendary':grade>=6?'epic':grade>=3?'rare':'common';
 const monsterRequiredLevel=grade=>1+(grade-1)*10;
-for(const [index,enemy] of NORMAL_ENEMY_LIST.entries()){
+for(const [index,enemy] of NORMAL_ENEMY_LIST.slice(0,101).entries()){
  const n=index+1,grade=Math.floor(index/10)+1,key=String(n).padStart(3,'0'),family=index%10;
  const familyGear=MONSTER_GEAR_FAMILIES[family],weaponType=familyGear.weaponType;
  const magicWeapon=magicTypes.has(weaponType),requiredLevel=monsterRequiredLevel(grade),rarity=monsterRarity(grade);
@@ -115,6 +116,11 @@ for(const [index,enemy] of NORMAL_ENEMY_LIST.entries()){
  EQUIPMENT[`monster-forge-${key}-charm`]=E(`monster-forge-${key}-charm`,monsterGearName(grade,family,'charm'),'accessory',{...base,accessoryType:'charm',defense:charmDefense,maxHp:10+grade*8,maxMp:grade*3});
 }
 
+// New normal-monster craft equipment: data-only, no additional equipment images.
+for(const monster of NEW_MONSTERS)for(const [part,gear] of Object.entries(monster.gear)){
+ const id=newMonsterGearId(monster,part),slot=part==='ring'||part==='charm'?'accessory':part==='body'?'body':'weapon';
+ EQUIPMENT[id]=E(id,gear.name,slot,{requiredLevel:monster.requiredLevel,rarity:monster.rarity,sourceMonsterId:monster.id,monsterMaterialGear:true,materialGrade:monster.materialGrade,...(slot==='accessory'?{accessoryType:part}:{}),...(gear.weaponType?{weaponType:gear.weaponType}:{}),...gear.stats,...(gear.elementResist?{elementResist:gear.elementResist}:{})});
+}
 EQUIPMENT['promise-memory']=E('promise-memory','約束の思い出','accessory',{accessoryType:'ring',unique:true,rarity:'legendary',requiredLevel:80,maxHp:50,maxMp:20,attack:8,magic:8});
 EQUIPMENT['ranking-apology-star-ring']=E('ranking-apology-star-ring','星晶の指輪','accessory',{accessoryType:'ring',unique:true,rarity:'legendary',requiredLevel:1,attack:10,defense:10,magic:10,speed:10});
 

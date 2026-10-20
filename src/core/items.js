@@ -76,8 +76,9 @@ export const ITEMS={
 
 function enemyMaterialDef(id){
  for(const enemy of ENEMY_LIST){
-  if(enemy.materials?.normal===id)return {id,name:`${enemy.name}の素材`,icon:'🎁',description:`${enemy.name}から手に入る素材`};
-  if(enemy.materials?.rare===id)return {id,name:`${enemy.name}の希少素材`,icon:'💎',description:`${enemy.name}がまれに落とす希少素材`};
+  if(enemy.materials?.normal===id)return {id,name:enemy.materialNames?.normal??`${enemy.name}の素材`,icon:'🎁',description:`${enemy.name}から手に入る素材`};
+  if(enemy.materials?.uncommon===id)return {id,name:enemy.materialNames?.uncommon??`${enemy.name}の上質素材`,icon:'🎁',description:`${enemy.name}から手に入る上質素材`};
+  if(enemy.materials?.rare===id)return {id,name:enemy.materialNames?.rare??`${enemy.name}の希少素材`,icon:'💎',description:`${enemy.name}がまれに落とす希少素材`};
  }
  return null;
 }

@@ -63,8 +63,10 @@ export function awardBattleDrops(state,enemies=[],rng=Math.random,now=Date.now()
   const table=[];
   const storyDropBoost=!eventEnemy&&!enemy.rematch&&!enemy.mashoBoss&&REGION_ORDER.includes(chapterRegion)&&isBoostScrollActive(state,'drop',now)?2:1;
   const materials=enemy.materials??base.materials;
-  if(materials?.normal)table.push({id:materials.normal,chance:trainingEnemy?.18:.28,monsterMaterial:true});
-  if(materials?.rare)table.push({id:materials.rare,chance:trainingEnemy?.04:.06,monsterMaterial:true});
+  const chances=base.materialChances??enemy.materialChances??{};
+  if(materials?.normal)table.push({id:materials.normal,chance:chances.normal??(trainingEnemy?.18:.28),monsterMaterial:true});
+  if(materials?.uncommon)table.push({id:materials.uncommon,chance:chances.uncommon??.12,monsterMaterial:true});
+  if(materials?.rare)table.push({id:materials.rare,chance:chances.rare??(trainingEnemy?.04:.06),monsterMaterial:true});
   table.push(...getOreDropTable(state,enemy));
   for(const d of table){
    const normalMonsterRate=normalMonster?2:1;
