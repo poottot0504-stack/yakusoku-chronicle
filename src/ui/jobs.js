@@ -6,7 +6,7 @@ import { npcCardsMarkup } from './npcs.js';
 import { getJobReleaseStatus } from '../core/job-release.js';
 
 function advancedRequirementText(job){
-  if(job.unlock?.type!=='advanced') return '';
+  if(!['advanced','special'].includes(job.unlock?.type)||!job.unlock?.requires) return '';
   const parts=Object.entries(job.unlock.requires ?? {}).map(([jobId,lv])=>`${JOBS[jobId]?.name ?? jobId} Lv${lv}`);
   return parts.length?`転職条件：${parts.join(' ＋ ')}`:'転職条件：条件なし';
 }

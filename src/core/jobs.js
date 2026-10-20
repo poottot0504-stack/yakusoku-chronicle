@@ -7,7 +7,7 @@ export function canChangeJob(state,character,jobId,now=Date.now()){
   const job=getJob(jobId); if(!job) return false;
   if(job.unlock?.releaseId==='archer-sniper-2026'&&!getJobReleaseStatus(now).released)return false;
   if(job.unlock.type==='basic') return true;
-  if(job.unlock.type==='special') return state.unlockedSpecialJobs?.includes(jobId) ?? false;
+  if(job.unlock.type==='special') return job.unlock.requires?Object.entries(job.unlock.requires).every(([id,lv])=>(character.jobLevels?.[id]??0)>=lv):(state.unlockedSpecialJobs?.includes(jobId) ?? false);
   return Object.entries(job.unlock.requires ?? {}).every(([id,lv])=>(character.jobLevels?.[id]??0)>=lv);
 }
 export function changeJob(state,characterId,jobId){

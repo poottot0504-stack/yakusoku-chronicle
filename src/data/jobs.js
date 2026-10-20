@@ -19,14 +19,17 @@ J('bishop','ビショップ',{attack:2,defense:4,magic:5,speed:3},['staff','grea
 J('highWizard','ハイウィザード',{attack:1,defense:2,magic:5,speed:4},['staff','greatStaff'],'staffOnly',{type:'special'},{attackMagicDamagePct:.10}),
 J('gunbreaker','ガンブレイカー',{attack:5,defense:5,magic:1,speed:3},['gunblade','oneHandSword'],'none',{type:'special'},{defensePct:.03}),
 J('astrologian','占星術師',{attack:1,defense:3,magic:5,speed:4},['starGlobe','staff','cards'],'none',{type:'special'},{maxMpPct:.03}),
-J('berserker','ベルセルク',{attack:5,defense:2,magic:1,speed:4},['greatSword','axe','fist','katana'],'none',{type:'special'},{physicalCritMultiplierBonus:.10})
+J('berserker','ベルセルク',{attack:5,defense:2,magic:1,speed:4},['greatSword','axe','fist','katana'],'none',{type:'special'},{physicalCritMultiplierBonus:.10}),
+J('dragoon','竜騎士',{attack:6,defense:4,magic:2,speed:5},['spear','greatSword','oneHandSword'],'standard',{type:'special',requires:{paladin:30}},{physicalCritMultiplierBonus:.04}),
+J('summoner','召喚士',{attack:1,defense:2,magic:6,speed:4},['staff','greatStaff','cards','starGlobe'],'none',{type:'special',requires:{blackMage:30}},{maxMpPct:.04})
 ];
 const EQUIPMENT_GROUPS={
  swordsman:['swordsman'], mage:['magic'], healer:['magic'], thief:['thief'], fighter:['fighter'], archer:['archer'],
  redMage:['swordsman','magic'], whiteMage:['magic'], blackMage:['magic'],
  darkKnight:['swordsman','fighter'], pirateKing:['thief','fighter'], sniper:['archer'],
  paladin:['swordsman','magic'], bard:['thief','archer','magic'], trickster:['thief','magic'],
- gunbreaker:['swordsman'], astrologian:['magic'], bishop:['magic'], highWizard:['magic'], berserker:['swordsman','fighter']
+ gunbreaker:['swordsman'], astrologian:['magic'], bishop:['magic'], highWizard:['magic'], berserker:['swordsman','fighter'],
+ dragoon:['swordsman'], summoner:['magic']
 };
 for(const job of ALL_JOBS)job.equipmentGroups=[...(EQUIPMENT_GROUPS[job.id]??[])];
 
@@ -54,7 +57,9 @@ export const JOB_PASSIVES=Object.freeze({
  highWizard:{stat:'magic',rate:.04,name:'大魔導の叡智'},
  gunbreaker:{stat:'defense',rate:.035,name:'銃剣の構え'},
  astrologian:{stat:'magic',rate:.025,name:'星読みの才'},
- berserker:{stat:'attack',rate:.04,name:'狂戦士の本能'}
+ berserker:{stat:'attack',rate:.04,name:'狂戦士の本能'},
+ dragoon:{stat:'attack',rate:.035,name:'竜槍の極意'},
+ summoner:{stat:'magic',rate:.04,name:'幻獣との盟約'}
 });
 export function getJobPassive(jobId){return JOB_PASSIVES[jobId]??null;}
 

@@ -5,6 +5,20 @@ const heal=(name,mp,amount,extra={})=>({name,mp,power:amount,flatHeal:amount,typ
 const buff=(name,mp,values,target='all')=>({name,mp,power:0,type:'buff',target,selfBuff:{...(values.attackPct!=null&&values.magicPct==null?{magicPct:0}:{}),...values},turns:3});
 const revive=(name,mp,ratio)=>({name,mp,power:ratio*100,type:'revive',hpRatio:ratio});
 const rows={
+ dragoon:[
+  attack('竜穿・ヴァーティカル',55,560,{defensePierce:.22}),
+  attack('雷霆のドラゴンダイブ',75,680,{allTargets:true,element:'thunder'}),
+  attack('竜王の五連槍',95,225,{multiHit:5}),
+  buff('天翔の竜気',110,{attackPct:.55,defensePct:.2},'self'),
+  attack('終式・天龍星墜',155,1220,{allTargets:true,defensePierce:.18})
+ ],
+ summoner:[
+  magic('幻獣降臨・イフリート',60,620,'fire',{allTargets:true}),
+  magic('幻獣降臨・シヴァ',80,740,'ice',{allTargets:true}),
+  magic('幻獣降臨・ラムウ',105,900,'thunder',{allTargets:true}),
+  buff('幻獣王の加護',115,{magicPct:.65,defensePct:.18},'self'),
+  magic('終極召喚・バハムート零式',165,1300,'light',{allTargets:true})
+ ],
  swordsman:[attack('覇王斬',55,520),attack('天断・旋空剣',70,600,{allTargets:true}),attack('王威の連剣',90,230,{multiHit:3}),buff('剣聖の闘志',95,{attackPct:.6},'self'),attack('終式・約束の聖剣',135,1050)],
  mage:[magic('インフェルノ',60,530,'fire'),magic('天雷の嵐',75,620,'thunder',{allTargets:true}),magic('絶零の魔陣',95,730,'ice',{allTargets:true}),magic('虚空崩壊',115,860,'dark',{allTargets:true}),magic('終極・星界メテオ',150,1080,'none',{allTargets:true})],
  thief:[attack('影縫いの牙',55,510,{defensePierce:.3}),attack('幻影乱舞',70,160,{multiHit:4}),attack('夜王の刃',90,730,{defensePierce:.4}),buff('影王の集中',95,{attackPct:.6},'self'),attack('終式・千影一閃',135,220,{multiHit:5})],

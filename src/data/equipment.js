@@ -238,7 +238,9 @@ const HIGH_FORGE_JOB_STYLES={
  highWizard:{weaponType:'greatStaff',weapon:'極大魔杖',armor:'大魔導衣',focus:'magic'},
  gunbreaker:{weaponType:'gunblade',weapon:'神銃剣',armor:'銃士甲',focus:'attack',tank:true},
  astrologian:{weaponType:'starGlobe',weapon:'星天球',armor:'星詠衣',focus:'magic'},
- berserker:{weaponType:'axe',weapon:'狂神斧',armor:'狂戦甲',focus:'attack'}
+ berserker:{weaponType:'axe',weapon:'狂神斧',armor:'狂戦甲',focus:'attack'},
+ dragoon:{weaponType:'spear',weapon:'天竜槍',armor:'飛竜甲',focus:'attack',agile:true},
+ summoner:{weaponType:'greatStaff',weapon:'幻獣杖',armor:'幻契衣',focus:'magic'}
 };
 const HIGH_FORGE_TIERS=[
  {id:'union',label:'ユニオン',requiredLevel:100,rarity:'rare',weapon:80,armor:32,ring:14,charm:16,hp:80,mp:28},
@@ -267,12 +269,14 @@ for(const tier of HIGH_FORGE_TIERS)for(const [job,cfg] of Object.entries(HIGH_FO
 
 const SPECIAL_GEAR_NAMES={
  gunbreaker:{weapon:'銃剣',head:'銃士のバイザー',body:'銃士の戦闘外套',arms:'銃士の手甲',waist:'弾帯',legs:'銃士のブーツ',ring:'撃鉄の指輪',charm:'守護弾のチャーム'},
- astrologian:{weapon:'星天球',head:'星詠みの冠',body:'星詠みのローブ',arms:'星詠みの手袋',waist:'星詠みの腰帯',legs:'星詠みの靴',ring:'星運の指輪',charm:'天球のチャーム'}
+ astrologian:{weapon:'星天球',head:'星詠みの冠',body:'星詠みのローブ',arms:'星詠みの手袋',waist:'星詠みの腰帯',legs:'星詠みの靴',ring:'星運の指輪',charm:'天球のチャーム'},
+ dragoon:{weapon:'竜槍',head:'飛竜の兜',body:'竜鱗の鎧',arms:'竜騎の手甲',waist:'竜騎の腰帯',legs:'天翔の脚甲',ring:'飛竜の指輪',charm:'竜脈のチャーム'},
+ summoner:{weapon:'幻獣杖',head:'星召の冠',body:'幻獣の法衣',arms:'幻符の手袋',waist:'召喚師の腰帯',legs:'星紋の靴',ring:'契約の指輪',charm:'幻獣のチャーム'}
 };
 export const SPECIAL_GEAR_TIERS=[['novice','見習い',1,0],['veteran','熟練',30,1],['astral','星晶',65,2],['celestial','天極',100,3],['eternal','約束',150,4]];
 for(const [job,names] of Object.entries(SPECIAL_GEAR_NAMES))for(const [tier,label,requiredLevel,n] of SPECIAL_GEAR_TIERS)for(const [part,name] of Object.entries(names)){
- const id=`${job}-${tier}-${part}`,slot=['ring','charm'].includes(part)?'accessory':part,magic=job==='astrologian';
- const extra=part==='weapon'?{weaponType:magic?'starGlobe':'gunblade',twoHanded:true,[magic?'magic':'attack']:[9,25,43,76,145][n]}:
+ const id=`${job}-${tier}-${part}`,slot=['ring','charm'].includes(part)?'accessory':part,magic=['astrologian','summoner'].includes(job);
+ const extra=part==='weapon'?{weaponType:({gunbreaker:'gunblade',astrologian:'starGlobe',dragoon:'spear',summoner:'greatStaff'})[job],twoHanded:job!=='dragoon',[magic?'magic':'attack']:[9,25,43,76,145][n]}:
  part==='ring'?{accessoryType:'ring',[magic?'magic':'attack']:[2,6,11,20,35][n]}:
  part==='charm'?{accessoryType:'charm',defense:[2,5,10,18,30][n],[magic?'maxMp':'maxHp']:[10,25,45,80,140][n]}:
  {defense:([3,10,20,35,65][n])+(part==='body'?[2,5,8,15,25][n]:0),[magic?'maxMp':'maxHp']:[3,8,15,25,45][n]};

@@ -5,6 +5,29 @@ import { getSkillElement } from './elements.js';
 export { describeSkill } from './skill-description.js';
 const S=(level,id,name,mp,power,type='attack',extra={})=>({level,id,name,mp,power,type,...(type==='heal'?{flatHeal:power}:{}),...extra});
 const BOOK={
+ dragoon:[
+  S(1,'wyrmPierce','竜牙突き',4,160,'attack',{defensePierce:.08}),
+  S(10,'wingGuard','飛竜の構え',8,0,'buff',{selfBuff:{defensePct:.22},turns:3}),
+  S(20,'skyLance','蒼天槍',12,220,'attack'),
+  S(30,'thunderDive','雷竜の急降下',18,260,'attack',{element:'thunder'}),
+  S(45,'twinFangDive','双竜牙',24,145,'attack',{multiHit:2}),
+  S(60,'dragonRoar','竜王の咆哮',34,330,'attack',{allTargets:true}),
+  S(80,'aerialAssault','飛天竜槍',48,500,'attack',{defensePierce:.15}),
+  S(95,'meteorDive','流星竜墜',60,530,'attack',{allTargets:true}),
+  S(100,'heavenWyrm','終槍・天翔龍牙',75,750,'attack',{defensePierce:.24})
+ ],
+ summoner:[
+  S(1,'summonCarbuncle','召喚・カーバンクル',5,145,'magic',{kind:'magic',element:'light'}),
+  S(10,'summonIfrit','召喚・イフリート',9,200,'magic',{kind:'magic',element:'fire'}),
+  S(20,'summonShiva','召喚・シヴァ',14,230,'magic',{kind:'magic',element:'ice'}),
+  S(30,'summonRamuh','召喚・ラムウ',18,255,'magic',{kind:'magic',element:'thunder',allTargets:true}),
+  S(45,'summonLeviathan','召喚・リヴァイア',25,325,'magic',{kind:'magic',element:'water',allTargets:true}),
+  S(60,'summonersPact','幻獣との契約',26,0,'buff',{selfBuff:{magicPct:.3},turns:3}),
+  S(70,'summonPhoenix','召喚・フェニックス',32,240,'heal',{target:'all',fullHeal:false,highClear:true}),
+  S(80,'summonOdin','召喚・オーディン',45,475,'magic',{kind:'magic',element:'dark'}),
+  S(95,'summonBahamut','召喚・バハムート',60,570,'magic',{kind:'magic',element:'dark',allTargets:true}),
+  S(100,'summonAstralFlare','終極召喚・星界龍光',75,690,'magic',{kind:'magic',element:'light',allTargets:true})
+ ],
  gunbreaker:[S(1,'burstEdge','バーストエッジ',4,145),S(10,'cartridgeGuard','カートリッジガード',8,0,'buff',{selfBuff:{defensePct:.35},turns:3,description:'自分の防御を35%上昇・3ターン'}),S(20,'barrelPierce','バレルピアス',10,180,'attack',{defensePierce:.20}),S(30,'shellSweep','シェルスイープ',16,145,'attack',{allTargets:true}),S(45,'triggerChain','トリガーチェイン',22,90,'attack',{multiHit:3}),S(60,'auroraPulse','オーロラパルス',20,130,'heal',{clear:true}),S(80,'royalBreak','ロイヤルブレイク',38,390,'attack'),S(95,'limitRevolver','リミット・リボルバー',60,125,'attack',{multiHit:4})],
  astrologian:[S(1,'starRay','スターレイ',4,130,'magic',{kind:'magic',element:'light'}),S(1,'stellarMend','ステラヒール',5,55,'heal',{clear:true}),S(10,'celestialBlessing','星札の祝福',12,0,'buff',{target:'all',selfBuff:{attackPct:.12,magicPct:.12},turns:3,description:'味方全員の攻撃・魔法を12%上昇・3ターン'}),S(25,'stellarRain','星癒の雨',18,100,'heal',{target:'all',highClear:true}),S(40,'starReturn','星還り',28,30,'revive',{hpRatio:.3}),S(55,'astralJudgement','アストラルジャッジ',30,270,'magic',{kind:'magic',element:'light',allTargets:true}),S(75,'celestialVeil','星天の帳',30,0,'buff',{target:'all',selfBuff:{defensePct:.25},turns:3,description:'味方全員の防御を25%上昇・3ターン'}),S(95,'cosmicRebirth','コズミック・リバース',65,240,'heal',{target:'all',highClear:true})],
  swordsman:[S(1,'powerSlash','強斬り',3,125),S(5,'guardBreak','ガードブレイク',6,145),S(15,'crossSlash','クロススラッシュ',10,175),S(30,'braveEdge','ブレイブエッジ',16,220),S(50,'heroicBlade','英雄剣',25,285),S(80,'promiseBlade','約束の剣',42,390)],
@@ -43,12 +66,12 @@ function applyJobTierDamageBonus(jobId,skill){
  if(mult>1&&(s.type==='attack'||s.type==='magic'||s.kind==='magic')&&Number(s.power??0)>0){s.basePower=s.power;s.power=Math.round(Number(s.power)*mult);s.jobTierDamageMultiplier=mult;}
  return s;
 }
-function enrichHealingSkill(jobId,skill){const s=applyJobTierDamageBonus(jobId,skill);s.baseMp=Number(s.mp??0);s.mp=balancedMpCost(s);s.attributeSourceDescription=s.description??'';if(s.type==='attack'||s.type==='magic'||s.kind==='magic')s.element=getSkillElement(s);else s.element='none';if(s.type==='heal'&&HEALING_JOBS.has(jobId)){if(s.id==='highHeal')s.target='all';if(HIGH_CLEAR_IDS.has(s.id)||s.level>=75)s.highClear=true;else s.clear=true;}if(s.type==='heal'){if(s.target==='all'&&s.level>=50&&s.fullHeal!==false)s.fullHeal=true;else if(s.target!=='all')s.healRatio=s.level>=200?.8:s.level>=100?.7:s.level>=50?.6:s.level>=25?.5:s.level>=10?.4:.3;}s.description=describeSkill(s);s.generatedDescription=true;return s;}
+function enrichHealingSkill(jobId,skill){const s=applyJobTierDamageBonus(jobId,skill);s.baseMp=Number(s.mp??0);s.mp=balancedMpCost(s);s.attributeSourceDescription=s.description??'';if(s.type==='attack'||s.type==='magic'||s.kind==='magic')s.element=['dragoon','summoner'].includes(jobId)&&['fire','water','thunder','ice','light','dark'].includes(s.element)?s.element:getSkillElement(s);else s.element='none';if(s.type==='heal'&&HEALING_JOBS.has(jobId)){if(s.id==='highHeal')s.target='all';if(HIGH_CLEAR_IDS.has(s.id)||s.level>=75)s.highClear=true;else s.clear=true;}if(s.type==='heal'){if(s.target==='all'&&s.level>=50&&s.fullHeal!==false)s.fullHeal=true;else if(s.target!=='all')s.healRatio=s.level>=200?.8:s.level>=100?.7:s.level>=50?.6:s.level>=25?.5:s.level>=10?.4:.3;}s.description=describeSkill(s);s.generatedDescription=true;return s;}
 // 特技・魔法の共有グループ。装備グループとは独立したルールです。
 // 2026-10-08: 物理/魔法の2分割から、剣士系・魔法使い系・盗賊系・赤魔専用へ再編。
 export const SKILL_SOURCE_GROUPS={
- swordsman:['swordsman','fighter','darkKnight','paladin','gunbreaker','berserker'],
- mage:['mage','healer','whiteMage','blackMage','bard','bishop','astrologian','highWizard'],
+ swordsman:['swordsman','fighter','darkKnight','paladin','gunbreaker','berserker','dragoon'],
+ mage:['mage','healer','whiteMage','blackMage','bard','bishop','astrologian','highWizard','summoner'],
  thief:['thief','archer','sniper','pirateKing','trickster'],
  redMage:['redMage','swordsman','mage','healer','whiteMage','blackMage','highWizard']
 };
@@ -90,7 +113,7 @@ export function getSelectedSkillIds(character){
 export function getBattleSkills(character){const all=new Map(getLearnedBattleSkills(character).map(s=>[s.id,s]));return getSelectedSkillIds(character).map(id=>all.get(id)).filter(Boolean);}
 const AUTO_ROLE_BY_JOB={
  healer:'healer',whiteMage:'healer',bishop:'healer',astrologian:'healer',
- bard:'support',paladin:'support',gunbreaker:'support',redMage:'redMage',
+ bard:'support',paladin:'support',gunbreaker:'support',redMage:'redMage',summoner:'mage',dragoon:'physical',
  mage:'mage',blackMage:'mage',highWizard:'mage',
  swordsman:'physical',fighter:'physical',darkKnight:'physical',berserker:'physical',
  thief:'thief',archer:'thief',sniper:'thief',pirateKing:'thief',trickster:'thief'

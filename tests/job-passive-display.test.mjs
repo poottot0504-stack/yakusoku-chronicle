@@ -15,7 +15,7 @@ const makeState=()=>ensureAdventureState(createNewGame(createDefaultRoster()));
 const availableDate=Date.parse('2027-01-01T12:00:00+09:00');
 
 test('every job has one small, readable intrinsic passive',()=>{
- assert.equal(ALL_JOBS.length,20);
+ assert.equal(ALL_JOBS.length,22);
  for(const job of ALL_JOBS){
   const passive=getJobPassive(job.id);
   assert.ok(passive,`Missing passive for ${job.id}`);
@@ -77,7 +77,7 @@ test('battle applies exactly the current job passive once without modifying the 
  assert.deepEqual(base,initial);
 });
 
-test('shared passive stat calculation matches all 20 jobs and stays on their own stat',()=>{
+test('shared passive stat calculation matches all 22 jobs and stays on their own stat',()=>{
  for(const job of ALL_JOBS){
   const p=getJobPassive(job.id),actor={currentJob:job.id};
   for(const stat of ['attack','defense','magic','speed'])
