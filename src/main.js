@@ -1,5 +1,6 @@
 import './ui/viewport.js';
 import {marketMarkup,marketListingFormMarkup} from './ui/market.js';
+import {formatMarketPriceField,parseMarketPrice} from './market/price-format.js';
 import {listMarketCandidates,serializeMarketItem,removeMarketItem,applyMarketReturn,isValidMarketPrice,unlockMarketIfEligible} from './market/market-model.js';
 import { createFestivalApi } from './online/hunt-festival-api.js';
 import { createFestivalKillRecorder } from './online/hunt-festival-record.js';
@@ -605,7 +606,7 @@ function marketOpenListing(){
 }
 function marketCandidateFromKey(key,quantity){const [kind,id]=String(key??'').split(':');const candidates=listMarketCandidates(state),base=kind==='equipment'?candidates.find(x=>x.kind==='equipment'&&x.instanceId===id):candidates.find(x=>x.kind===kind&&x.id===id);if(!base)throw new Error('商品が見つかりません');return kind==='equipment'?{kind:'equipment',instanceId:base.instanceId,quantity:1}:{kind,id:base.id,quantity};}
 async function marketSubmitListing(){
- const key=modal.querySelector('[data-market-listing-item]')?.value,qtyInput=modal.querySelector('[data-market-listing-quantity]'),maxQty=Math.max(1,Number(qtyInput?.max??1)),quantity=Math.max(1,Math.min(maxQty,Number(qtyInput?.value??1))),unitPrice=Number(modal.querySelector('[data-market-listing-price]')?.value??0);if(qtyInput)qtyInput.value=String(quantity);
+ const key=modal.querySelector('[data-market-listing-item]')?.value,qtyInput=modal.querySelector('[data-market-listing-quantity]'),maxQty=Math.max(1,Number(qtyInput?.max??1)),quantity=Math.max(1,Math.min(maxQty,Number(qtyInput?.value??1))),unitPrice=parseMarketPrice(modal.querySelector('[data-market-listing-price]')?.value);if(qtyInput)qtyInput.value=String(quantity);
  if(!isValidMarketPrice(unitPrice))return toast('価格は1G〜30,000,000Gで指定してください');
  try{
   const candidate=marketCandidateFromKey(key,quantity),payload=serializeMarketItem(state,candidate),api=await getMarketApi();
@@ -615,7 +616,7 @@ async function marketSubmitListing(){
   closeModal();marketUi.tab='store';await refreshMarketView();toast('商品を出品しました');
  }catch(err){toast(err.message??'出品できませんでした');}
 }
-async function marketUpdatePrice(listingId){const input=game.querySelector(`[data-market-price="${CSS.escape(listingId)}"]`),price=Number(input?.value??0);if(!isValidMarketPrice(price))return toast('価格は1G〜30,000,000Gで指定してください');try{const api=await getMarketApi();await api.updatePrice(currentSlot,listingId,price);await refreshMarketView();toast('価格を変更しました');}catch(err){toast(err.message??'価格を変更できませんでした');}}
+async function marketUpdatePrice(listingId){const input=game.querySelector(`[data-market-price="${CSS.escape(listingId)}"]`),price=parseMarketPrice(input?.value);if(!isValidMarketPrice(price))return toast('価格は1G〜30,000,000Gで指定してください');try{const api=await getMarketApi();await api.updatePrice(currentSlot,listingId,price);await refreshMarketView();toast('価格を変更しました');}catch(err){toast(err.message??'価格を変更できませんでした');}}
 async function marketCancelListing(listingId){
  if(!confirm('この出品を取り消しますか？ 売れ残りは手持ちに戻ります。'))return;
  try{const api=await getMarketApi(),ret=await api.cancel(currentSlot,listingId);await persistMarketReturn({state,ret,save:async()=>saveNow()});await api.ackReturn(currentSlot,ret.id??ret.returnId);await refreshMarketView();toast('出品を取り消し、売れ残りを手持ちに戻しました');}catch(err){toast(err.message??'出品を取り消せませんでした');}
@@ -1223,7 +1224,7 @@ title.addEventListener('click',e=>{const el=e.target.closest('button');if(!el)re
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(playStartedAt!==null){saveNow();playStartedAt=null;boostClockLastAt=null;}}else if(!title.classList.contains('active')&&playStartedAt===null){playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;}if(!document.hidden){if(battle&&!battlePlayback)scheduleNormalAuto();if(raidRoom&&!raidTurnExecuting)scheduleRaidAuto();void refreshFestival(true);if(raidRoom)void raidPoller.refresh();else if(raidLobbyPoller.active)void raidLobbyPoller.refresh();if(!battle&&!raidRoom&&!raidJoinBusy){if(title.classList.contains('active'))renderTitle();else if(view==='adventure')renderGameKeepVertical();}if(!title.classList.contains('active')&&state.market?.everUsed)void syncMarketSettlement({notify:true});scheduleEventRefresh();}});
 game.addEventListener('input',e=>{const input=e.target;if(view!=='equipment'||!input?.hasAttribute?.('data-equipment-search'))return;equipmentSearch=String(input.value??'').slice(0,100);syncEquipmentCandidateFilters();});
 game.addEventListener('change',e=>{const el=e.target;if(view==='forge'&&el?.hasAttribute?.('data-forge-sort')){state.ui??={};state.ui.forgeSort=['recommended','level','price'].includes(el.value)?el.value:'recommended';return renderGameKeepVertical();}if(view!=='market')return;if(el?.hasAttribute?.('data-market-search')){marketUi.browse.search=el.value??'';void refreshMarketView();return;}if(el?.hasAttribute?.('data-market-sort')){marketUi.browse.sort=el.value??'newest';void refreshMarketView();return;}if(el?.hasAttribute?.('data-market-in-stock')){marketUi.browse.inStockOnly=Boolean(el.checked);void refreshMarketView();}});
-document.addEventListener('input',e=>{if(e.target?.hasAttribute?.('data-shop-buy-qty-input'))shopBuyQuantityUpdate(e.target.value);});
+document.addEventListener('input',e=>{const field=e.target;if(field?.matches?.('[data-market-listing-price],[data-market-price]'))formatMarketPriceField(field);if(field?.hasAttribute?.('data-shop-buy-qty-input'))shopBuyQuantityUpdate(field.value);});
 document.addEventListener('change',e=>{const el=e.target;if(el?.hasAttribute?.('data-market-listing-item')){syncMarketListingForm();void refreshMarketPriceGuide();return;}if(el?.hasAttribute?.('data-market-listing-quantity')){const maxQty=Math.max(1,Number(el.max??1)),value=Math.max(1,Math.min(maxQty,Number(el.value??1)));el.value=String(value);return;}});
 // Save and pause on iOS Safari / installed PWA backgrounding, including page-cache restores.
 window.addEventListener('pagehide',()=>{if(playStartedAt!==null){saveNow();playStartedAt=null;boostClockLastAt=null;}});
