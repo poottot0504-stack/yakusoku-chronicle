@@ -11,7 +11,7 @@ import { grantFestivalReward,grantFestivalBonus,nextFestivalBoundary } from './c
 import { HUNT_FESTIVAL } from './data/hunt-festival.js';
 import { hasFirstClear } from './core/progression-caps.js';
 import { createMashoEnemy, settleMashoVictory, canEnterMashoFloor } from './core/masho-cave.js';
-import { createMashoRun, recordMashoRunVictory, mashoRunCanContinue, mashoRunSummary, setMashoResultVisibility } from './core/masho-chain.js';
+import { createMashoRun, recordMashoRunVictory, mashoRunCanContinue, mashoRunSummary, setMashoResultVisibility, toggleMashoNextTen } from './core/masho-chain.js';
 import { mashoCaveMarkup } from './ui/masho-cave.js';
 import { deathWarningText } from './ui/death-warning.js';
 import { frameDuration, renderMotionFrame, captureNumberTails, appendNumberTails } from './ui/battle-motion.js';
@@ -385,12 +385,14 @@ function auditVictory(meta,expAwarded=0){
 }
 function startMashoFloorBattle(floor){
  if(!canEnterMashoFloor(state,floor))throw new Error('まだ挑戦できない階層です');
+ // Clear former chain result when starting a single battle.
+ if(!mashoRun)state.mashoCave.lastRunSummary=null;
  setMashoResultVisibility(state,false);
  const enemy=createMashoEnemy(state,floor);
  battleMeta={regionId:'masho',boss:true,enemy,mashoFloor:floor};
  battle=createAdventureBattle(enemy,{isBoss:true});
  battle.mashoFloor=floor;
- if(mashoRun){battle.mashoRun={index:mashoRun.completed+1,total:mashoRun.total,stopAfterCurrent:mashoRun.stopAfterCurrent};if(mashoRun.manualOnly)battle.autoPlayStopped=true;}
+ if(mashoRun){battle.mashoRun={index:mashoRun.completed+1,total:mashoRun.total,stopAfterCurrent:mashoRun.stopAfterCurrent,queueNextTen:mashoRun.queueNextTen};if(mashoRun.manualOnly)battle.autoPlayStopped=true;}
  startTurn(battle);closeModal();renderBattle();
 }
 function finishBattleVictory(){clearNormalAuto();syncPlayTime();syncBattlePartyToState(state,battle);const e=battleMeta.enemy;
@@ -406,11 +408,19 @@ function finishBattleVictory(){clearNormalAuto();syncPlayTime();syncBattlePartyT
     catch(error){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'stopped');setMashoResultVisibility(state,true);mashoRun=null;saveNow();battleScreen.classList.remove('active');view='masho';renderGame();toast(error.message??'連戦を中断しました');return;}
    }
    const completed=mashoRun.completed,total=mashoRun.total,stopped=completed<total;
-   state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,stopped?'stopped':'completed');
+   // Only one extra group: the extra group's queued flag starts false.
+   // All earned rewards were already settled and saved individually.
+   if(!stopped&&mashoRun.queueNextTen){
+    const previous=mashoRun;
+    mashoRun=createMashoRun(floor);
+    mashoRun.manualOnly=previous.manualOnly;
+    try{startMashoFloorBattle(floor);toast('予約した追加10連戦を開始しました');return;}
+    catch(error){mashoRun=null;state.mashoCave.lastRunSummary=mashoRunSummary(previous,'completed');toast(error.message??'追加10連戦を開始できませんでした');}
+   }else state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,stopped?'stopped':'completed');
    setMashoResultVisibility(state,true);mashoRun=null;saveNow();battleScreen.classList.remove('active');view='masho';renderGame();
    toast(stopped?`魔障の洞窟 連戦終了！ ${completed}/${total}戦`:`魔障の洞窟 10連戦クリア！`);return;
   }
-  setMashoResultVisibility(state,true);saveNow();battle=null;battleScreen.classList.remove('active');view='masho';renderGame();toast(`魔障の洞窟 第${floor}階層クリア！`);return;
+  state.mashoCave.lastRunSummary=null;setMashoResultVisibility(state,true);saveNow();battle=null;battleScreen.classList.remove('active');view='masho';renderGame();toast(`魔障の洞窟 第${floor}階層クリア！`);return;
  }
  if(battleMeta.eventId===ECLIPSE_EVENT.id){
   const wave=battleMeta.eventWave??1;
@@ -1182,9 +1192,9 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-masho-back')){setMashoResultVisibility(state,false);view='adventure';return renderGame();}
  if(el.hasAttribute('data-masho-dismiss-result')){setMashoResultVisibility(state,false);saveNow();return renderGameKeepVertical();}
  if(el.dataset.mashoJob){state.ui??={};state.ui.mashoJob=el.dataset.mashoJob;return renderGameKeepVertical();}
- if(el.dataset.mashoRun10){if(battle)return;const floor=Number(el.dataset.mashoRun10);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)return toast('クリア済みの階層のみ10連戦できます');return openModal(`<h2>⚔️ 魔障の洞窟 第${floor}階層・10連戦</h2><p class="notice">敵を10回連続で倒します。HP・MPは各戦闘後も引き継がれ、各勝利の経験値・G・ドロップは1戦ずつ確定して保存されます。</p><p class="notice">全滅すると即終了し、通常の全滅ペナルティが発生します。「この戦い後に終了」で途中停止も可能です。</p><div class="shop-purchase-actions"><button class="action-main" data-masho-run-confirm="${floor}">10連戦を開始</button><button data-close-modal>やめる</button></div>`);}
- if(el.dataset.mashoRunConfirm){if(battle)return;try{const floor=Number(el.dataset.mashoRunConfirm);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)throw new Error('クリア済みの階層のみ10連戦できます');mashoRun=createMashoRun(floor);state.mashoCave.lastRunSummary=null;setMashoResultVisibility(state,false);return startMashoFloorBattle(floor);}catch(err){mashoRun=null;toast(err.message);return;}}
- if(el.hasAttribute('data-masho-run-stop')){if(!mashoRun||!battle?.mashoRun)return;mashoRun.stopAfterCurrent=true;battle.mashoRun.stopAfterCurrent=true;renderBattle();toast('この戦闘に勝利したら連戦を終了します');return;}
+ if(el.dataset.mashoRun10||el.dataset.mashoRunConfirm){if(battle)return;try{const floor=Number(el.dataset.mashoRun10??el.dataset.mashoRunConfirm);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)throw new Error('クリア済みの階層のみ10連戦できます');mashoRun=createMashoRun(floor);state.mashoCave.lastRunSummary=null;setMashoResultVisibility(state,false);return startMashoFloorBattle(floor);}catch(err){mashoRun=null;toast(err.message);return;}}
+ if(el.hasAttribute('data-masho-run-queue')){if(!mashoRun||!battle?.mashoRun)return;toggleMashoNextTen(mashoRun);battle.mashoRun.queueNextTen=mashoRun.queueNextTen;renderBattle();toast(mashoRun.queueNextTen?'10連戦終了後に追加10戦を予約しました':'追加10戦の予約を解除しました');return;}
+ if(el.hasAttribute('data-masho-run-stop')){if(!mashoRun||!battle?.mashoRun)return;mashoRun.stopAfterCurrent=true;mashoRun.queueNextTen=false;battle.mashoRun.stopAfterCurrent=true;battle.mashoRun.queueNextTen=false;renderBattle();toast('この戦闘に勝利したら連戦を終了します');return;}
  if(el.dataset.mashoFloor){if(battle)return;try{mashoRun=null;return startMashoFloorBattle(Number(el.dataset.mashoFloor));}catch(err){toast(err.message);return;}}
  if(el.hasAttribute('data-eidel-replay')){if(!state.endgame?.eidelEnding&&!state.endgame?.complete)return;state.ui??={};state.ui.eidelEndingView=state.endgame?.complete?'saved':state.endgame.eidelEnding;view='eidelEnding';closeModal();return renderGame();}
  if(el.hasAttribute('data-eidel')){try{const enemy=createEidelEnemy(state);battleMeta={regionId:'endgame',boss:true,rematch:false,enemy,eidel:true};battle=createAdventureBattle(enemy,{isBoss:true});battle.gold=enemy.gold??0;startTurn(battle);return renderBattle();}catch(err){toast(err.message);return;}}
