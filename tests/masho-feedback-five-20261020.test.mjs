@@ -75,7 +75,8 @@ test('battle header exposes queue toggle, stop and autoplayer stop independently
  const html=battleMarkup(s,b);
  assert.match(html,/data-masho-run-queue/);
  assert.match(html,/aria-pressed="true"/);
- assert.match(html,/☑ 次の10戦を予約/);
+ assert.match(html,/次の10戦を予約済み/);
+ assert.doesNotMatch(html,/[☐☑]/);
  assert.match(html,/data-masho-run-stop/);
  b.mashoRun.stopAfterCurrent=true;
  const stopHtml=battleMarkup(s,b);

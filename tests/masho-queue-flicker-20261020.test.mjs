@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {battleMarkup} from '../src/ui/battle.js';
-import {splitEmojiText} from '../src/ui/pixel-icons.js';
 import {canReuseBattleQueueButton,updateBattleView,renderMotionFrame} from '../src/ui/battle-motion.js';
 
 const hero={id:'hero',name:'召喚士',side:'ally',hp:100,maxHp:100,mp:100,maxMp:100,currentJob:'summoner',jobLevels:{summoner:123}};
@@ -11,28 +10,28 @@ const markup=(reserved=false,auto=true)=>battleMarkup({ui:{autoPlay:{enabled:aut
  actors:[hero,foe],actorMap:{hero,foe},awaitingActorId:'hero',planningIndex:0,planningIds:['hero'],turnNumber:2,
  mashoRun:{index:5,total:10,queueNextTen:reserved,stopAfterCurrent:false}
 });
-const button=(pressed,disabled=false,label='☐ 次の10戦を予約')=>({
+const button=(pressed,disabled=false,label='次の10戦を予約')=>({
  getAttribute:key=>key==='aria-pressed'?String(pressed):null,
  hasAttribute:key=>key==='disabled'?disabled:false,
  textContent:label
 });
 
-test('next ten reservation uses native static glyphs, not the missing pixel-icon files',()=>{
- assert.ok(splitEmojiText('☐ 次の10戦を予約').some(part=>part.type==='emoji'));
+test('next ten reservation uses simple text without any checkbox marks',()=>{
  for(const value of [false,true]){
   const html=markup(value);
   const buttonHtml=html.match(/<button[^>]*data-masho-run-queue[^>]*>[^<]*<\/button>/)?.[0];
   assert.ok(buttonHtml);
   assert.match(buttonHtml,/data-no-pixel-icon/);
   assert.match(buttonHtml,new RegExp('aria-pressed="'+value+'"'));
-  assert.match(buttonHtml,value?/☑ 次の10戦を予約/:/☐ 次の10戦を予約/);
+  assert.match(buttonHtml,value?/>次の10戦を予約済み<\//:/>次の10戦を予約<\//);
+  assert.doesNotMatch(buttonHtml,/[☐☑□■]/);
  }
  const pixelRenderer=readFileSync(new URL('../src/ui/pixel-icons.js',import.meta.url),'utf8');
  assert.match(pixelRenderer,/\[data-no-pixel-icon\]/);
 });
 
 test('queue button is preserved only when booking state, disabled state and label are unchanged',()=>{
- const off=button(false),on=button(true,false,'☑ 次の10戦を予約');
+ const off=button(false),on=button(true,false,'次の10戦を予約済み');
  assert.equal(canReuseBattleQueueButton(off,button(false)),true);
  assert.equal(canReuseBattleQueueButton(off,on),false);
  assert.equal(canReuseBattleQueueButton(off,button(false,true)),false);
