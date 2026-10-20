@@ -69,6 +69,7 @@ test('abyss 21-25 maintains rare weapon rate but guarantees one ultimate crystal
  assert.equal(s.mashoCave.abyssClearCount,10);
  assert.equal(s.materials.ultimateEnhanceCrystal,2);
  assert.equal(s.equipmentInventory.length,0);
+ s.ui={...s.ui,mashoResultVisible:true};
  const html=mashoCaveMarkup(s);
  assert.match(html,/究極強化結晶/);
  assert.doesNotMatch(html,/ドロップアイテムなし/);

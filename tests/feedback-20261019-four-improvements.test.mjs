@@ -137,7 +137,7 @@ test('stopping ten-run prevents next fight, and wrong floors cannot steal reward
 });
 
 test('cleared cave floors get ten-run controls, current progress summary is visible',()=>{
- const s={cycle:2,characters:[],activePartyIds:[],mashoCave:{highestCleared:3,lastRunSummary:{floor:2,total:10,completed:4,status:'stopped',earnedGold:100,exp:200,jobExp:300,promiseOre:0,materials:{},equipment:[]}}};
+ const s={cycle:2,characters:[],activePartyIds:[],ui:{mashoResultVisible:true},mashoCave:{highestCleared:3,lastRunSummary:{floor:2,total:10,completed:4,status:'stopped',earnedGold:100,exp:200,jobExp:300,promiseOre:0,materials:{},equipment:[]}}};
  const html=mashoCaveMarkup(s);
  assert.match(html,/data-masho-run10="1"/);
  assert.match(html,/data-masho-run10="3"/);

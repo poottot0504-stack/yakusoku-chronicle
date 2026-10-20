@@ -117,6 +117,6 @@ test('forge shows +15 ceiling, prices and materials, cave receipt shows earned c
  s.forgeCategory='enhance';s.ui={forgeEnhanceJob:'all'};
  const html=forgeMarkup(s,'enhance');
  assert.match(html,/最大 \+15/);assert.match(html,/究極強化結晶/);assert.match(html,/750,000G/);
- const caveState={...s,mashoCave:{highestCleared:21,lastReward:{floor:21,enhanceMaterial:{id:'ultimateEnhanceCrystal',name:'究極強化結晶',qty:1}}}};
+ const caveState={...s,ui:{...s.ui,mashoResultVisible:true},mashoCave:{highestCleared:21,lastReward:{floor:21,enhanceMaterial:{id:'ultimateEnhanceCrystal',name:'究極強化結晶',qty:1}}}};
  assert.match(mashoCaveMarkup(caveState),/究極強化結晶 ×1 を獲得/);
 });

@@ -100,7 +100,7 @@ test('all equipment groups are strengthened without changing rarity/requirements
 
 test('masho result retains level-ups and inventory shows active timer',()=>{
  const s=newState();s.story.firstEndingSeen=true;s.cycle=2;s.mashoCave={highestCleared:1,clearCounts:{1:1},lastReward:{floor:1,levelUps:['アレンのLvが31に上がった！','ミラの魔法使いLvが30に上がった！']}};
- const html=mashoCaveMarkup(s);assert.match(html,/アレンのLvが31/);assert.match(html,/ミラの魔法使いLvが30/);
+ s.ui={...s.ui,mashoResultVisible:true};const html=mashoCaveMarkup(s);assert.match(html,/アレンのLvが31/);assert.match(html,/ミラの魔法使いLvが30/);
  s.inventory=[{id:'jobExpScroll',qty:1}];s.boostScrolls={jobExp:Date.now()+3600000};
  assert.match(itemsMarkup(s),/使用中の2倍の書/);
 });
