@@ -26,7 +26,7 @@ export function eclipseEventNoticeMarkup(now=Date.now()){
 
 export function eclipseEventDetailsMarkup(now=Date.now()){
  const active=getEclipseEventStatus(now).active;
- return `<div class="event-details eclipse-event-details"><img class="event-detail-banner" src="${ECLIPSE_EVENT.banner}" alt="星蝕の異界門 ハロウィン特別編の開催案内"><h2>🌌 星蝕の異界門 ～ハロウィン特別編～</h2><p class="event-period">開催期間：2026年10月31日 0:00 ～ 11月1日 23:59（日本時間）</p><div class="event-benefits"><p><b>⚔️ 新たな異界のモンスターが登場予定！</b></p><p>🌘 星蝕の欠片・異界の魔石・亡霊の霊布・虚星の結晶・ノクスの心核の5つの限定素材を集めよう。</p><p>🎁 新たな武器16系統・防具6部位・指輪・チャーム。ランクⅠ・Ⅱの<b>限定装備48種類</b>が登場！</p><p>✨ 星蝕装備はすべて<b>ジョブLv1から装備可能</b>。強化しても必要ジョブLvは上がりません。職業ごとの武器制限は通常どおりです。</p><p>🔨 集めた素材は鍛冶屋のイベント装備で利用可能。<b>イベント終了後も生産できます。</b></p></div><p class="notice">${active?'🌌 イベント開催中！冒険画面から全3戦に挑戦できます。各戦で素材獲得、3戦目のノクス討伐で「ノクスの心核」を確定入手！':'📢 10月28日0時からの事前告知です。イベント開始は10月31日0時（日本時間）。開催期間前には挑戦できません。'}</p></div>`;
+ return `<div class="event-details eclipse-event-details"><img class="event-detail-banner" src="${ECLIPSE_EVENT.banner}" alt="星蝕の異界門 ハロウィン特別編の開催案内"><h2>🌌 星蝕の異界門 ～ハロウィン特別編～</h2><p class="event-period">開催期間：2026年10月31日 0:00 ～ 11月1日 23:59（日本時間）</p><div class="event-benefits"><p><b>⚔️ 新たな異界のモンスターが登場予定！</b></p><p>🌘 星蝕の欠片・異界の魔石・亡霊の霊布・虚星の結晶・ノクスの心核の5つの限定素材を集めよう。</p><p>🎁 新たな武器16系統・防具6部位・指輪・チャーム。ランクⅠ・Ⅱの<b>限定装備48種類</b>が登場！</p><p>✨ 星蝕装備はすべて<b>ⅠはジョブLv1、ⅡはジョブLv50から装備可能</b>。強化しても必要ジョブLvは上がりません。職業ごとの武器制限は通常どおりです。</p><p>🔨 集めた素材は鍛冶屋のイベント装備で利用可能。<b>イベント終了後も生産できます。</b></p></div><p class="notice">${active?'🌌 イベント開催中！冒険画面から全3戦に挑戦できます。各戦で素材獲得、3戦目のノクス討伐で「ノクスの心核」を確定入手！':'📢 10月28日0時からの事前告知です。イベント開始は10月31日0時（日本時間）。開催期間前には挑戦できません。'}</p></div>`;
 }
 
 export function titleEventNoticeMarkup(now=Date.now()){
