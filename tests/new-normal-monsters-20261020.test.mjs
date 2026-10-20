@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {NEW_MONSTERS,newMonsterMaterialId,newMonsterGearId} from '../src/data/new-monsters.js';
 import {ENEMIES,ENEMY_LIST,NORMAL_ENEMY_LIST} from '../src/data/enemies.js';
 import {EQUIPMENT} from '../src/data/equipment.js';
@@ -21,6 +22,10 @@ test('five ordinary monsters have individual sprites, skills and encounters',()=
   const art=actorArt({id:m.id+'-battle-01'});
   assert.ok(art.src.includes('/new-monsters/'+m.sprite+'.png'));
   assert.equal(art.aspect,1.3042);
+  const png=readFileSync(new URL('../assets/battle/new-monsters/'+m.sprite+'.png',import.meta.url));
+  assert.equal(png.subarray(1,4).toString(),'PNG');
+  assert.equal(png.readUInt32BE(16),96);
+  assert.equal(png.readUInt32BE(20),72);
   assert.ok(e.ai.length>=3);
  }
 });
