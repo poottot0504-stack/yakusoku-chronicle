@@ -51,7 +51,7 @@ test('phoenix restores 70% maximum HP to every living ally and clears all their 
  }
  startTurn(battle);
  assert.equal(resolveAction(battle,{type:'skill',skill,targetId:'ally-0'}).ok,true);
- for(let i=1;i<3;i++)resolveAction(battle,{type:'wait'},()=>.9);
+ for(let i=1;i<3;i++)resolveAction(battle,{type:'wait'},()=>0); // The enemy chooses its harmless wait action.
  for(let i=0;i<3;i++){
   assert.equal(battle.actorMap[`ally-${i}`].hp, i===0?900:800);
   assert.deepEqual(battle.actorMap[`ally-${i}`].statusAilments,[]);
