@@ -1,7 +1,7 @@
 import { ALL_JOBS } from './jobs.js';
 export const MASHO_PARTS=['weapon','shield','head','body','arms','waist','legs','ring','charm'];
 const labels={shield:'護符',head:'冠',body:'戦衣',arms:'手甲',waist:'腰帯',legs:'靴',ring:'指輪',charm:'チャーム'};
-const weapons={swordsman:['oneHandSword','剣'],mage:['staff','魔杖'],thief:['dagger','短剣'],fighter:['fist','拳甲'],healer:['staff','癒杖'],archer:['bow','弓'],redMage:['oneHandSword','魔法剣'],whiteMage:['staff','聖杖'],blackMage:['staff','黒杖'],darkKnight:['oneHandSword','暗黒剣'],pirateKing:['axe','海賊斧'],sniper:['bow','狙撃弓'],paladin:['oneHandSword','聖剣'],bard:['instrument','竪琴'],trickster:['cards','幻札'],bishop:['staff','司教杖'],highWizard:['staff','大魔杖'],gunbreaker:['gunblade','銃剣'],astrologian:['starGlobe','星天球'],berserker:['axe','狂戦斧']};
+const weapons={swordsman:['oneHandSword','剣'],mage:['staff','魔杖'],thief:['dagger','短剣'],fighter:['fist','拳甲'],healer:['staff','癒杖'],archer:['bow','弓'],redMage:['oneHandSword','魔法剣'],whiteMage:['staff','聖杖'],blackMage:['staff','黒杖'],darkKnight:['oneHandSword','暗黒剣'],pirateKing:['axe','海賊斧'],sniper:['bow','狙撃弓'],paladin:['oneHandSword','聖剣'],bard:['instrument','竪琴'],trickster:['cards','幻札'],bishop:['staff','司教杖'],highWizard:['staff','大魔杖'],gunbreaker:['gunblade','銃剣'],astrologian:['starGlobe','星天球'],berserker:['axe','狂戦斧'],dragoon:['spear','飛竜槍'],summoner:['greatStaff','幻獣杖']};
 export const MASHO_EQUIPMENT={};
 for(const job of ALL_JOBS)for(const tier of [1,2,3])for(const part of MASHO_PARTS){
  const id=`masho-${tier}-${job.id}-${part}`,magic=job.stats.magic>job.stats.attack,hybrid=job.id==='redMage',power=magic?'magic':'attack';
