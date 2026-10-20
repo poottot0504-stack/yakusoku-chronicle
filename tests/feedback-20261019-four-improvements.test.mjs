@@ -146,14 +146,14 @@ test('cleared cave floors get ten-run controls, current progress summary is visi
  assert.match(html,/獲得済み報酬は保存されています/);
 });
 
-test('game wiring enforces real sequential battle, confirmation, defeat and safe stop',()=>{
+test('game wiring enforces real sequential battle, one-click initiation, defeat and safe stop',()=>{
  const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
  const battle=readFileSync(new URL('../src/ui/battle.js',import.meta.url),'utf8');
  assert.match(main,/recordMashoRunVictory\(mashoRun,receipt/);
  assert.match(main,/saveNow\(\);battle=null;/);
  assert.match(main,/if\(mashoRunCanContinue\(mashoRun\)\)/);
  assert.match(main,/mashoRunSummary\(mashoRun,'defeat'\)/);
- assert.match(main,/if\(el\.dataset\.mashoRunConfirm\)/);
+ assert.match(main,/if\(el\.dataset\.mashoRun10\|\|el\.dataset\.mashoRunConfirm\)/);
  assert.match(main,/if\(el\.hasAttribute\('data-masho-run-stop'\)\)/);
  assert.match(battle,/data-masho-run-stop/);
  assert.match(main,/sellEquipmentInstance\(state,el\.dataset\.equipSellConfirm\)/);
