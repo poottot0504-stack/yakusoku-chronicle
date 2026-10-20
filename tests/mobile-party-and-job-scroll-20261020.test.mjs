@@ -60,8 +60,8 @@ test('mobile view keeps 4 HP and blue MP bars visible without horizontal overflo
  const js=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
  assert.match(js,/class="dock-hp" role="progressbar"/);
  assert.match(js,/class="dock-mp" role="progressbar"/);
- assert.match(js,/aria-valuenow="${hp}"/);
- assert.match(js,/aria-valuenow="${mp}"/);
+ assert.ok(js.includes('aria-valuenow="${hp}"'));
+ assert.ok(js.includes('aria-valuenow="${mp}"'));
  assert.match(css,/@media \(max-width:520px\)\{\s*\.party-dock\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
  assert.ok(css.lastIndexOf('.party-dock{display:grid;grid-template-columns:repeat(4,')>css.lastIndexOf('.party-dock{display:none}'));
  assert.match(css,/\.party-dock \.dock-member>\.dock-mp b\{background:linear-gradient\(90deg,#347bcf,#68c3ff\)\}/);
