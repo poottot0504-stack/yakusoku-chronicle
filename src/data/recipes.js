@@ -171,7 +171,7 @@ for(const [index,config] of SUMMONER_BOOK_HUNT_TIERS.entries()){
   ['regular',regularMaterials,first.id,'通常モンスター素材'],
   ['new',newerMaterials,allRegionMonster.id,'新モンスター素材']
  ]){
-  add({id:`craft-${id}-${type}-materials`,name:`${def.name}（${flavor}）`,
+  add({id:`craft-${id}-${type}-materials`,name:def.name,materialSource:flavor,
    category:'weapon',tier:config.grade,gold:config.gold,materialGrade:config.grade,
    monsterMaterialRecipe:true,sourceMonsterId,
    output:{kind:'equipment',equipmentId:id,quantity:1},materials,

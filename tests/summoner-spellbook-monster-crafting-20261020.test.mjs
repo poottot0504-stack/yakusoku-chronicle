@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {NORMAL_ENEMY_LIST} from '../src/data/enemies.js';
 import {NEW_MONSTERS,newMonsterMaterialId} from '../src/data/new-monsters.js';
 import {EQUIPMENT,SUMMONER_SPELLBOOK_TIERS} from '../src/data/equipment.js';
@@ -73,4 +74,31 @@ test('missing a normal monster material never creates free spellbooks or deducts
  assert.ok(canCraft(s,r.id).missingMaterials.length>0);
  assert.throws(()=>craftItem(s,r.id),/素材が足りません/);
  assert.deepEqual(s,before);
+});
+
+test('all monster material spellbook recipes show the real book name without parenthesized material routes',()=>{
+ for(const [tier] of SUMMONER_SPELLBOOK_TIERS){
+  const equipmentId=`summoner-${tier}-spellbook`;
+  const name=EQUIPMENT[equipmentId].name;
+  const conventional=RECIPES[`craft-${equipmentId}`];
+  const regional=RECIPES[`craft-${equipmentId}-regular-materials`];
+  const roaming=RECIPES[`craft-${equipmentId}-new-materials`];
+  assert.equal(conventional.name,name);
+  assert.equal(regional.name,name);
+  assert.equal(roaming.name,name);
+  assert.equal(regional.materialSource,'通常モンスター素材');
+  assert.equal(roaming.materialSource,'新モンスター素材');
+  assert.notDeepEqual(regional.materials,roaming.materials);
+ }
+});
+
+test('the book icon uses no decorative purple outline and other equipment icons are unchanged',()=>{
+ const css=readFileSync(new URL('../styles/main.css',import.meta.url),'utf8');
+ const ui=readFileSync(new URL('../src/ui/equipment.js',import.meta.url),'utf8');
+ const rule=css.match(/\.equipment-spellbook-icon\{([^}]*)\}/)?.[1]??'';
+ assert.match(rule,/background:transparent/);
+ assert.match(rule,/border:0/);
+ assert.doesNotMatch(rule,/#8976bc|linear-gradient/);
+ assert.match(ui,/equipment-spellbook-icon/);
+ assert.match(ui,/equipment-pixel-crop/);
 });
