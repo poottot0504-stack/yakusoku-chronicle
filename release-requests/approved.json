@@ -2,7 +2,7 @@
   "schema_version": 1,
   "confirm": "PUBLISH",
   "approved_by": "poottot0504-stack",
-  "source_sha": "05754cfe4b467f481594371451f552ea60bed879",
+  "source_sha": "25a259f32f9c79d10c736ab3786713514c5ace64",
   "target_worker": "muddy-credit-f5af",
-  "request_id": "7cca4de5-92f6-4918-a5bf-bc7021ec2285"
+  "request_id": "e01ef51d-4f96-4a36-a35f-2e1da070886b"
 }
