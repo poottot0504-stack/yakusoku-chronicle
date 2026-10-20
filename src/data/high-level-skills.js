@@ -13,11 +13,11 @@ const rows={
   attack('終式・天龍星墜',155,1220,{allTargets:true,defensePierce:.18})
  ],
  summoner:[
-  magic('幻獣降臨・イフリート',60,620,'fire',{allTargets:true}),
-  magic('幻獣降臨・シヴァ',80,740,'ice',{allTargets:true}),
-  magic('幻獣降臨・ラムウ',105,900,'thunder',{allTargets:true}),
-  buff('幻獣王の加護',115,{magicPct:.65,defensePct:.18},'self'),
-  magic('終極召喚・バハムート零式',165,1300,'light',{allTargets:true})
+  magic('幻獣降臨・イフリート',80,880,'fire',{allTargets:true}),
+  magic('幻獣降臨・シヴァ',95,1040,'ice',{allTargets:true}),
+  magic('幻獣降臨・ラムウ',115,1280,'thunder',{allTargets:true}),
+  buff('幻獣王の加護',125,{magicPct:.80,defensePct:.18},'self'),
+  magic('終極召喚・バハムート零式',165,1550,'light',{allTargets:true})
  ],
  swordsman:[attack('覇王斬',55,520),attack('天断・旋空剣',70,600,{allTargets:true}),attack('王威の連剣',90,230,{multiHit:3}),buff('剣聖の闘志',95,{attackPct:.6},'self'),attack('終式・約束の聖剣',135,1050)],
  mage:[magic('インフェルノ',60,530,'fire'),magic('天雷の嵐',75,620,'thunder',{allTargets:true}),magic('絶零の魔陣',95,730,'ice',{allTargets:true}),magic('虚空崩壊',115,860,'dark',{allTargets:true}),magic('終極・星界メテオ',150,1080,'none',{allTargets:true})],
