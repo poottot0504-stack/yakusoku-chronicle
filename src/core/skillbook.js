@@ -24,7 +24,7 @@ const BOOK={
   S(30,'summonRamuh','召喚・ラムウ',18,360,'magic',{kind:'magic',element:'thunder',allTargets:true}),
   S(45,'summonLeviathan','召喚・リヴァイア',25,475,'magic',{kind:'magic',element:'water',allTargets:true}),
   S(60,'summonersPact','幻獣との契約',26,0,'buff',{selfBuff:{magicPct:.42},turns:3}),
-  S(70,'summonPhoenix','召喚・フェニックス',32,360,'heal',{target:'all',healRatio:.70,fullHeal:false,highClear:true}),
+  S(70,'summonPhoenix','召喚・フェニックス',32,360,'heal',{target:'all',healRatio:.70,fullHeal:false,highClear:true,cleanseBeforeHeal:true}),
   S(80,'summonOdin','召喚・オーディン',45,600,'magic',{kind:'magic',element:'dark'}),
   S(95,'summonBahamut','召喚・バハムート',60,710,'magic',{kind:'magic',element:'dark',allTargets:true}),
   S(100,'summonAstralFlare','終極召喚・星界龍光',75,810,'magic',{kind:'magic',element:'light',allTargets:true})
