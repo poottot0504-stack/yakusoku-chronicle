@@ -13,7 +13,7 @@ const end=Date.parse('2026-11-02T00:00:00+09:00');
 
 test('rank I needs Job Lv 1, rank II Job Lv 50, both unchanged after enhancement',()=>{
  assert.equal(ECLIPSE_TIERS.length,2);
- assert.equal(Object.keys(ECLIPSE_EQUIPMENT).length,48);
+ assert.equal(Object.keys(ECLIPSE_EQUIPMENT).length,50);
  for(const d of Object.values(ECLIPSE_EQUIPMENT)){
   const expected=d.id.startsWith('eclipse-ii-')?50:1;
   assert.equal(d.requiredLevel,expected,d.id);

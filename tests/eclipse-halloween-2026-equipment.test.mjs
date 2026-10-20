@@ -37,7 +37,7 @@ test('two full ranks contain 16 usable weapon types, 6 armor slots, ring, charm 
  assert.equal(ECLIPSE_WEAPONS.length,16);
  assert.equal(ECLIPSE_ARMOR.length,6);
  assert.equal(new Set(ECLIPSE_WEAPONS.map(w=>w.type)).size,16);
- assert.equal(Object.keys(ECLIPSE_EQUIPMENT).length,48);
+ assert.equal(Object.keys(ECLIPSE_EQUIPMENT).length,50);
  for(const [id,def] of Object.entries(ECLIPSE_EQUIPMENT)){
   const actual=EQUIPMENT[id],r=recipe(id);
   assert.ok(actual,`missing game equipment ${id}`);
@@ -111,7 +111,7 @@ test('recipes stay unavailable with no ingredients and all five mats have legiti
  assert.equal(before.ok,false);
  assert.equal(before.locked,true);
  s.materials.eclipseShard=1;
- assert.equal(getAvailableRecipes(s,open).filter(x=>x.eventId===ECLIPSE_EVENT.id).length,48);
+ assert.equal(getAvailableRecipes(s,open).filter(x=>x.eventId===ECLIPSE_EVENT.id).length,50);
  assert.equal(canCraft(s,r.id,open).ok,false);
  assert.ok(canCraft(s,r.id,open).missingMaterials.length>0);
 });
