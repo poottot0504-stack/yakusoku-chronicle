@@ -14,7 +14,7 @@ export function jobReleaseNoticeMarkup(now=Date.now()){
  return `<button class="title-event-notice job-release-notice is-active" data-job-release-notice aria-label="新ジョブ追加！ 竜騎士＆召喚士 解放！"><span><b>新ジョブ追加！</b><small>竜騎士＆召喚士 解放！</small></span></button>`;
 }
 export function jobReleaseDetailsMarkup(){
- return `<div class="event-details job-release-details"><h2>🐉🔮 新ジョブ追加！ 竜騎士＆召喚士</h2><p class="event-period">2026年10月20日より解放！</p><h3>🐉 竜騎士</h3><p>槍を操る攻撃・素早さ重視の特殊ジョブ。「竜牙突き」「雷竜の急降下」「竜王の咆哮」などの特技を習得。固有パッシブ「竜槍の極意」で攻撃力を高めます。</p><p><b>転職条件：パラディンのジョブLv30以上</b></p><h3>🔮 召喚士</h3><p>幻獣の力で多彩な属性魔法を使う特殊ジョブ。イフリート、シヴァ、ラムウ、フェニックス、バハムートなどを召喚。固有パッシブ「幻獣との盟約」で魔法力を高めます。</p><p><b>転職条件：黒魔術師のジョブLv30以上</b></p><p>それぞれの専用武器・防具・指輪・チャームは鍛冶屋で生産できます。戦闘用ドット絵も追加しています。</p></div>`;
+ return `<div class="event-details job-release-details"><h2>🐉🔮 新ジョブ追加！ 竜騎士＆召喚士</h2><p class="event-period">2026年10月20日より解放！</p><h3>🐉 竜騎士</h3><p>槍を操る攻撃・素早さ重視の特殊ジョブ。「竜牙突き」「雷竜の急降下」「竜王の咆哮」などの特技を習得。固有パッシブ「竜槍の極意」で攻撃力を高めます。</p><p><b>転職条件：パラディンのジョブLv30以上</b></p><h3>🔮 召喚士</h3><p>幻獣の力で多彩な属性魔法を使う特殊ジョブ。イフリート、シヴァ、ラムウ、フェニックス、バハムートなどを召喚。固有パッシブ「幻獣との盟約」で魔法力を高めます。</p><p><b>転職条件：黒魔術師のジョブLv30以上</b></p><p>それぞれの専用武器・防具・指輪・チャームは鍛冶屋で生産できます。</p></div>`;
 }
 
 // The announcement is a title-only promotion; it does not unlock event battles.
