@@ -1,6 +1,6 @@
 import { EQUIPMENT } from '../data/equipment.js';
 import { elementLabel } from '../core/elements.js';
-import { RECIPES } from '../data/recipes.js?v=monster-name-clean';
+import { RECIPES } from '../data/recipes.js?v=summoner-monster-recipes-20261020';
 import { ALL_JOBS } from '../data/jobs.js';
 import {equipmentJobLabel,canEquipForJob} from '../core/equipment.js';
 import { canCraftPromiseChronicle } from '../core/promise-chronicle.js';

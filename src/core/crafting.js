@@ -1,4 +1,4 @@
-import { RECIPES } from '../data/recipes.js?v=monster-name-clean';
+import { RECIPES } from '../data/recipes.js?v=summoner-monster-recipes-20261020';
 import { createEquipmentInstance } from '../data/equipment.js';
 import { JOBS } from '../data/jobs.js';
 export function getMaterialQuantity(state,id){const stored=state.materials?.[id]??0;const legacy=(state.inventory??[]).filter(x=>x.id===id).reduce((n,x)=>n+(x.qty??0),0);return stored+legacy;}
