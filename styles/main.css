@@ -936,3 +936,17 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .battle-header .masho-run-queue[aria-pressed="true"]{background:#263c32;border-color:#80cf98;color:#d5ffe7}
 .masho-single-reward{font-size:.82rem;color:#f4ddaa}
 @media(max-width:520px){.masho-quick-actions>div{width:100%}.masho-quick-actions button{flex:1}}
+
+
+/* Masho feedback 2026-10-21: shared 10 skill presets, compact on iPhone. */
+.skill-presets-panel{min-width:0}
+.skill-presets-panel h3{margin-bottom:.35rem}
+.skill-preset-list{display:grid;gap:.42rem;margin-top:.65rem}
+.skill-preset-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;min-width:0;padding:.55rem .62rem;background:#132238;border:1px solid #425571;border-radius:10px}
+.skill-preset-detail{display:grid;gap:.18rem;min-width:0;flex:1}
+.skill-preset-detail b{font-size:.83rem;color:#f7dfac}
+.skill-preset-detail small{color:#c1d1e4;font-size:.72rem;line-height:1.45;overflow-wrap:anywhere}
+.skill-preset-actions{display:flex;gap:.35rem;flex:0 0 auto}
+.skill-preset-actions button{min-height:42px;font-size:.75rem;padding:.4rem .55rem}
+.skill-preset-actions button:disabled{opacity:.4}
+@media(max-width:380px){.skill-preset-row{gap:.35rem;padding:.45rem}.skill-preset-actions{gap:.25rem}.skill-preset-actions button{padding:.35rem .42rem;font-size:.7rem}}

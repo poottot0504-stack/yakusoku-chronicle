@@ -24,6 +24,7 @@ import { listSaveSlots,saveToSlot,loadFromSlot,loadSlotRecord,deleteSlot,migrate
 import { ensureAdventureState, getUnlockedRegions, travelToRegion, makeEncounterEnemy, makeEncounterGroup, makeRegionBoss, canChallengeBoss, recordAdventureVictory, mergeLatestLevelUps, usePotion, syncBattlePartyToState, getAdventureBattleParty, makeBestiaryRematchEnemy, makeEndgameBoss, makeLegendaryTrialEnemy } from './core/adventure.js';
 import { createBattle, startTurn, finishTurn, getPendingActor, resolveAction, attemptEscape, undoPlannedAction } from './core/battle.js';
 import { getBattleSkills, skillMetricLabel, getSelectedSkillIds, setBattleSkillLoadout, getRecommendedBattleSkillIds, getRecommendedBattleSkillSummary, describeSkill } from './core/skillbook.js';
+import { saveSkillPreset,applySkillPreset } from './core/skill-presets.js';
 import { restAtInn, handlePartyWipe, getInnPrice } from './core/inn.js';
 import { bankBalance, depositGold, withdrawGold } from './core/bank.js';
 import { getShopInventory, buyItem } from './core/shop.js';
@@ -39,7 +40,7 @@ import { ensureSpecialJobProgress, createSpecialTrialEnemy, completeSpecialTrial
 import { partyMarkup } from './ui/party.js';
 import { statusMarkup } from './ui/status.js';
 import { jobsMarkup } from './ui/jobs.js';
-import { skillsMarkup, skillLoadoutMarkup } from './ui/skills.js';
+import { skillsMarkup, skillLoadoutMarkup } from './ui/skills.js?v=skill-presets-20261021';
 import { equipmentMarkup } from './ui/equipment.js';
 import { equipmentCandidateVisible } from './ui/equipment-search.js';
 import { characterSwitcherMarkup } from './ui/character-switcher.js';
@@ -1139,8 +1140,7 @@ document.addEventListener('click',e=>{
  if(el.dataset.shopCategory)return syncShopCategory(el.dataset.shopCategory);
  if(el.dataset.town==='forge'){view='forge';state.forgeCategory='home';return renderGame();}
  if(el.dataset.town==='jobs'){view='jobs';return renderGame();}
- if(el.hasAttribute('data-unequip-all')){const c=state.characters.find(x=>x.id===selectedId());if(!c)return;const count=Object.values(c.equipment??{}).filter(Boolean).length;if(!count)return toast('外す装備がありません');return openModal(`<h2>⚔️ 装備をすべて外しますか？</h2><p><b>${esc(c.name)}</b>の装備${count}部位を解除します。アイテムは売却せず、所持品に残ります。</p><div class="shop-purchase-actions"><button class="action-main" data-unequip-all-confirm="${esc(c.id)}">すべて外す</button><button data-close-modal>やめる</button></div>`);}
- if(el.dataset.unequipAllConfirm){try{const r=unequipAllEquipment(state,el.dataset.unequipAllConfirm);saveNow();closeModal();renderGameKeepVertical();toast(`${r.removed}部位の装備を外しました`);}catch(err){toast(err.message);}return;}
+ if(el.hasAttribute('data-unequip-all')){try{const r=unequipAllEquipment(state,selectedId());if(!r.removed)return toast('外す装備がありません');saveNow();renderGameKeepVertical();toast(`${r.removed}部位の装備を外しました。所持品はそのままです`);}catch(err){toast(err.message);}return;}
  if(el.dataset.equipLock){try{const r=toggleEquipmentLock(state,el.dataset.equipLock);saveNow();renderGameKeepVertical();toast(r.locked?'装備をロックしました':'装備のロックを解除しました');}catch(err){toast(err.message);}return;}
  if(el.dataset.equipSellAsk)return openEquipmentSellConfirm(el.dataset.equipSellAsk);
  if(el.dataset.equipSellConfirm){try{const r=sellEquipmentInstance(state,el.dataset.equipSellConfirm);saveNow();closeModal();renderGameKeepVertical();toast(`装備1個を売却して ${r.total.toLocaleString('ja-JP')}G獲得！`);}catch(err){toast(err.message);}return;}
@@ -1194,6 +1194,8 @@ document.addEventListener('click',e=>{
  if(el.dataset.useSkill)return useSkill(el.dataset.useSkill);
  if(el.dataset.characterSkills){if(battle||raidRoom)return toast('特技・魔法のセットは戦闘前に変更してください');if(!state.characters.some(c=>c.id===el.dataset.characterSkills))return;state.ui??={};state.ui.skillReturnView=view;state.selectedCharacterId=el.dataset.characterSkills;view='skillList';return renderGame();}
  if(el.hasAttribute('data-skill-list-back')){view=['party','jobs','status','equipment'].includes(state.ui?.skillReturnView)?state.ui.skillReturnView:'party';return renderGame();}
+ if(el.dataset.skillPresetSave){if(battle||raidRoom)return toast('戦闘中は変更できません');try{const r=saveSkillPreset(state,el.dataset.skillCharacter,el.dataset.skillPresetSave);saveNow();renderGameKeepVertical();toast(`セット${r.slot}に${r.count}個のスキルを保存しました`);}catch(err){toast(err.message);}return;}
+ if(el.dataset.skillPresetApply){if(battle||raidRoom)return toast('戦闘中は変更できません');try{const r=applySkillPreset(state,el.dataset.skillCharacter,el.dataset.skillPresetApply);saveNow();renderGameKeepVertical();toast(`セット${r.slot}を適用：${r.equipped}個${r.skipped?'（使用不可'+r.skipped+'個を除外）':''}`);}catch(err){toast(err.message);}return;}
  if(el.dataset.autoBattleSkills){if(battle||raidRoom)return toast('戦闘中は変更できません');const c=state.characters.find(x=>x.id===el.dataset.autoBattleSkills);if(!c)return;try{const ids=getRecommendedBattleSkillIds(c);if(!ids.length)return toast('おまかせで選べる習得済みの技がありません');setBattleSkillLoadout(c,ids);const summary=getRecommendedBattleSkillSummary(c,ids);saveNow();renderGameKeepVertical();toast(`おまかせ編成：${summary||ids.length+'個'}をセットしました`);}catch(err){toast(err.message);}return;}
  if(el.dataset.toggleBattleSkill){if(battle||raidRoom)return toast('戦闘中は変更できません');const c=state.characters.find(x=>x.id===el.dataset.skillCharacter);if(!c)return;try{const ids=getSelectedSkillIds(c),id=el.dataset.toggleBattleSkill;setBattleSkillLoadout(c,ids.includes(id)?ids.filter(x=>x!==id):[...ids,id]);saveNow();renderGameKeepVertical();}catch(err){toast(err.message);}return;}
  if(el.dataset.characterId){state.selectedCharacterId=el.dataset.characterId;saveNow();return renderGame();}

@@ -45,6 +45,7 @@ export function createDefaultState() {
     saveVersion: CURRENT_SAVE_VERSION,
     characters: [],
     activePartyIds: [],
+    skillPresets: Array.from({length:10},()=>null),
     gold: 0,
     bankGold: 0,
     inventory: [],
