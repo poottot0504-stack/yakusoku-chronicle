@@ -55,9 +55,9 @@ test('fighter and berserker gain one of the five weapons; no unrelated job compa
  assert.equal(canEquip(character('mage',150),elgancio,{}),false);
  assert.equal(canEquip(character('fighter',150),{slot:'weapon',weaponType:'instrument',requiredLevel:1},{}),false);
 });
-test('all abyss floors continue to use the same item pool and reward id after the adjustment',()=>{
+test('abyss loot is floor-specific without losing the original Elgancio item id',()=>{
  const state={cycle:2,characters:[],activePartyIds:[],mashoCave:{highestCleared:25},gold:0};
  const result=settleMashoVictory(state,{mashoFloor:23,actors:[{side:'enemy',mashoBoss:true,mashoFloor:23,hp:0},{side:'ally',hp:1}]},(()=>{let n=0;return()=>n++===0?0:0.99999;})(),Date.UTC(2026,9,20));
- assert.equal(result.equipment.equipmentId,'masho-abyss-instrument');
- assert.equal(state.equipmentInventory[0].equipmentId,'masho-abyss-instrument');
+ assert.equal(result.equipment.equipmentId,'masho-abyss-bow');
+ assert.equal(state.equipmentInventory[0].equipmentId,'masho-abyss-bow');
 });
