@@ -13,7 +13,11 @@ export function estimatedRaidDamageCeiling(actor={},verifiedLevel=null){
 export function prepareRaidDamageSubmission(payload={},actor={},verifiedLevel=null){
  const raw=Number(payload?.damage??0);
  const requested=Number.isFinite(raw)?Math.max(0,Math.floor(raw)):0;
- const safeCeiling=Math.max(1,Math.floor(estimatedRaidDamageCeiling(actor,verifiedLevel)*.9));
+ // The server independently verifies the job level. Until it returns a
+ // verified value, calculating a limit from the local job level can produce
+ // rejected offensive skills (and misleading MP refunds).
+ const safeActor={...actor,jobLevels:{...(actor?.jobLevels??{}),[actor?.currentJob??'swordsman']:1}};
+ const safeCeiling=Math.max(1,Math.floor(estimatedRaidDamageCeiling(safeActor,verifiedLevel)*.9));
  const submitted=Math.min(requested,safeCeiling);
  return {payload:{...payload,damage:submitted},requested,submitted,adjusted:requested>submitted,safeCeiling};
 }

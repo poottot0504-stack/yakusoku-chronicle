@@ -80,6 +80,7 @@ import { ECLIPSE_EVENT } from './data/eclipse-2026.js';
 import { twinStarFestivalDetailsMarkup, titleEventNoticeMarkup, halloweenEventDetailsMarkup, trainingFestivalDetailsMarkup, jobReleaseDetailsMarkup, eclipseEventDetailsMarkup } from './ui/events.js?v=market-reopen-20261014-eclipse-20261020-battles-lv50-new-jobs-title-20261020-jobdetail-clean-20261020';
 import { raidDetailsMarkup } from './ui/raid.js?v=material2x-raid10-20261009';
 import { prepareRaidDamageSubmission } from './raid/raidDamageGuard.js';
+import { formatRaidReward } from './raid/raidRewardDisplay.js';
 import { createRaidApi,getRaidPlayerId } from './raid/raidApi.js';
 import { raidJoinButtonState,raidJoinLoadingMarkup,withRaidJoinTimeout } from './raid/raidJoinUi.js?v=material2x-raid10-20261009';
 import { captureProgressionSnapshot,buildProgressionAuditEvents,createProgressionAuditApi } from './online/progression-audit.js';
@@ -132,7 +133,7 @@ let equipmentSearch=''; // Browser-only query. Never update inventory or save da
 const getMarketApi=()=>marketApiPromise??=createBrowserMarketApi({storage:session.storage});
 const feedbackApi=createFeedbackApi({storage:session.storage});
 let feedbackBusy=false;
-let raidRoom=null,raidStartedAt=0,raidPendingBossAction=null,raidRewardClaimBusy=false,raidJoinBusy=false,raidBattleLog=[],raidTurnState=null,raidTurnExecuting=false,raidEndedReason=null,raidExecutionId=0,raidClaimExecutionId=0,eventBoundaryTimer=null;
+let raidRoom=null,raidStartedAt=0,raidPendingBossAction=null,raidRewardClaimBusy=false,raidJoinBusy=false,raidBattleLog=[],raidLastHitText='',raidTurnState=null,raidTurnExecuting=false,raidEndedReason=null,raidExecutionId=0,raidClaimExecutionId=0,eventBoundaryTimer=null;
 const raidPoller=createRaidPoller({api:raidApi,getPayload:()=>({playerId:getRaidPlayerId(session.storage)}),intervalMs:1000,onSnapshot:r=>{if(!raidRoom||(r.sessionId&&r.sessionId!==raidRoom.sessionId)||(r.roomId&&r.roomId!==raidRoom.roomId))return;if(isRaidTimedOutSnapshot(r)){raidExecutionId++;raidPoller.stop();raidEndedReason='timeout';raidTurnExecuting=false;raidTurnState=null;raidPendingBossAction=null;addRaidBattleLog(`${raidRoom.boss?.name??'レイドボス'}は逃げ出した…`);renderRaidBattleScreen();return;}const motion={visualAction:raidRoom.visualAction,visualEvents:raidRoom.visualEvents};raidRoom={...raidRoomView(r),...motion};rememberRaidSnapshot(r);if(raidTurnExecuting)return;updateRaidBattleModal(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers());void tryClaimRaidReward(r,{silent:true});if(r.currentHp===0){raidPoller.stop();raidTurnState=null;raidPendingBossAction=null;saveNow();renderRaidBattleScreen();}},onError:()=>{}});
 const raidLobbyPoller=createRaidPoller({api:raidApi,getPayload:()=>({playerId:getRaidPlayerId(session.storage)}),intervalMs:3000,onSnapshot:r=>{rememberRaidSnapshot(r);if(!r?.active&&r.currentHp!==0){raidLobbyPoller.stop();return;}updateRaidAdventureCard(r);void tryClaimRaidReward(r,{silent:false});},onError:()=>{}});
 const $=s=>document.querySelector(s);const title=$('#title-screen'),game=$('#game-screen'),battleScreen=$('#battle-screen'),modal=$('#modal-root'),toastRoot=$('#toast-root');
@@ -684,7 +685,7 @@ function finishRaidDefeat(){
 function cancelRaidSession(){
  clearRaidAuto();raidAutoStopped=false;raidAutoRound=0;raidLastActAt=0;
  const cleared=clearRaidOnlyStatuses(state?.characters??[]);
- raidExecutionId++;raidPoller.stop();raidLobbyPoller.stop();raidRoom=null;raidPendingBossAction=null;raidTurnState=null;raidTurnExecuting=false;raidEndedReason=null;raidJoinBusy=false;
+ raidExecutionId++;raidPoller.stop();raidLobbyPoller.stop();raidRoom=null;raidPendingBossAction=null;raidTurnState=null;raidLastHitText='';raidTurnExecuting=false;raidEndedReason=null;raidJoinBusy=false;
  if(cleared){try{saveNow();}catch{}}
 }
 function raidRoomView(r){const boss=RAID_BOSSES.find(b=>b.id===r?.bossId)??null,prev=raidRoom&&(!r?.sessionId||r.sessionId===raidRoom.sessionId)&&(!r?.roomId||r.roomId===raidRoom.roomId)?raidRoom:null;return {...r,boss,verifiedLevel:r?.verifiedLevel??prev?.verifiedLevel??null,bossStatusAilments:structuredClone(prev?.bossStatusAilments??[]),bossStatusResistTurns:{...(prev?.bossStatusResistTurns??{})}};}
@@ -714,14 +715,15 @@ function updateRaidBattleModal(room=raidRoom,hero=raidHero(),pendingBossAction=r
   const effects=root.querySelector(`[data-raid-party-effects="${id}"]`);if(effects)effects.innerHTML=raidEffectMarkup(member?.statusAilments??[]);
  }
  updateRaidBattleLog();
- const reward=root.querySelector('[data-raid-reward-status]'),rewardKey=raidRewardKey(room)||raidRewardKey(state.raid?.liveSnapshot);if(reward&&rewardKey&&state.raid?.claimedRewards?.[rewardKey])reward.textContent='🎁 この討伐回のレイド報酬は受取済みです。';
+ const reward=root.querySelector('[data-raid-reward-status]'),rewardKey=raidRewardKey(room)||raidRewardKey(state.raid?.liveSnapshot);if(reward&&rewardKey&&state.raid?.claimedRewards?.[rewardKey])reward.textContent=formatRaidReward(state.raid.claimedRewards[rewardKey]);
+ const lastHit=root.querySelector('[data-raid-last-hit]');if(lastHit)lastHit.textContent=raidLastHitText;
 }
 function updateRaidAdventureCard(snapshot){
  if(isRaidWindowDefeated(state)){raidLobbyPoller.stop();const card=game.querySelector('.raid-event-panel');if(card)card.outerHTML=raidWaitingMarkup();return;}
  const card=game.querySelector(`[data-raid-session="${snapshot?.slotKey??''}"]`);if(!card)return;
  const hp=card.querySelector('[data-raid-card-hp]');if(hp&&snapshot?.currentHp!=null&&snapshot?.maxHp!=null)hp.textContent=`共有HP ${Number(snapshot.currentHp).toLocaleString()} / ${Number(snapshot.maxHp).toLocaleString()}`;
  const contribution=card.querySelector('[data-raid-card-contribution]');if(contribution){contribution.hidden=snapshot?.joined!==true;if(snapshot?.joined)contribution.textContent=`貢献度 ${Number(snapshot.contribution??0).toLocaleString()}`;}
- const rewardKey=raidRewardKey(snapshot),reward=card.querySelector('[data-raid-card-reward]');if(reward)reward.textContent=rewardKey&&state.raid?.claimedRewards?.[rewardKey]?'🎁 報酬受取済み':'特別報酬あり';
+ const rewardKey=raidRewardKey(snapshot),reward=card.querySelector('[data-raid-card-reward]');if(reward)reward.textContent=rewardKey&&state.raid?.claimedRewards?.[rewardKey]?formatRaidReward(state.raid.claimedRewards[rewardKey]):'特別報酬あり';
  const button=card.querySelector('[data-raid-start]');if(button&&!raidJoinBusy){const ui=raidJoinButtonState({eligible:(raidHero()?.level??0)>=10,joined:snapshot?.joined===true});button.disabled=ui.disabled;button.textContent=ui.label;}
 }
 
@@ -740,12 +742,12 @@ async function tryClaimRaidReward(snapshot=raidRoom,{silent=false}={}){
  const hp=Math.max(0,Number(snapshot?.currentHp??0)),max=Math.max(1,Number(snapshot?.maxHp??1)),contribution=Math.max(0,Number(snapshot?.contribution??0)),claimSnapshot={...(state.raid?.liveSnapshot??{}),...(raidRoom??{}),...(snapshot??{})},rewardKey=raidRewardKey(claimSnapshot);
  if(hp/max>.5||contribution<RAID_RANK_THRESHOLDS.C||!rewardKey||state.raid?.claimedRewards?.[rewardKey]||raidRewardClaimBusy)return null;
  const claimState=state,claimExecutionId=++raidClaimExecutionId;raidRewardClaimBusy=true;
- try{const claim=await raidApi.claim({playerId:getRaidPlayerId(session.storage)});if(state!==claimState||claimExecutionId!==raidClaimExecutionId)return null;if(claim?.reward){if(shouldGrantRaidReward(claim.reward)){const granted=grantRaidRewardLocally(claim.reward,claimSnapshot);if(granted){updateRaidBattleModal();if(!silent)toast(`🎁 ${claim.reward.rank}ランク報酬＋経験値${Number(granted.exp??0).toLocaleString()}を受け取りました！${claim.reward.bonusMaterialId==='ultimateEnhanceCrystal'?' 💎究極強化結晶×1':''}`);}}else{state.raid??={};state.raid.claimedRewards??={};state.raid.claimedRewards[rewardKey]={rank:claim.reward.rank,itemId:claim.reward.itemId,qty:claim.reward.qty??1,claimedAt:claim.reward.claimedAt??new Date().toISOString()};saveNow();updateRaidBattleModal();}}return claim?.reward??null;}
+ try{const claim=await raidApi.claim({playerId:getRaidPlayerId(session.storage)});if(state!==claimState||claimExecutionId!==raidClaimExecutionId)return null;if(claim?.reward){if(shouldGrantRaidReward(claim.reward)){const granted=grantRaidRewardLocally(claim.reward,claimSnapshot);if(granted){const receipt=state.raid?.claimedRewards?.[rewardKey];const label=formatRaidReward(receipt);addRaidBattleLog(label);updateRaidBattleModal();if(!silent)toast(label);}}else{state.raid??={};state.raid.claimedRewards??={};state.raid.claimedRewards[rewardKey]={rank:claim.reward.rank,itemId:claim.reward.itemId,qty:claim.reward.qty??1,claimedAt:claim.reward.claimedAt??new Date().toISOString()};saveNow();updateRaidBattleModal();}}return claim?.reward??null;}
  catch(err){if(!silent)toast(err.message??'レイド報酬の受取に失敗しました');return null;}
  finally{if(claimExecutionId===raidClaimExecutionId)raidRewardClaimBusy=false;}
 }
 function startRaidPartyTurn(){raidAutoRound++;raidTurnState=createRaidTurnState(raidPartyMembers());}
-function raidTurnInfo(){return {currentActorId:raidTurnState?.currentActorId??null,index:raidTurnState?.index??0,total:raidTurnState?.actorIds?.length??0,executing:raidTurnExecuting,endedReason:raidEndedReason,autoEnabled:autoSettings().enabled,autoStopped:raidAutoStopped};}
+function raidTurnInfo(){const receipt=state.raid?.claimedRewards?.[raidRewardKey(raidRoom)]??null;return {currentActorId:raidTurnState?.currentActorId??null,index:raidTurnState?.index??0,total:raidTurnState?.actorIds?.length??0,executing:raidTurnExecuting,endedReason:raidEndedReason,autoEnabled:autoSettings().enabled,autoStopped:raidAutoStopped,rewardText:receipt?formatRaidReward(receipt):null,lastHitText:raidLastHitText};}
 function currentRaidPartyActor(){return currentRaidTurnActor(raidTurnState,raidPartyMembers());}
 function renderRaidBattleScreen(){if(!raidRoom)return;openModal(raidBattleMarkup(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers(),raidBattleLog,raidTurnInfo()));modal.classList.add('raid-ui-open');scheduleRaidAuto();}
 function raidActorBonus(actor){const bonus={...getEquipmentStatBonus(state,actor)};const buff=actor?.raidBuff;if(buff?.turns>0){bonus.attack=(bonus.attack??0)+Math.round((actor?.stats?.attack??0)*(buff.attackPct??0));bonus.magic=(bonus.magic??0)+Math.round((actor?.stats?.magic??0)*(buff.magicPct??0));}return bonus;}
@@ -775,7 +777,7 @@ async function openRaidBattle(button=null){
   rememberRaidSnapshot(r);if(isRaidWindowDefeated(state)){saveNow();raidJoinBusy=false;closeModal();renderGame();return;}
   raidRoom=raidRoomView(r);if(!raidRoom?.boss)throw new Error('レイドボス情報を取得できませんでした');
   const party=raidPartyMembers();for(const member of party)if((member.hp??0)<=0)member.hp=member.maxHp??1;syncRaidParty(party);
-  rememberRaidSnapshot({...r,joined:true});raidStartedAt=Date.now();raidAutoStopped=false;raidAutoRound=0;raidLastActAt=0;raidBattleLog=['⚔️ レイドバトル開始！'];raidTurnExecuting=false;raidEndedReason=null;
+  rememberRaidSnapshot({...r,joined:true});raidStartedAt=Date.now();raidAutoStopped=false;raidAutoRound=0;raidLastActAt=0;raidBattleLog=['⚔️ レイドバトル開始！'];raidLastHitText='';raidTurnExecuting=false;raidEndedReason=null;
   raidPendingBossAction=chooseRaidBossAttack(raidRoom.bossId,(raidRoom.currentHp??1)/Math.max(1,raidRoom.maxHp??1),Math.random,raidPartyMembers());startRaidPartyTurn();renderRaidBattleScreen();raidPoller.start();saveNow();
  }catch(err){
   if(executionId!==raidExecutionId)return;
@@ -834,11 +836,17 @@ async function executeRaidPartyTurn(){
     log=`⚠️ ${actor.name}の攻撃はサーバーの安全判定により反映されませんでした。${action.type==='skill'?'使用したMPは返却します。':''}正規の攻撃でも続く場合は「ご意見BOX」でご報告ください。`;
    }
    else if(payload.damage>0&&r.damageApplied!=null)log=log.replace(Number(payload.damage).toLocaleString(),Number(r.damageApplied).toLocaleString());
+   const appliedDamage=Math.max(0,Math.floor(Number(r.damageApplied??0)||0));
+   if(action.type==='skill'){
+    const spent=Math.max(0,mpBefore-Number(actor.mp??0));
+    log+=' ／ MP '+mpBefore+'→'+actor.mp+'（消費'+spent+'）';
+   }
+   raidLastHitText=payload.damage>0?(r.damageRejected?'⚠️ サーバーがダメージを拒否しました':'✅ 実際に反映：'+appliedDamage.toLocaleString()+'ダメージ'):'';
    if(pendingBossStatusSkill&&(raidRoom.currentHp??0)>0){const status=tryInflictRaidBossStatus(raidRoom,actor,pendingBossStatusSkill,Math.random);if(status.applied)log+=` / ${status.label}${status.refreshed?'延長':'付与'}`;else if(status.attempted)log+=` / ${status.label}は効かなかった`;}
    executedActions.push(action);
    const visualKind=visualSkill?.kind==='magic'||visualSkill?.type==='magic'?'magic':'physical';
    raidRoom.visualAction={token:crypto.randomUUID(),actorId:actor.id,actorName:actor.name,label:visualLabel,kind:visualKind};
-   raidRoom.visualEvents=[{id:'raid-scene-boss',kind:visualKind,element:visualSkill?.element,amount:Number(r.damageApplied??payload.damage??0)},...party.map(c=>({id:c.id,amount:(visualBefore[c.id]??c.hp)-c.hp}))].filter(x=>x.amount!==0);
+   raidRoom.visualEvents=[{id:'raid-scene-boss',kind:visualKind,element:visualSkill?.element,amount:Number(r.damageApplied??0)},...party.map(c=>({id:c.id,amount:(visualBefore[c.id]??c.hp)-c.hp}))].filter(x=>x.amount!==0);
    updateRaidBattleModal();addRaidBattleLog(log);
    const presentation=new Promise(resolve=>setTimeout(resolve,battlePresentationDelay(raidRoom,(raidRoom.currentHp??0)<=0)));
    await tryClaimRaidReward(r,{silent:true});await presentation;

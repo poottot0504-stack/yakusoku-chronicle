@@ -123,7 +123,7 @@ export function raidBattleMarkup(room,hero={},pendingBossAction=null,party=[],ba
    </div>
    <div class="raid-result-status">
 
-     <div class="raid-inline-status" data-raid-reward-status>一定条件を満たすと特別報酬を自動受取します。</div>
+     <div class="raid-inline-status" data-raid-reward-status>${esc(turnInfo?.rewardText??'一定条件を満たすと特別報酬を自動受取します。')}</div><div class="raid-inline-status" data-raid-last-hit role="status">${esc(turnInfo?.lastHitText??'')}</div>
 
      <div class="raid-defeated" data-raid-defeated ${hp<=0&&!timedOut?'':'hidden'}><b>🏆 レイドボス討伐！</b></div>
      ${timedOut?`<div class="raid-timeout" data-raid-timeout><b>${esc(room.boss?.name??'レイドボス')}は逃げ出した…</b></div>`:''}
