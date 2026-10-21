@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MASHO_FLOORS,createMashoEnemy,canEnterMashoFloor,settleMashoVictory,normalizeMashoProgress} from '../src/core/masho-cave.js';
+import {MASHO_FLOORS,createMashoEnemy,canEnterMashoFloor,settleMashoVictory,normalizeMashoProgress,getMashoAbyssDropPool} from '../src/core/masho-cave.js';
 import {MASHO_ABYSS_WEAPONS} from '../src/data/masho-abyss-weapons.js';
 import {EQUIPMENT,createEquipmentInstance} from '../src/data/equipment.js';
 import {calculateDamage} from '../src/core/combat-math.js';
@@ -21,7 +21,7 @@ test('new raid enemies have progressively 5 to 25 percent higher floor20 stats a
 });
 test('0.2 percent boundary, only five weapons, no ore and once-only rewards',()=>{
  const ids=Object.keys(MASHO_ABYSS_WEAPONS);
- for(let i=0;i<5;i++){const s=state(),r=win(s,21+i,(()=>{let n=0;return()=>n++===0?.001999:(i+.1)/5;})());assert.equal(r.equipment.equipmentId,ids[i]);assert.equal(r.promiseOre,0);assert.equal(s.materials?.promiseOre,undefined);}
+ for(let i=0;i<5;i++){const s=state(),r=win(s,21+i,(()=>{let n=0;return()=>n++===0?.001999:(i+.1)/5;})());assert.ok(getMashoAbyssDropPool(21+i).some(x=>x.id===r.equipment.equipmentId));assert.equal(r.promiseOre,0);assert.equal(s.materials?.promiseOre,undefined);}
  for(const f of [21,22,23,24,25])assert.equal(win(state(),f,()=>.002).equipment,null);
  const s=state(),b={mashoFloor:25,actors:[{side:'enemy',mashoBoss:true,mashoFloor:25,hp:0},{side:'ally',hp:1}]};const a=settleMashoVictory(s,b,()=>0,0);assert.equal(settleMashoVictory(s,b,()=>0,0),a);assert.equal(s.equipmentInventory.length,1);
  assert.equal(win(state(),20,()=>1).promiseOre,2);

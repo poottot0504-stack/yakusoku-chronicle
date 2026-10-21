@@ -1,4 +1,4 @@
-import { MASHO_ABYSS_WEAPONS } from './masho-abyss-weapons.js';
+import { MASHO_ABYSS_WEAPONS,MASHO_ABYSS_SPELLBOOK } from './masho-abyss-weapons.js';
 import { FESTIVAL_EQUIPMENT } from './hunt-festival.js';
 import { MASHO_EQUIPMENT } from './masho-equipment.js';
 import { ECLIPSE_EQUIPMENT } from './eclipse-2026.js';
@@ -394,6 +394,7 @@ for(const def of Object.values(EQUIPMENT)){
 Object.assign(EQUIPMENT,FESTIVAL_EQUIPMENT);
 
 Object.assign(EQUIPMENT,MASHO_ABYSS_WEAPONS);
+EQUIPMENT[MASHO_ABYSS_SPELLBOOK.id]=MASHO_ABYSS_SPELLBOOK;
 
 // Limited 2026 eclipse gear follows normal equip, resistance, upgrade and save rules.
 for(const def of Object.values(ECLIPSE_EQUIPMENT))EQUIPMENT[def.id]=E(def.id,def.name,def.slot,def);
