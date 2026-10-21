@@ -103,7 +103,11 @@ function availableRecommendationInstances(state,character){
 function jobLevelAllows(character,def,inst=null){return (character.jobLevels?.[character.currentJob]??1)>=getRequiredJobLevel(def,inst);}
 function shieldCompatibleForWeapon(character,shieldDef,weaponDef,state,shieldInstance=null){
  if(!shieldDef||!canEquipForJob(character,shieldDef,state)||!jobLevelAllows(character,shieldDef,shieldInstance))return false;
- const job=JOBS[character.currentJob];if(!job||job.shield==='none'||weaponDef?.twoHanded)return false;
+ const job=JOBS[character.currentJob];if(!job)return false;
+ // These event / Masho offhand pieces are explicitly exempt from standard
+ // shield restrictions in canEquip(). Recommended gear must honor that rule.
+ if(shieldDef.mashoOffhand||shieldDef.festivalOffhand)return true;
+ if(job.shield==='none'||weaponDef?.twoHanded)return false;
  if(job.shield==='small'&&shieldDef.shieldSize!=='small')return false;
  if(job.shield==='staffOnly'&&weaponDef?.weaponType!=='staff')return false;
  return true;
@@ -119,10 +123,19 @@ export function equipRecommendedEquipment(state,characterId){
  const weapons=pool.filter(inst=>EQUIPMENT[inst.equipmentId]?.slot==='weapon'&&canEquipForJob(c,EQUIPMENT[inst.equipmentId],state)&&jobLevelAllows(c,EQUIPMENT[inst.equipmentId],inst));
  const shields=pool.filter(inst=>EQUIPMENT[inst.equipmentId]?.slot==='shield');
  let bestWeapon=null,bestShield=null,bestCombo=-Infinity;
- for(const weapon of weapons){
-   const wDef=EQUIPMENT[weapon.equipmentId];let shield=null,shieldScore=0;
-   if(!wDef.twoHanded){for(const candidate of shields){const sDef=EQUIPMENT[candidate.equipmentId];if(!shieldCompatibleForWeapon(c,sDef,wDef,state,candidate))continue;const score=recommendationScore(c,candidate);if(!shield||score>shieldScore){shield=candidate;shieldScore=score;}}}
-   const combo=recommendationScore(c,weapon)+shieldScore;if(combo>bestCombo){bestCombo=combo;bestWeapon=weapon;bestShield=shield;}
+ // Even when the inventory has no equippable weapon, a shield may be usable.
+ // Compare weapon+shield combinations with the same rules as actual equipping.
+ for(const weapon of (weapons.length?weapons:[null])){
+   const wDef=weapon?EQUIPMENT[weapon.equipmentId]:equippedWeaponDef(c,state);
+   let shield=null,shieldScore=0;
+   for(const candidate of shields){
+     const sDef=EQUIPMENT[candidate.equipmentId];
+     if(!shieldCompatibleForWeapon(c,sDef,wDef,state,candidate))continue;
+     const score=recommendationScore(c,candidate);
+     if(!shield||score>shieldScore){shield=candidate;shieldScore=score;}
+   }
+   const combo=(weapon?recommendationScore(c,weapon):0)+shieldScore;
+   if(combo>bestCombo){bestCombo=combo;bestWeapon=weapon;bestShield=shield;}
  }
  const before={...(c.equipment??{})};c.equipment??={};
  if(bestWeapon) equipItem(state,c.id,bestWeapon.instanceId,'weapon');

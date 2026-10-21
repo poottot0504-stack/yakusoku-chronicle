@@ -19,6 +19,31 @@ import { normalizeElement, regionElement, elementProfile } from './elements.js';
 export const MASHO_DROP_RATE=.05;
 export const MASHO_ABYSS_DROP_RATE=.002;
 export const MASHO_MAX_FLOOR=25;
+// 15〜18階層は欲しい装備を狙い撃ちできる。19〜20階層は
+// 従来どおり全種が出るため、既存周回の選択肢を残す。
+export const MASHO_FLOOR_DROP_FOCUS=Object.freeze({
+ 15:{group:'magic',parts:['weapon','shield','ring','charm'],label:'魔法系の武器・盾・指輪・チャーム'},
+ 16:{group:'physical',parts:['head','body','arms','waist','legs'],label:'物理系の防具（盾以外）'},
+ 17:{group:'physical',parts:['weapon','shield','ring','charm'],label:'物理系の武器・盾・指輪・チャーム'},
+ 18:{group:'magic',parts:['head','body','arms','waist','legs'],label:'魔法系の防具（盾以外）'}
+});
+export function getMashoEquipmentDropPool(floor){
+ const f=MASHO_FLOORS[floor-1];
+ if(!f||f.tier===4)return [];
+ const normal=Object.values(MASHO_EQUIPMENT).filter(d=>d.mashoTier===f.tier);
+ const focus=MASHO_FLOOR_DROP_FOCUS[floor];
+ if(!focus)return normal;
+ return normal.filter(def=>{
+  const jobId=def.allowedJobs?.[0],job=JOBS[jobId];
+  if(!job)return false;
+  const isMagic=job.stats.magic>job.stats.attack||jobId==='redMage';
+  const isPhysical=job.stats.attack>=job.stats.magic;
+  return focus.parts.some(part=>def.id.endsWith('-'+part))&&(focus.group==='magic'?isMagic:isPhysical);
+ });
+}
+export function getMashoFloorDropLabel(floor){
+ return MASHO_FLOOR_DROP_FOCUS[floor]?.label??(floor>=19&&floor<=20?'全職業・全部位（従来どおり）':null);
+}
 const story=STORY_CHAPTERS.map(ch=>({id:`storyBoss-${ch.regionId}`,name:ch.bossName,kind:'story',element:normalizeElement(ch.bossElement)==='none'?regionElement(ch.regionId):normalizeElement(ch.bossElement)}));
 const oaths=OATHBREAKER_DATA.map(o=>({...o,kind:'oath'}));
 const raids=RAID_BOSSES.map(b=>({id:b.id,name:b.name,kind:'raid',element:b.element}));
@@ -64,7 +89,7 @@ export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
  state.gold=(state.gold??0)+applyBoostedBattleGold(state,reward.gold,now,{includeDaily:false});
  let promiseOre=0;if(floor>=18&&floor<=20){promiseOre=floor===20?2:1;state.materials??={};state.materials.promiseOre=Math.min(999,(state.materials.promiseOre??0)+promiseOre);}
  const progress=normalizeMashoProgress(state);progress.highestCleared=Math.max(progress.highestCleared,floor);progress.clearCounts[floor]=(progress.clearCounts[floor]??0)+1;if(floor>20)progress.abyssClearCount++;
- let equipment=null;const equipmentDropRate=Math.min(1,(floor>20?MASHO_ABYSS_DROP_RATE:MASHO_DROP_RATE)*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));if(rng()<equipmentDropRate){const def=pick(floor>20?Object.values(MASHO_ABYSS_WEAPONS):Object.values(MASHO_EQUIPMENT).filter(d=>d.mashoTier===f.tier),rng);equipment=createEquipmentInstance(def.id);state.equipmentInventory??=[];state.equipmentInventory.push(equipment);recordEquipmentObtained(state,def.id,{source:'魔障の洞窟'});}
+ let equipment=null;const equipmentDropRate=Math.min(1,(floor>20?MASHO_ABYSS_DROP_RATE:MASHO_DROP_RATE)*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));if(rng()<equipmentDropRate){const def=pick(floor>20?Object.values(MASHO_ABYSS_WEAPONS):getMashoEquipmentDropPool(floor),rng);equipment=createEquipmentInstance(def.id);state.equipmentInventory??=[];state.equipmentInventory.push(equipment);recordEquipmentObtained(state,def.id,{source:'魔障の洞窟'});}
  const enhanceCrystalId=floor<=10?'enhanceCrystal':floor<=20?'advancedEnhanceCrystal':'ultimateEnhanceCrystal';
  const enhanceCrystalBaseRate=floor<=10?.25:floor<=20?.20:.12;
  const enhanceCrystalChance=Math.min(1,enhanceCrystalBaseRate*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));
