@@ -45,7 +45,10 @@ test('ordinary shields still obey class, size and staff-only rules',()=>{
   {instanceId:'shield',equipmentId:'golem-shield',enhanceLevel:0}
  ]);
  equipRecommendedEquipment(mage,'hero');
- assert.equal(mage.characters[0].equipment.shield,null);
+ assert.equal(mage.characters[0].equipment.shield,'shield','ordinary shields are valid when holding a staff');
+ const withoutStaff=roster('mage',[{instanceId:'shield2',equipmentId:'golem-shield',enhanceLevel:0}]);
+ equipRecommendedEquipment(withoutStaff,'hero');
+ assert.equal(withoutStaff.characters[0].equipment.shield,null,'staff-only jobs cannot equip an ordinary shield without a staff');
 });
 test('the Cave shows repeat controls before results before END CONTENTS on mobile',()=>{
  const s={cycle:2,story:{firstEndingSeen:true},ui:{mashoResultVisible:true},mashoCave:{highestCleared:25,lastRunSummary:{
@@ -102,6 +105,6 @@ test('cache bust and game controls continue to work',()=>{
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(index,/masho-drop-shield-summary-20261021/);
  const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
- assert.match(main,/data-masho-run10/);
+ assert.match(main,/dataset\.mashoRun10/);
  assert.match(main,/data-masho-dismiss-result/);
 });
