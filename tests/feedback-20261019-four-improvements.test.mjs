@@ -157,5 +157,5 @@ test('game wiring enforces real sequential battle, one-click initiation, defeat 
  assert.match(main,/if\(el\.hasAttribute\('data-masho-run-stop'\)\)/);
  assert.match(battle,/data-masho-run-stop/);
  assert.match(main,/sellEquipmentInstance\(state,el\.dataset\.equipSellConfirm\)/);
- assert.match(main,/unequipAllEquipment\(state,el\.dataset\.unequipAllConfirm\)/);
+ assert.match(main,/unequipAllEquipment\(state,selectedId\(\)\)/);
 });
