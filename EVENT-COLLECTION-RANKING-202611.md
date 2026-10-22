@@ -27,6 +27,20 @@ Book items refer to the existing **キャラクター経験値2倍の書** (`cha
 
 A player with zero validated collection items is not a participant and receives nothing. Eligibility, final ranking, tie-break and prizes must be determined on the server after the event ends. Do not grant a reward for a suspicious score until reviewed, and do not identify anyone publicly as a cheater from rank alone. Rewards are issued at most once per eligible account, not once per save slot. No live reward payouts are implemented in this draft.
 
+## Public ranking visibility (owner confirmed)
+
+- Every player, including anonymous/guest sessions, can **view the same leaderboard**. Nobody needs to be an administrator to browse it.
+- Open from both the title screen and **その他 → 討伐の証ランキング**, during and after the event.
+- Show ranking position, public character display name, and validated event proof count; show current viewer's own rank/count when known.
+- Display all participants through server pagination of **50 players per page**, not only the top 10.
+- Keep historical final rankings viewable after the event is closed.
+- Never expose email, account UUID, IP address, security telemetry, suspicion indicators or moderation decisions.
+- User-controlled display names must be HTML escaped and bounded.
+- Public RPC contract (still to be built): `yakusoku_collection_public_ranking(p_event_id text, p_page integer, p_page_size integer)`.
+  Expected JSON: `{ "rows": [{ "rank": 1, "displayName": "旅人", "count": 100 }], "totalParticipants": 1, "myRank": 1, "myCount": 100 }`.
+- Server must limit page size to max 50, validate event ID and page number, return **only** public safe fields, apply read-only grants for anonymous and authenticated players, and enforce rate limits.
+- The user-facing view and API client are staged in PR #23. The RPC and server-authoritative collection ledger are NOT deployed or implemented; **the live leaderboard is not yet functional**.
+
 ## Work-in-progress
 - Provisional event/item names: 討伐の証争奪戦 / 討伐の証.
 - Core eligibility helper and boundary tests are staged on this development branch.
@@ -36,7 +50,7 @@ A player with zero validated collection items is not a participant and receives 
 1. Server issues unique, authenticated battle tickets at normal battle start during the event.
 2. Server independently validates the account, canonical monster IDs, battle timing, victory, replay protection, and duplicate battle IDs; at most one token per defeated eligible monster. Server receipt is the single source of truth.
 3. Server keeps an append-only collection ledger with account-level totals (multiple save slots do not multiply counts). Do not mix the event item with ordinary material stacks or the 9,999 material limit.
-4. Frontend receives server-authoritative personal total and top ranking; show pending/offline events separately, never as final score.
+4. Implement the server-verified public ranking RPC and personal rank, and keep pending/offline events separate from confirmed scores.
 5. Enforce transactional atomicity, idempotency, rate limits, RLS/service privileges, retention rules, review logs, and minimal display data. No public cheating accusations.
 6. Run unit, integration, replay, timezone and release tests before owner-approved production deployment.
 7. Finalize tie-break logic, exact event title, announcement date, and reward-claim UI before launch. These are not confirmed yet.
