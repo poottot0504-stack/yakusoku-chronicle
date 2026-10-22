@@ -13,7 +13,7 @@ This is a **development-only specification**. It does NOT launch an event or pub
 ## Ranking rewards (configured, not yet distributed)
 
 The owner explicitly specified the first-place prize. Lower tiers are the default proposed distribution.
-Book items refer to the existing **キャラクター経験値2倍の書** (\`characterExpScroll\`) and **ジョブ経験値2倍の書** (\`jobExpScroll\`).
+Book items refer to the existing **キャラクター経験値2倍の書** (`characterExpScroll`) and **ジョブ経験値2倍の書** (`jobExpScroll`).
 
 | Rank | Gold | Orichalcum | Orihal | Character EXP books | Job EXP books |
 |---|---:|---:|---:|---:|---:|
