@@ -107,6 +107,9 @@ import { canReceiveHuntCountApology,grantHuntCountApology,isHuntCountApologyDeli
 import { huntCountApologyLoadingMarkup,huntCountApologyDialogueMarkup } from './ui/hunt-count-apology.js';
 import { createBrowserMarketApi } from './market/browser-market-api.js';
 import { createFeedbackApi } from './online/feedback-api.js';
+import { COLLECTION_EVENT_202611 } from './data/collection-event-202611.js';
+import { collectionRankingMarkup,collectionRankingTitleButton } from './ui/collection-ranking.js';
+import { createCollectionRankingApi } from './online/collection-ranking-api.js';
 import { feedbackFormMarkup, feedbackHistoryMarkup, feedbackSentMarkup } from './ui/feedback.js';
 import { titleUpdatesMarkup } from './ui/title-updates.js';
 import { purchaseMarketListing,syncPendingMarketTransactions,formatMarketSaleNotifications,persistMarketReturn } from './market/market-sync.js';
@@ -142,6 +145,9 @@ const marketOperationGuard=createMarketOperationGuard({
 let equipmentSearch=''; // Browser-only query. Never update inventory or save data.
 const getMarketApi=()=>marketApiPromise??=createBrowserMarketApi({storage:session.storage});
 const feedbackApi=createFeedbackApi({storage:session.storage});
+const collectionRankingApi=createCollectionRankingApi({storage:session.storage});
+let collectionRankingRequest=0;
+let collectionRankingView={rows:[],totalParticipants:0,page:1,myRank:null,myCount:0,loading:false,error:false};
 let feedbackBusy=false;
 let raidRoom=null,raidStartedAt=0,raidPendingBossAction=null,raidRewardClaimBusy=false,raidJoinBusy=false,raidBattleLog=[],raidLastHitText='',raidTurnState=null,raidTurnExecuting=false,raidEndedReason=null,raidExecutionId=0,raidClaimExecutionId=0,eventBoundaryTimer=null;
 const raidPoller=createRaidPoller({api:raidApi,getPayload:()=>({playerId:getRaidPlayerId(session.storage)}),intervalMs:1000,onSnapshot:r=>{if(!raidRoom||(r.sessionId&&r.sessionId!==raidRoom.sessionId)||(r.roomId&&r.roomId!==raidRoom.roomId))return;if(isRaidTimedOutSnapshot(r)){raidExecutionId++;raidPoller.stop();raidEndedReason='timeout';raidTurnExecuting=false;raidTurnState=null;raidPendingBossAction=null;addRaidBattleLog(`${raidRoom.boss?.name??'レイドボス'}は逃げ出した…`);renderRaidBattleScreen();return;}const motion={visualAction:raidRoom.visualAction,visualEvents:raidRoom.visualEvents};raidRoom={...raidRoomView(r),...motion};rememberRaidSnapshot(r);if(raidTurnExecuting)return;updateRaidBattleModal(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers());void tryClaimRaidReward(r,{silent:true});if(r.currentHp===0){raidPoller.stop();raidTurnState=null;raidPendingBossAction=null;saveNow();renderRaidBattleScreen();}},onError:()=>{}});
@@ -1069,7 +1075,30 @@ async function submitFeedback(){
  }catch(error){if(errorEl)errorEl.textContent=error?.message??'送信に失敗しました。';}
  finally{feedbackBusy=false;if(sendButton){sendButton.disabled=false;sendButton.textContent='送信する';}}
 }
-function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
+function openCollectionRanking(){
+ collectionRankingRequest++;
+ collectionRankingView={rows:[],totalParticipants:0,page:1,myRank:null,myCount:0,loading:false,error:false};
+ openModal(collectionRankingMarkup(collectionRankingView));
+ if(Date.now()>=COLLECTION_EVENT_202611.startsAt)void refreshCollectionRanking(1);
+}
+async function refreshCollectionRanking(page=1){
+ if(!Number.isSafeInteger(page)||page<1||page>100000||!modal.querySelector('.collection-ranking'))return;
+ const request=++collectionRankingRequest;
+ collectionRankingView={...collectionRankingView,page,rows:[],loading:true,error:false};
+ const render=()=>{const panel=modal.querySelector('.collection-ranking');if(panel)panel.outerHTML=collectionRankingMarkup(collectionRankingView);};
+ render();
+ try{
+  const payload=await collectionRankingApi.page(page);
+  if(collectionRankingRequest!==request||!modal.querySelector('.collection-ranking'))return;
+  collectionRankingView={...collectionRankingView,...payload,loading:false,error:false};
+ }catch{
+  if(collectionRankingRequest!==request||!modal.querySelector('.collection-ranking'))return;
+  collectionRankingView={...collectionRankingView,rows:[],loading:false,error:true};
+ }finally{
+  if(collectionRankingRequest===request)render();
+ }
+}
+function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=COLLECTION_EVENT_202611.startsAt?'<button data-collection-ranking-open>🏆<b>討伐の証ランキング</b></button>':''}${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
 function toggleParty(id){const ids=[...(state.activePartyIds??[])],has=ids.includes(id);if(has){if(ids.length===1)return toast('戦闘メンバーは1人以上必要です');setActiveParty(state,ids.filter(x=>x!==id));}else{if(ids.length>=4)return toast('戦闘メンバーは4人までです');setActiveParty(state,[...ids,id]);}saveNow();renderGame();}
 
 document.addEventListener('click',e=>{
@@ -1077,6 +1106,9 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-hunt-title-details')){titleHuntDetailsOpen=true;return renderTitleHuntDetails();}
  if(el.hasAttribute('data-hunt-title-back')){titleHuntDetailsOpen=false;renderTitle();title.scrollTop=0;return;}
  if(el.hasAttribute('data-hunt-archive')){openModal(festivalArchiveMarkup());return void refreshFestival(true);}
+ if(el.hasAttribute('data-collection-ranking-open'))return openCollectionRanking();
+ if(el.hasAttribute('data-collection-ranking-refresh'))return void refreshCollectionRanking(collectionRankingView.page);
+ if(el.hasAttribute('data-collection-ranking-page'))return void refreshCollectionRanking(Number(el.dataset.collectionRankingPage));
  if(el.hasAttribute('data-hunt-details'))return openModal(festivalDetailsMarkup());
  if(el.hasAttribute('data-hunt-raid-guide')){const card=game.querySelector('.raid-event-panel');if(card){card.scrollIntoView({behavior:'smooth',block:'start'});return;}return openModal(raidDetailsMarkup());}
  if(el.hasAttribute('data-hunt-refresh'))return void refreshFestival(true);
@@ -1258,9 +1290,9 @@ function renderTitleHuntDetails(){
 }
 const titleHeaderMarkup="<header class=\"forest-title-heading\"><div class=\"title-gem\" aria-hidden=\"true\">⚔</div><p class=\"eyebrow\">CHRONICLE OF PROMISE</p><h1>約束の<br><span>クロニクル</span></h1><div class=\"title-leaf-divider\" aria-hidden=\"true\">❧ ── ✧ ── ☙</div></header>";
 function renderTitle(){if(titleHuntDetailsOpen)return;scheduleEventRefresh();if(!accountState.ready){
- title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}<p class="title-copy" role="status">アカウントとセーブデータを確認しています…</p></div>`;
+ title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}${collectionRankingTitleButton()}<p class="title-copy" role="status">アカウントとセーブデータを確認しています…</p></div>`;
  return;
-}const slots=listSaveSlots(session);title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}<p class="title-copy">セーブデータを選んでください。</p><div class="save-slot-list">${slots.map(x=>`<section class="save-slot ${x.empty?'is-empty':'has-save'}"><strong><span aria-hidden="true">❧</span> SLOT ${x.slot} <span aria-hidden="true">☙</span></strong><small>${x.empty?'空きスロット':`${esc(x.heroName)} / Lv${x.heroLevel} / ${x.cycle}周目<br><span class="save-playtime">⏱ プレイ時間 ${formatPlayTime(x.playTimeSeconds)}</span>`}</small><div>${x.empty?`<button class="action-main" data-slot-new="${x.slot}">このスロットではじめる</button>`:`<button class="action-main" data-slot-load="${x.slot}">つづきから</button><button data-slot-new="${x.slot}">最初から</button><button data-slot-delete="${x.slot}">削除</button>`}</div></section>`).join('')}</div><p class="save-note">セーブデータは5つまで作成できます。</p><p class="save-migration-note">旧セーブデータはSLOT 1へ自動移行されます</p>${accountTitleMarkup()}</div>`;}
+}const slots=listSaveSlots(session);title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}${collectionRankingTitleButton()}<p class="title-copy">セーブデータを選んでください。</p><div class="save-slot-list">${slots.map(x=>`<section class="save-slot ${x.empty?'is-empty':'has-save'}"><strong><span aria-hidden="true">❧</span> SLOT ${x.slot} <span aria-hidden="true">☙</span></strong><small>${x.empty?'空きスロット':`${esc(x.heroName)} / Lv${x.heroLevel} / ${x.cycle}周目<br><span class="save-playtime">⏱ プレイ時間 ${formatPlayTime(x.playTimeSeconds)}</span>`}</small><div>${x.empty?`<button class="action-main" data-slot-new="${x.slot}">このスロットではじめる</button>`:`<button class="action-main" data-slot-load="${x.slot}">つづきから</button><button data-slot-new="${x.slot}">最初から</button><button data-slot-delete="${x.slot}">削除</button>`}</div></section>`).join('')}</div><p class="save-note">セーブデータは5つまで作成できます。</p><p class="save-migration-note">旧セーブデータはSLOT 1へ自動移行されます</p>${accountTitleMarkup()}</div>`;}
 title.addEventListener('toggle',e=>{if(e.target?.matches?.('[data-title-update-details]')){titleUpdateDetailsOpen=e.target.open;const summary=e.target.querySelector('summary');if(summary)summary.firstChild.textContent=titleUpdateDetailsOpen?'詳しい更新内容を閉じる':'詳しい更新内容を見る';}},true);
 title.addEventListener('click',e=>{const el=e.target.closest('button');if(!el)return;if(el.hasAttribute('data-title-update-page')){const next=Number(el.dataset.titleUpdatePage);if(next===1||next===2){titleUpdatePage=next;const panel=title.querySelector('.title-update-panel');if(panel)panel.outerHTML=titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage);}return;}if(el.dataset.slotLoad)return continueGame(el.dataset.slotLoad);if(el.dataset.slotNew){if(!listSaveSlots(session)[Number(el.dataset.slotNew)-1]?.empty&&!confirm('このスロットを最初から始めますか？'))return;return startFresh(el.dataset.slotNew);}if(el.dataset.slotDelete){if(confirm(`SLOT ${el.dataset.slotDelete}を削除しますか？`)){deleteSlot(session,el.dataset.slotDelete);if(session.mode==='user'&&accountState.linked)void accountApi.deleteSlot(Number(el.dataset.slotDelete)).catch(()=>{});renderTitle();}}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(playStartedAt!==null){saveNow();playStartedAt=null;boostClockLastAt=null;}}else if(!title.classList.contains('active')&&playStartedAt===null){playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;}if(!document.hidden){if(battle&&!battlePlayback)scheduleNormalAuto();if(raidRoom&&!raidTurnExecuting)scheduleRaidAuto();void refreshFestival(true);if(raidRoom)void raidPoller.refresh();else if(raidLobbyPoller.active)void raidLobbyPoller.refresh();if(!battle&&!raidRoom&&!raidJoinBusy){if(title.classList.contains('active'))renderTitle();else if(view==='adventure')renderGameKeepVertical();}if(!title.classList.contains('active')&&state.market?.everUsed)void syncMarketSettlement({notify:true});scheduleEventRefresh();}});
