@@ -17,6 +17,24 @@ PUBLIC_DIRS = ('assets', 'src', 'styles')
 MAX_FILE_BYTES = 25 * 1024 * 1024
 MAX_FILE_COUNT = 20_000
 
+# Stop privileged credentials from being included in published browser assets.
+# Public Supabase publishable keys are expected and are deliberately not blocked.
+PRIVILEGED_MARKERS = (
+    b'sb_secret_',
+    b'SUPABASE_SERVICE_ROLE_KEY',
+    b'-----BEGIN PRIVATE KEY-----',
+    b'-----BEGIN RSA PRIVATE KEY-----',
+)
+PUBLIC_TEXT_SUFFIXES = {'.js', '.mjs', '.ts', '.html', '.css', '.json', '.svg', '.webmanifest', '.txt'}
+
+def reject_privileged_secrets(files):
+    for file in files:
+        if file.suffix.lower() not in PUBLIC_TEXT_SUFFIXES:
+            continue
+        contents = file.read_bytes()
+        if any(marker in contents for marker in PRIVILEGED_MARKERS):
+            raise ValueError('Privileged credential marker in public asset: ' + str(file))
+
 class ReferenceFinder(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -64,6 +82,7 @@ def build(root=ROOT, output=OUTPUT):
     for file in files:
         if file.stat().st_size > MAX_FILE_BYTES:
             raise ValueError('Asset exceeds Cloudflare 25 MiB per-file limit: '+str(file))
+    reject_privileged_secrets(files)
     finder = ReferenceFinder()
     finder.feed((output/'index.html').read_text(encoding='utf-8'))
     for ref in finder.paths:
