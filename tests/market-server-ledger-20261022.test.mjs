@@ -31,7 +31,8 @@ test('server ledger records debit, pending proceeds, delivery and claimed procee
 
 test('server-tracked equipment history avoids false owner bans for legacy item-id collisions',()=>{
   assert.match(sql,/instance_id text NOT NULL/);
-  assert.doesNotMatch(sql,/UNIQUE\s*\(instance_id\)/i);
+  const executable=sql.split('\n').filter(line=>!line.trimStart().startsWith('--')).join('\n');
+  assert.doesNotMatch(executable,/UNIQUE\s*\(instance_id\)/i);
   assert.match(sql,/SHADOW MODE ONLY/);
   assert.match(sql,/EXCEPTION WHEN OTHERS THEN[\s\S]*RETURN NEW/);
   assert.doesNotMatch(sql,/UPDATE\s+public\.yakusoku_account_saves|DELETE\s+FROM\s+public\.market_sales|TRUNCATE\s+public\./i);
