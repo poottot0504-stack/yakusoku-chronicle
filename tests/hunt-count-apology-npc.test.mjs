@@ -44,19 +44,19 @@ test('invalid receipt and save slot cannot grant rewards',()=>{
 });
 
 test('at capacity the compensation remains pending and no materials are lost',()=>{
- const s=make();s.materials.enhanceCrystal=995;
+ const s=make();s.materials.enhanceCrystal=9995;
  assert.equal(canReceiveHuntCountApology(s),false);
  assert.throws(()=>grantHuntCountApology(s,receipt,1),/所持上限/);
- assert.equal(s.materials.enhanceCrystal,995);
- s.materials.enhanceCrystal=992;
+ assert.equal(s.materials.enhanceCrystal,9995);
+ s.materials.enhanceCrystal=9992;
  s.inventory.push({id:'enhanceCrystal',qty:3});
- assert.equal(canReceiveHuntCountApology(s),false,'legacy crystal inventory must count toward 999 cap');
+ assert.equal(canReceiveHuntCountApology(s),false,'legacy crystal inventory must count toward 99,999 cap');
  s.inventory=[];
- s.materials.enhanceCrystal=995;
+ s.materials.enhanceCrystal=9995;
  assert.match(huntCountApologyDialogueMarkup(s,ready,1),/5個分の空き/);
- s.materials.enhanceCrystal=994;
+ s.materials.enhanceCrystal=9994;
  assert.equal(grantHuntCountApology(s,receipt,1),true);
- assert.equal(s.materials.enhanceCrystal,999);
+ assert.equal(s.materials.enhanceCrystal,9999);
 });
 
 test('NPC conversation apologizes for event count bug and exposes the claim button',()=>{

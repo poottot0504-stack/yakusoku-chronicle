@@ -45,7 +45,7 @@ test('all five stages are readable on mobile and reward description',()=>{
 
 test('progress switches from 10,000 to 50,000 at the exact boundary',()=>{
  const before=show(9999);
- assert.match(before,/9,9999 <small>\/ 10,000体/);
+ assert.match(before,/9,999 <small>\/ 10,000体/);
  const after=show(10000);
  assert.match(after,/10,000 <small>\/ 50,000体/);
  assert.match(after,/第3段階達成！/);
@@ -55,7 +55,7 @@ test('progress switches from 10,000 to 50,000 at the exact boundary',()=>{
 
 test('progress switches from 50,000 to 100,000 at the exact boundary',()=>{
  const before=show(49999);
- assert.match(before,/49,9999 <small>\/ 50,000体/);
+ assert.match(before,/49,999 <small>\/ 50,000体/);
  const after=show(50000);
  assert.match(after,/50,000 <small>\/ 100,000体/);
  assert.match(after,/第4段階達成！/);
