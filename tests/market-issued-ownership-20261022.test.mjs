@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {applyMarketPurchase,removeMarketItem,serializeMarketItem} from '../src/market/market-model.js';
+import {applyMarketPurchase,serializeMarketItem,isMarketSellable} from '../src/market/market-model.js';
+import {EQUIPMENT} from '../src/data/equipment.js';
 
 const sql=readFileSync(new URL('../maintenance/market-issued-ownership-20261022.sql',import.meta.url),'utf8');
 
@@ -46,10 +47,12 @@ test('issued ledger is private with RLS and no write or read permissions for cli
 });
 
 test('a server-issued receipt maintains the issued instance ID in the local save',()=>{
+ const candidate=Object.keys(EQUIPMENT).find(equipmentId=>isMarketSellable({characters:[],equipmentInventory:[{instanceId:'test-asset',equipmentId}],inventory:[],materials:{}},{kind:'equipment',instanceId:'test-asset',quantity:1}).ok);
+ assert.ok(candidate,'At least one saleable equipment definition exists');
  const receipt={id:'sale-1',totalPrice:100,quantity:1,
-  itemPayload:{kind:'equipment',equipmentId:'test-sword',instance:{
+  itemPayload:{kind:'equipment',equipmentId:candidate,instance:{
    instanceId:'verified-market-v1-11111111-1111-4111-8111-111111111111',
-   equipmentId:'test-sword',enhanceLevel:1,trueEvolved:false
+   equipmentId:candidate,enhanceLevel:1,trueEvolved:false
   }}};
  const state={gold:200,inventory:[],materials:{},equipmentInventory:[],market:{}};
  assert.equal(applyMarketPurchase(state,receipt),true);
@@ -59,4 +62,7 @@ test('a server-issued receipt maintains the issued instance ID in the local save
  assert.equal(applyMarketPurchase(state,receipt),false);
  assert.equal(state.gold,100);
  assert.equal(state.equipmentInventory.length,1);
+ const outgoing=serializeMarketItem(state,{kind:'equipment',instanceId:receipt.itemPayload.instance.instanceId,quantity:1});
+ assert.equal(outgoing.instance.instanceId,receipt.itemPayload.instance.instanceId);
+ assert.equal(outgoing.equipmentId,candidate);
 });
