@@ -57,7 +57,7 @@ begin
     'rank',r.rank,'displayName',r.player_name,'count',r.proof_count
    ) order by r.rank) filter (where r.rank between
      (p_page-1)*p_page_size+1 and p_page*p_page_size),'[]'::jsonb),
-   max(r.rank)::integer filter(where r.auth_user_id=uid),
+   cast(max(r.rank) filter(where r.auth_user_id=uid) as integer),
    max(r.proof_count) filter(where r.auth_user_id=uid)
   into v_total,v_rows,v_my_rank,v_my_count
   from ranked r;
