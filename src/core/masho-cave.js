@@ -1,4 +1,5 @@
 import { MASHO_ABYSS_WEAPONS,MASHO_ABYSS_SPELLBOOK } from '../data/masho-abyss-weapons.js';
+import { addMaterial } from './material-cap.js';
 import { STORY_CHAPTERS } from '../data/story.js';
 import { BOSSES } from '../data/bosses.js';
 import { OATHBREAKER_DATA } from '../data/oathbreakers.js';
@@ -99,7 +100,7 @@ export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
  const levelUps=[];
  for(const c of state.characters??[]){if(!(state.activePartyIds??[]).includes(c.id)||c.hp<=0)continue;const lv=c.level,jlv=c.jobLevels?.[c.currentJob]??1;awardCharacterExp(state,c.id,reward.exp);awardJobExp(c,reward.jobExp,state);if(c.level>lv)levelUps.push(`${c.name}のLvが${c.level}に上がった！`);if(c.jobLevels[c.currentJob]>jlv)levelUps.push(`${c.name}の${JOBS[c.currentJob]?.name??c.currentJob}Lvが${c.jobLevels[c.currentJob]}に上がった！`);}
  state.gold=(state.gold??0)+applyBoostedBattleGold(state,reward.gold,now,{includeDaily:false});
- let promiseOre=0;if(floor>=18&&floor<=20){promiseOre=floor===20?2:1;state.materials??={};state.materials.promiseOre=Math.min(999,(state.materials.promiseOre??0)+promiseOre);}
+ let promiseOre=0;if(floor>=18&&floor<=20){promiseOre=floor===20?2:1;state.materials??={};addMaterial(state,'promiseOre',promiseOre);}
  const progress=normalizeMashoProgress(state);progress.highestCleared=Math.max(progress.highestCleared,floor);progress.clearCounts[floor]=(progress.clearCounts[floor]??0)+1;if(floor>20)progress.abyssClearCount++;
  let equipment=null;const equipmentDropRate=Math.min(1,(floor>20?MASHO_ABYSS_DROP_RATE:MASHO_DROP_RATE)*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));if(rng()<equipmentDropRate){const def=pick(floor>20?getMashoAbyssDropPool(floor):getMashoEquipmentDropPool(floor),rng);equipment=createEquipmentInstance(def.id);state.equipmentInventory??=[];state.equipmentInventory.push(equipment);recordEquipmentObtained(state,def.id,{source:'魔障の洞窟'});}
  const enhanceCrystalId=floor<=10?'enhanceCrystal':floor<=20?'advancedEnhanceCrystal':'ultimateEnhanceCrystal';
@@ -109,7 +110,7 @@ export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
  // The five unique abyss weapons keep their deliberately rare 0.2% chance.
  const abyssMaterialGuaranteed=floor>20&&progress.abyssClearCount%5===0;
  const enhanceMaterial=abyssMaterialGuaranteed||rng()<enhanceCrystalChance?{id:enhanceCrystalId,name:floor<=10?'強化結晶':floor<=20?'上級強化結晶':'究極強化結晶',qty:1}:null;
- if(enhanceMaterial){state.materials??={};state.materials[enhanceCrystalId]=Math.min(999,(Number(state.materials[enhanceCrystalId])||0)+1);}
+ if(enhanceMaterial){state.materials??={};addMaterial(state,enhanceCrystalId,1);}
  const receipt={floor,...reward,equipment,levelUps,promiseOre,enhanceMaterial};progress.lastReward=receipt;battle.mashoRewardSettled=receipt;
  state.adventure??={};state.adventure.message=`魔障の洞窟 第${floor}階層クリア！`;return receipt;
 }

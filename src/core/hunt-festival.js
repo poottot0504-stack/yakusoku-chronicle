@@ -1,4 +1,5 @@
 import { HUNT_FESTIVAL,FESTIVAL_WEAPONS,HUNT_FESTIVAL_BONUSES } from '../data/hunt-festival.js';
+import { MATERIAL_STACK_LIMIT } from './material-cap.js';
 export function festivalPhase(now=Date.now()){return now<HUNT_FESTIVAL.start?'upcoming':now<HUNT_FESTIVAL.end?'active':'ended';}
 export function nextFestivalBoundary(now=Date.now()){return [HUNT_FESTIVAL.announce,HUNT_FESTIVAL.start,HUNT_FESTIVAL.end].find(x=>x>now)??Infinity;}
 export function grantFestivalReward(state,receipt,slot){
@@ -31,12 +32,12 @@ export function grantFestivalBonus(state,receipt,slot){
  if(!Number.isSafeInteger(gold)||gold<0||!Number.isSafeInteger(goldReward)||goldReward<0||gold>Number.MAX_SAFE_INTEGER-goldReward)
   throw new Error('所持金の上限を超えるため受け取れません');
  // Orichalcum and Orihal are forging materials, kept in state.materials.
- // Count legacy inventory stacks too, to respect the global 999-material cap.
+ // Count legacy inventory stacks too, to respect the shared 9,999-material cap.
  for(const material of reward.materials){
   const stored=Number(state.materials?.[material.id]??0);
   const legacy=(state.inventory??[]).filter(x=>x.id===material.id).reduce((n,x)=>n+Number(x.qty??0),0);
-  if(!Number.isSafeInteger(stored)||stored<0||!Number.isSafeInteger(legacy)||legacy<0||stored+legacy+material.qty>999)
-   throw new Error('素材の所持上限（999個）を超えるため受け取れません');
+  if(!Number.isSafeInteger(stored)||stored<0||!Number.isSafeInteger(legacy)||legacy<0||stored+legacy+material.qty>MATERIAL_STACK_LIMIT)
+   throw new Error('素材の所持上限（9,999個）を超えるため受け取れません');
  }
  state.materials??={};
  for(const material of reward.materials){

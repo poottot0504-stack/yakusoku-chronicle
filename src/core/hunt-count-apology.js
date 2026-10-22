@@ -1,6 +1,7 @@
+import { MATERIAL_STACK_LIMIT } from './material-cap.js';
 export const HUNT_COUNT_APOLOGY_REWARD_ID='enhanceCrystal';
 export const HUNT_COUNT_APOLOGY_QUANTITY=5;
-export const HUNT_COUNT_APOLOGY_MAX_MATERIAL=999;
+export const HUNT_COUNT_APOLOGY_MAX_MATERIAL=MATERIAL_STACK_LIMIT;
 
 /** Always verify available space *before* creating the server claim. */
 export function canReceiveHuntCountApology(state){
@@ -19,7 +20,7 @@ export function grantHuntCountApology(state,receipt,slot){
     receipt.rewardId!==HUNT_COUNT_APOLOGY_REWARD_ID || Number(receipt.quantity)!==HUNT_COUNT_APOLOGY_QUANTITY ||
     Number(receipt.saveSlot)!==Number(slot))throw new Error('お詫び報酬の受取情報が一致しません');
  if(isHuntCountApologyDelivered(state,receipt))return false;
- if(!canReceiveHuntCountApology(state))throw new Error('強化結晶の所持上限999個に達します。5個分の空きを作ってからお受け取りください。');
+ if(!canReceiveHuntCountApology(state))throw new Error('強化結晶の所持上限9,999個に達します。5個分の空きを作ってからお受け取りください。');
  state.materials??={};
  const count=Number(state.materials[HUNT_COUNT_APOLOGY_REWARD_ID]??0);
  state.materials[HUNT_COUNT_APOLOGY_REWARD_ID]=count+HUNT_COUNT_APOLOGY_QUANTITY;

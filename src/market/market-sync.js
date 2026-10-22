@@ -1,4 +1,5 @@
 import {applyMarketPurchase,applyMarketProceeds,applyMarketReturn} from './market-model.js';
+import { materialCapacity } from '../core/material-cap.js';
 
 const amount=n=>Number(n??0).toLocaleString('ja-JP');
 const validSlot=slot=>{const n=Number(slot);if(!Number.isInteger(n)||n<1||n>5)throw new Error('セーブスロットは1〜5です');return n;};
@@ -35,6 +36,10 @@ export async function purchaseMarketListing({api,state,slot,listing,quantity=1,s
  const unitPrice=Number(listing?.unitPrice??0),expected=unitPrice*quantity;
  if(!Number.isInteger(unitPrice)||unitPrice<1)throw new Error('価格が不正です');
  if(Number(state?.gold??0)<expected)throw new Error('ゴールドが足りません');
+ // Reject new purchases beyond normal storage capacity *before* charging
+ // the buyer. Already-sold receipts and seller returns are never discarded.
+ const payload=listing?.itemPayload??listing?.item_payload;
+ if(payload?.kind==='material'&&quantity>materialCapacity(state,payload.id))throw new Error('素材の所持上限（9,999個）を超えます。所持数を減らしてから購入してください');
  const receipt=await api.purchase(slot,listing.id,quantity,requestId,unitPrice);
  await applyAndPersist(state,()=>applyMarketPurchase(state,receipt),save);
  await api.ackPurchase(slot,receipt.id);

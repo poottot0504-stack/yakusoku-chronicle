@@ -1,4 +1,5 @@
 import { ECLIPSE_EVENT, ECLIPSE_MATERIALS } from '../data/eclipse-2026.js';
+import { addMaterial } from './material-cap.js';
 import { ECLIPSE_ENEMIES } from '../data/eclipse-enemies.js';
 import { getItemDef } from './items.js';
 import { syncRecipeUnlocks } from './crafting.js';
@@ -30,10 +31,8 @@ export function awardEclipseWaveBonus(state,enemies=[],wave=1,startedAt=Date.now
  const added=[];
  for(const [id,qty] of Object.entries(GUARANTEED[index])){
   if(!ECLIPSE_MATERIALS[id])throw new Error('未登録の星蝕素材です');
-  const existing=Math.max(0,Math.floor(Number(state.materials[id])||0));
-  const gain=Math.max(0,Math.min(qty,999-existing));
+  const gain=addMaterial(state,id,qty);
   if(gain<=0)continue;
-  state.materials[id]=existing+gain;
   const source=enemies.find(e=>e.materials?.normal===id||e.materials?.rare===id)??enemies[0];
   recordObservedDrop(state,source.bestiaryId,id);
   updateQuestProgress(state,{type:'collect',id,amount:gain});

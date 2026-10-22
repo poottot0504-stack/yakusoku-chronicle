@@ -1,4 +1,5 @@
 import { ENEMIES } from '../data/enemies.js';
+import { addMaterial } from './material-cap.js';
 import { getItemDef } from './items.js';
 import { syncRecipeUnlocks } from './crafting.js';
 import { recordObservedDrop } from './bestiary.js';
@@ -17,7 +18,7 @@ const BASE_ORES=[
  {id:'mythrilOre',chance:.08}
 ];
 
-export function addMaterials(state,materials={}){state.materials??={};for(const [id,qty] of Object.entries(materials))state.materials[id]=Math.min(999,(state.materials[id]??0)+qty);return state.materials;}
+export function addMaterials(state,materials={}){state.materials??={};for(const [id,qty] of Object.entries(materials))addMaterial(state,id,qty);return state.materials;}
 function addItem(state,id,qty=1){state.inventory??=[];const x=state.inventory.find(i=>i.id===id);if(x)x.qty=(x.qty??0)+qty;else state.inventory.push({id,qty});}
 function isCraftMaterial(id){const d=getItemDef(id);return !(d.consumable||d.target||id==='forgeCharm');}
 // ドロップ抽選は素材のみ。回復・MP回復アイテムは通常戦闘・イベントとも対象外。
