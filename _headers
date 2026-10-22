@@ -1,3 +1,12 @@
+# Defensive response headers for every Cloudflare Workers static asset.
+# Avoid script-src/connect-src restrictions until CDN and Supabase flows are fully tested.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Content-Security-Policy: object-src 'none'; base-uri 'none'; frame-ancestors 'none'
+
 /
   Cache-Control: no-store, max-age=0
 /index.html
