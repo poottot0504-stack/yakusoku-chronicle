@@ -40,7 +40,6 @@ BEGIN
 
   IF jsonb_array_length(p->'inventory') > 2000
      OR jsonb_array_length(p->'equipmentInventory') > 15000
-     OR jsonb_object_length(p->'materials') > 6000
   THEN RETURN false; END IF;
 
   -- Preserve the current game's nonnegative integer economy. Very large
@@ -64,7 +63,10 @@ BEGIN
     THEN RETURN false; END IF;
   END LOOP;
 
+  total:=0;
   FOR k,v IN SELECT key,value FROM jsonb_each(p->'materials') LOOP
+    total:=total+1;
+    IF total > 6000 THEN RETURN false; END IF;
     IF k = '' OR jsonb_typeof(v) <> 'number' THEN RETURN false; END IF;
     IF v::text::numeric < 0 OR v::text::numeric > 1000000
        OR trunc(v::text::numeric) <> v::text::numeric
