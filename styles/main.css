@@ -950,3 +950,18 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .skill-preset-actions button{min-height:42px;font-size:.75rem;padding:.4rem .55rem}
 .skill-preset-actions button:disabled{opacity:.4}
 @media(max-width:380px){.skill-preset-row{gap:.35rem;padding:.45rem}.skill-preset-actions{gap:.25rem}.skill-preset-actions button{padding:.35rem .42rem;font-size:.7rem}}
+
+
+/* November 2026 collection event: publicly viewable, paginated ranking. */
+.collection-ranking{display:grid;gap:12px;min-width:0}
+.collection-ranking h2{margin:0}
+.collection-ranking>p{margin:0;line-height:1.55}
+.collection-ranking-me{border:1px solid rgba(206,167,86,.4);border-radius:12px;padding:12px;background:rgba(206,167,86,.08)}
+.collection-ranking-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:min(52vh,500px);overflow-y:auto}
+.collection-ranking-entry{display:grid;grid-template-columns:minmax(46px,66px) minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid rgba(147,146,157,.25);border-radius:9px;padding:10px;min-width:0}
+.collection-ranking-entry strong{overflow-wrap:anywhere}
+.collection-ranking-place{font-weight:700;text-align:center;white-space:nowrap}
+.collection-ranking-total{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.collection-ranking-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.collection-ranking-actions>span{white-space:nowrap}
+@media(max-width:400px){.collection-ranking-entry{grid-template-columns:45px minmax(0,1fr) auto;gap:6px;padding:8px}.collection-ranking-actions{justify-content:center}}
