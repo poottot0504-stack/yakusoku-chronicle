@@ -44,7 +44,10 @@ BEGIN
 
   -- Preserve the current game's nonnegative integer economy. Very large
   -- balances, fractional gold and non-numeric JSON must never become saves.
+  -- Older save versions may omit bankGold, which means zero.
+  -- Reject malformed bankGold when it is explicitly present.
   FOREACH k IN ARRAY ARRAY['gold','bankGold'] LOOP
+    IF k='bankGold' AND NOT (p ? 'bankGold') THEN CONTINUE; END IF;
     IF jsonb_typeof(p->k) IS DISTINCT FROM 'number' THEN RETURN false; END IF;
     gold_text := p->>k;
     IF gold_text IS NULL THEN RETURN false; END IF;
