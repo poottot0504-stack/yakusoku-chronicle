@@ -965,3 +965,20 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .collection-ranking-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .collection-ranking-actions>span{white-space:nowrap}
 @media(max-width:400px){.collection-ranking-entry{grid-template-columns:45px minmax(0,1fr) auto;gap:6px;padding:8px}.collection-ranking-actions{justify-content:center}}
+
+
+/* Official November 6–16 collection ranking banner (announced November 4). */
+.collection-event-title-banner{display:block;width:100%;padding:0;overflow:hidden;text-align:left}
+.collection-event-banner-img,.collection-event-details-img{width:100%;height:auto;aspect-ratio:8/3;object-fit:contain;display:block}
+.collection-event-title-banner .collection-event-banner-label{display:flex;flex-direction:column;gap:4px;align-items:flex-start;padding:10px 12px}
+.collection-event-title-banner .collection-event-banner-label b{font-weight:800}
+.collection-event-title-banner .collection-event-banner-label small{white-space:normal}
+.collection-event-title-banner .collection-event-banner-label em{font-style:normal}
+.collection-event-details{display:grid;gap:12px}
+.collection-event-details img{border-radius:10px}
+.collection-event-details h2,.collection-event-details p{margin:0}
+.collection-event-details p{line-height:1.65}
+.collection-ranking-reward{border:1px solid rgba(206,167,86,.45);border-radius:12px;padding:14px;background:rgba(206,167,86,.08);display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.collection-ranking-reward h3,.collection-ranking-reward p{flex-basis:100%;margin:0}
+.collection-ranking-reward .action-main{font-weight:800}
+@media(max-width:520px){.collection-event-title-banner .collection-event-banner-label{padding:8px 10px}}
