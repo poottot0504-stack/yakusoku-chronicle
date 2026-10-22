@@ -45,7 +45,7 @@ test('all five stages are readable on mobile and reward description',()=>{
 
 test('progress switches from 10,000 to 50,000 at the exact boundary',()=>{
  const before=show(9999);
- assert.match(before,/9,999 <small>\/ 10,000体/);
+ assert.match(before,/9,9999 <small>\/ 10,000体/);
  const after=show(10000);
  assert.match(after,/10,000 <small>\/ 50,000体/);
  assert.match(after,/第3段階達成！/);
@@ -55,7 +55,7 @@ test('progress switches from 10,000 to 50,000 at the exact boundary',()=>{
 
 test('progress switches from 50,000 to 100,000 at the exact boundary',()=>{
  const before=show(49999);
- assert.match(before,/49,999 <small>\/ 50,000体/);
+ assert.match(before,/49,9999 <small>\/ 50,000体/);
  const after=show(50000);
  assert.match(after,/50,000 <small>\/ 100,000体/);
  assert.match(after,/第4段階達成！/);
@@ -149,40 +149,40 @@ test('a server-receipt mismatch, changed ID or a different slot cannot add bonus
 });
 
 test('50k reward is atomic when first material is at cap',()=>{
- const s=fresh();s.gold=50;s.materials.orichalcum=995;
+ const s=fresh();s.gold=50;s.materials.orichalcum=9995;
  assert.throws(()=>grantFestivalBonus(s,rec(50000),2),/所持上限/);
  assert.equal(s.gold,50);
- assert.equal(s.materials.orichalcum,995);
+ assert.equal(s.materials.orichalcum,9995);
  assert.equal(s.materials.enhanceCrystal??0,0);
  assert.equal(s.festivalReceipts?.[`${eventId}:50000`],undefined);
 });
 
 test('50k reward is atomic when second material is at cap',()=>{
- const s=fresh();s.gold=60;s.materials.orichalcum=40;s.materials.enhanceCrystal=995;
+ const s=fresh();s.gold=60;s.materials.orichalcum=40;s.materials.enhanceCrystal=9995;
  assert.throws(()=>grantFestivalBonus(s,rec(50000),2),/所持上限/);
  assert.equal(s.gold,60);
  assert.equal(s.materials.orichalcum,40);
- assert.equal(s.materials.enhanceCrystal,995);
+ assert.equal(s.materials.enhanceCrystal,9995);
  assert.equal(s.festivalReceipts?.[`${eventId}:50000`],undefined);
 });
 
 test('100k reward is atomic when either material is at cap including legacy stacks',()=>{
  for(const blocked of ['orichalcum','enhanceCrystal']){
-  const s=fresh();s.materials[blocked]=988;
+  const s=fresh();s.materials[blocked]=9988;
   s.inventory.push({id:blocked,qty:2});
   assert.throws(()=>grantFestivalBonus(s,rec(100000),2),/所持上限/);
   assert.equal(s.gold,0);
-  assert.equal(s.materials.orichalcum??0,blocked==='orichalcum'?988:0);
-  assert.equal(s.materials.enhanceCrystal??0,blocked==='enhanceCrystal'?988:0);
+  assert.equal(s.materials.orichalcum??0,blocked==='orichalcum'?9988:0);
+  assert.equal(s.materials.enhanceCrystal??0,blocked==='enhanceCrystal'?9988:0);
  }
 });
 
-test('material 999 exact limit works for both 50k and 100k',()=>{
+test('material 9999 exact limit works for both 50k and 100k',()=>{
  for(const [goal,quantity] of [[50000,5],[100000,10]]){
-  const s=fresh();s.materials.orichalcum=999-quantity;s.materials.enhanceCrystal=999-quantity;
+  const s=fresh();s.materials.orichalcum=9999-quantity;s.materials.enhanceCrystal=9999-quantity;
   assert.equal(grantFestivalBonus(s,rec(goal),2),true);
-  assert.equal(s.materials.orichalcum,999);
-  assert.equal(s.materials.enhanceCrystal,999);
+  assert.equal(s.materials.orichalcum,9999);
+  assert.equal(s.materials.enhanceCrystal,9999);
  }
 });
 

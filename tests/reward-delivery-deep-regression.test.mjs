@@ -54,27 +54,27 @@ test('5k and 10k award both materials and currency, no duplicates after reload',
 });
 
 test('near material cap: failed 5k claim does not pay gold or consume receipt',()=>{
- const s=newGame();s.gold=123;s.materials.orihal=998;
+ const s=newGame();s.gold=123;s.materials.orihal=9998;
  assert.throws(()=>grantFestivalBonus(s,bonus5(),1),/所持上限/);
  assert.equal(s.gold,123);
- assert.equal(s.materials.orihal,998);
+ assert.equal(s.materials.orihal,9998);
  assert.equal(s.festivalReceipts?.[`${HUNT_FESTIVAL.id}:5000`],undefined);
- s.materials.orihal=997;
+ s.materials.orihal=9997;
  assert.equal(grantFestivalBonus(s,bonus5(),1),true);
  assert.equal(s.gold,1_000_123);
- assert.equal(s.materials.orihal,999);
+ assert.equal(s.materials.orihal,9999);
 });
 
 test('near material cap: failed 10k claim does not pay gold or consume receipt',()=>{
- const s=newGame();s.gold=456;s.materials.orichalcum=998;
+ const s=newGame();s.gold=456;s.materials.orichalcum=9998;
  assert.throws(()=>grantFestivalBonus(s,bonus10(),1),/所持上限/);
  assert.equal(s.gold,456);
- assert.equal(s.materials.orichalcum,998);
+ assert.equal(s.materials.orichalcum,9998);
  assert.equal(s.festivalReceipts?.[`${HUNT_FESTIVAL.id}:10000`],undefined);
- s.materials.orichalcum=997;
+ s.materials.orichalcum=9997;
  assert.equal(grantFestivalBonus(s,bonus10(),1),true);
  assert.equal(s.gold,5_000_456);
- assert.equal(s.materials.orichalcum,999);
+ assert.equal(s.materials.orichalcum,9999);
 });
 
 test('currency safe integer overflow blocks the 10k claim atomically',()=>{
@@ -99,15 +99,15 @@ test('apology NPC gives exactly 5 forging crystals, disappears, and stays delive
  assert.doesNotMatch(townMarkup(reloaded,receipt,1),/data-hunt-count-apology-npc/);
 });
 
-test('apology 994=>999 works, 995 is blocked, later retry pays full five',()=>{
- const s=newGame();s.materials.enhanceCrystal=995;
+test('apology 9994=>9999 works, 9995 is blocked, later retry pays full five',()=>{
+ const s=newGame();s.materials.enhanceCrystal=9995;
  assert.equal(canReceiveHuntCountApology(s),false);
  assert.throws(()=>grantHuntCountApology(s,apology(),1),/所持上限/);
- assert.equal(s.materials.enhanceCrystal,995);
+ assert.equal(s.materials.enhanceCrystal,9995);
  assert.equal(s.huntCountApologyReceiptId,undefined);
- s.materials.enhanceCrystal=994;
+ s.materials.enhanceCrystal=9994;
  assert.equal(grantHuntCountApology(s,apology(),1),true);
- assert.equal(s.materials.enhanceCrystal,999);
+ assert.equal(s.materials.enhanceCrystal,9999);
 });
 
 test('different-slot apology cannot be applied locally even when remote receipt exists',()=>{

@@ -140,9 +140,9 @@ test('guaranteed boss core cannot be farmed using an invalid boss, partial wave 
  assert.equal(awardEclipseWaveBonus(state,[{...nox[0],bestiaryId:'event-eclipse-fake'}],3,opening).length,0);
  assert.equal(awardEclipseWaveBonus(state,[{...nox[0],rematch:true}],3,opening).length,0);
  assert.equal(awardEclipseWaveBonus(state,nox,3,opening).find(d=>d.id==='noxCore')?.qty,1);
- state.materials.noxCore=999;
+ state.materials.noxCore=9999;
  assert.equal(awardEclipseWaveBonus(state,nox,3,opening).some(d=>d.id==='noxCore'),false);
- assert.equal(state.materials.noxCore,999);
+ assert.equal(state.materials.noxCore,9999);
 });
 
 test('real generic event drop table only awards event crafting materials',()=>{
