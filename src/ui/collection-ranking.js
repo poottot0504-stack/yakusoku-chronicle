@@ -32,6 +32,15 @@ export function collectionRankingMarkup(input={},now=Date.now()){
    input.error?'通信エラー：ランキングを取得できませんでした。':
    !rows.length?'まだランキングデータがありません。':'サーバーで検証された討伐の証の数で集計しています。';
  const own=phase==='upcoming'?'':myRank===null?'':`<p class="collection-ranking-me">あなたの順位：<b>${fmt(myRank)}位</b> ／ 討伐の証 <b>${fmt(myCount)}個</b></p>`;
+ const rewardStatus=input.rewardLoading?'受取状況を確認中…':
+  input.rewardError?'報酬情報を取得できませんでした。再読み込みしてください。':
+  !input.rewardFinalized?'最終順位の確定・記録の確認後に報酬を受け取れます。':
+  input.rewardDelivered?'✅ 報酬は受取済みです。':
+  input.rewardReceipt?'未完了の報酬受取を再開できます。':
+  input.rewardClaimable?'🎁 あなたのランキング報酬を受け取れます！':'報酬の受取対象ではないか、現在確認中です。';
+ const rewardButton=phase==='ended'&&!input.rewardDelivered&&(input.rewardClaimable||input.rewardReceipt)?
+  '<button class="action-main" data-collection-reward-claim>報酬を受け取る</button>':'';
+ const rewardPanel=phase==='ended'?`<section class="collection-ranking-reward" aria-label="ランキング報酬"><h3>🎁 ランキング報酬</h3><p role="status">${esc(rewardStatus)}</p>${rewardButton}<button data-collection-reward-refresh ${input.rewardLoading?'disabled':''}>受取状況を確認</button></section>`:'';
  const controls=phase==='upcoming'?'':`<div class="collection-ranking-actions"><button data-collection-ranking-page="${page-1}" ${page===1||input.loading?'disabled':''}>前へ</button><span>${fmt(page)}ページ / 参加者 ${fmt(total)}人</span><button data-collection-ranking-page="${page+1}" ${!hasNext||input.loading?'disabled':''}>次へ</button><button data-collection-ranking-refresh ${input.loading?'disabled':''}>更新</button></div>`;
- return `<section class="collection-ranking" data-no-pixel-icon><h2>🏆 討伐の証争奪戦・公開ランキング</h2><p>11月6日 0:00 ～ 11月16日 23:59（日本時間）</p><p>通常ダンジョンのモンスター1体につき討伐の証1個。全プレイヤーが閲覧できます。</p><p role="status">${esc(summary)}</p>${own}<ol class="collection-ranking-list" aria-label="みんなの討伐の証ランキング">${entries}</ol>${controls}<p class="notice">表示は公開用のプレイヤー名・順位・証の個数のみ。不正調査情報や個人情報は表示しません。記録の確定まで順位が変わる場合があります。</p><button data-close-modal>閉じる</button></section>`;
+ return `<section class="collection-ranking" data-no-pixel-icon><h2>🏆 討伐の証争奪戦・公開ランキング</h2><p>11月6日 0:00 ～ 11月16日 23:59（日本時間）</p><p>通常ダンジョンのモンスター1体につき討伐の証1個。全プレイヤーが閲覧できます。</p><p role="status">${esc(summary)}</p>${own}<ol class="collection-ranking-list" aria-label="みんなの討伐の証ランキング">${entries}</ol>${controls}${rewardPanel}<p class="notice">表示は公開用のプレイヤー名・順位・証の個数のみ。不正調査情報や個人情報は表示しません。記録の確定まで順位が変わる場合があります。</p><button data-close-modal>閉じる</button></section>`;
 }
