@@ -24,6 +24,8 @@ test('non-destructive integrity guard checks money and inventory structure',()=>
  assert.match(sql,/count\(DISTINCT obj->>'instanceId'\)/);
  assert.match(sql,/ADD CONSTRAINT account_save_integrity_guard_20261022/i);
  assert.match(sql,/CHECK \(yakusoku_private\.account_save_payload_sane\(save_data\) IS TRUE\)/i);
+ assert.match(sql,/Older save versions may omit bankGold/);
+ assert.match(sql,/k='bankGold' AND NOT \\(p \\? 'bankGold'\\)/);
  assert.match(sql,/TO service_role/i);
  assert.doesNotMatch(sql,/jsonb_object_length/);
 });
