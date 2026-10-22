@@ -109,6 +109,7 @@ import { createFeedbackApi } from './online/feedback-api.js';
 import { feedbackFormMarkup, feedbackHistoryMarkup, feedbackSentMarkup } from './ui/feedback.js';
 import { titleUpdatesMarkup } from './ui/title-updates.js';
 import { purchaseMarketListing,syncPendingMarketTransactions,formatMarketSaleNotifications,persistMarketReturn } from './market/market-sync.js';
+import { createMarketOperationGuard } from './market/market-operation-guard.js';
 
 const session={mode:'guest',storage:window.localStorage,userId:null};
 const festivalApi=createFestivalApi(session.storage);
@@ -129,6 +130,14 @@ const huntCountApologyApi=createHuntCountApologyApi({storage:session.storage});
 let huntCountApologyStatus=null,huntCountApologyClaimBusy=false;
 const newMarketUi=()=>({tab:'browse',historyFocus:'buy',history:{purchases:[],sales:[]},profileName:'',loading:false,error:'',browse:{items:[],search:'',category:'all',sort:'newest',inStockOnly:true},store:{profileName:'',store:null,listings:[],sold:[]}});
 let marketUi=newMarketUi(),marketApiPromise=null,marketSyncBusy=false;
+const marketOperationGuard=createMarketOperationGuard({
+ isLocked:()=>marketSyncBusy,
+ onBusy:()=>toast('フリーマーケットの取引処理中です。完了してから再操作してください'),
+ onSettled:()=>{
+  if(state?.market?.everUsed&&!title.classList.contains('active'))
+   queueMicrotask(()=>void syncMarketSettlement());
+ }
+});
 let equipmentSearch=''; // Browser-only query. Never update inventory or save data.
 const getMarketApi=()=>marketApiPromise??=createBrowserMarketApi({storage:session.storage});
 const feedbackApi=createFeedbackApi({storage:session.storage});
@@ -290,8 +299,8 @@ async function claimHuntCountApology(){
  }catch(err){updateRankingApologyModalContent(`<section class="npc-dialogue"><h2>🎁 お詫びの案内人</h2><p>${esc(err?.message??'通信エラーが発生しました')}</p><button data-hunt-count-apology-npc>受取状況を確認する</button></section>`);}
  finally{huntCountApologyClaimBusy=false;}
 }
-function startFresh(slot=currentSlot){mashoRun=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();state=ensureAdventureState(createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId='hero';view='adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();toast('新しい物語が始まりました');}
-function continueGame(slot=currentSlot){mashoRun=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();const loaded=loadFromSlot(session,currentSlot);state=ensureAdventureState(loaded??createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=state.rankingApologyReceived===true||wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId??=state.characters[0]?.id;view=state.story?.firstEndingSeen&&!state.story?.trueEndingSeen&&state.adventure?.completedRegions?.includes('abyss')?'ending':'adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();if(state.market?.everUsed)void syncMarketSettlement({notify:true});}
+function startFresh(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy)return toast('取引処理中はセーブスロットを変更できません');mashoRun=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();state=ensureAdventureState(createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId='hero';view='adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();toast('新しい物語が始まりました');}
+function continueGame(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy)return toast('取引処理中はセーブスロットを変更できません');mashoRun=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();const loaded=loadFromSlot(session,currentSlot);state=ensureAdventureState(loaded??createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=state.rankingApologyReceived===true||wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId??=state.characters[0]?.id;view=state.story?.firstEndingSeen&&!state.story?.trueEndingSeen&&state.adventure?.completedRegions?.includes('abyss')?'ending':'adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();if(state.market?.everUsed)void syncMarketSettlement({notify:true});}
 function outcomeOf(b){const a=b.actors.some(x=>x.side==='ally'&&x.hp>0),e=b.actors.some(x=>x.side==='enemy'&&x.hp>0);return !e?'victory':!a?'defeat':null;}
 let battlePlayback=null;
 function renderBattle(){
@@ -619,7 +628,7 @@ function marketOpenListing(){
  setMarketListingCategory(modal.querySelector('.market-listing-form')?.dataset.marketDefaultCategory??'all');
 }
 function marketCandidateFromKey(key,quantity){const [kind,id]=String(key??'').split(':');const candidates=listMarketCandidates(state),base=kind==='equipment'?candidates.find(x=>x.kind==='equipment'&&x.instanceId===id):candidates.find(x=>x.kind===kind&&x.id===id);if(!base)throw new Error('商品が見つかりません');return kind==='equipment'?{kind:'equipment',instanceId:base.instanceId,quantity:1}:{kind,id:base.id,quantity};}
-async function marketSubmitListing(){
+async function marketSubmitListing(){return marketOperationGuard.run(async()=>{
  const key=modal.querySelector('[data-market-listing-item]')?.value,qtyInput=modal.querySelector('[data-market-listing-quantity]'),maxQty=Math.max(1,Number(qtyInput?.max??1)),quantity=Math.max(1,Math.min(maxQty,Number(qtyInput?.value??1))),unitPrice=parseMarketPrice(modal.querySelector('[data-market-listing-price]')?.value);if(qtyInput)qtyInput.value=String(quantity);
  if(!isValidMarketPrice(unitPrice))return toast('価格は1G〜30,000,000Gで指定してください');
  try{
@@ -629,19 +638,19 @@ async function marketSubmitListing(){
   catch(localErr){try{const ret=await api.cancel(currentSlot,listing.id);applyMarketReturn(state,ret);await api.ackReturn(currentSlot,ret.id??ret.returnId);}catch{}throw localErr;}
   closeModal();marketUi.tab='store';await refreshMarketView();toast('商品を出品しました');
  }catch(err){toast(err.message??'出品できませんでした');}
-}
-async function marketUpdatePrice(listingId){const input=game.querySelector(`[data-market-price="${CSS.escape(listingId)}"]`),price=parseMarketPrice(input?.value);if(!isValidMarketPrice(price))return toast('価格は1G〜30,000,000Gで指定してください');try{const api=await getMarketApi();await api.updatePrice(currentSlot,listingId,price);await refreshMarketView();toast('価格を変更しました');}catch(err){toast(err.message??'価格を変更できませんでした');}}
-async function marketCancelListing(listingId){
+});}
+async function marketUpdatePrice(listingId){return marketOperationGuard.run(async()=>{const input=game.querySelector(`[data-market-price="${CSS.escape(listingId)}"]`),price=parseMarketPrice(input?.value);if(!isValidMarketPrice(price))return toast('価格は1G〜30,000,000Gで指定してください');try{const api=await getMarketApi();await api.updatePrice(currentSlot,listingId,price);await refreshMarketView();toast('価格を変更しました');}catch(err){toast(err.message??'価格を変更できませんでした');}});}
+async function marketCancelListing(listingId){return marketOperationGuard.run(async()=>{
  if(!confirm('この出品を取り消しますか？ 売れ残りは手持ちに戻ります。'))return;
  try{const api=await getMarketApi(),ret=await api.cancel(currentSlot,listingId);await persistMarketReturn({state,ret,save:async()=>saveNow()});await api.ackReturn(currentSlot,ret.id??ret.returnId);await refreshMarketView();toast('出品を取り消し、売れ残りを手持ちに戻しました');}catch(err){toast(err.message??'出品を取り消せませんでした');}
-}
-async function marketBuy(listingId){
+});}
+async function marketBuy(listingId){return marketOperationGuard.run(async()=>{
  const listing=(marketUi.browse.items??[]).find(x=>x.id===listingId);if(!listing)return toast('商品情報を更新してください');
  try{await marketEnsureDisplayName();const input=game.querySelector(`[data-market-buy-qty="${CSS.escape(listingId)}"]`),quantity=Math.max(1,Number(input?.value??1)),api=await getMarketApi();await purchaseMarketListing({api,state,slot:currentSlot,listing,quantity,save:async()=>saveNow()});renderGameKeepVertical();await refreshMarketView();toast('購入しました！');}catch(err){if(err?.code==='PRICE_CHANGED'||String(err?.message).includes('PRICE_CHANGED'))void refreshMarketView();toast(err.message??'購入できませんでした');}
-}
+});}
 async function syncMarketSettlement({notify=false}={}){
  const targetState=state,targetSlot=currentSlot;
- if(!targetState.market?.everUsed||marketSyncBusy)return;
+ if(!targetState.market?.everUsed||marketSyncBusy||marketOperationGuard.busy)return;
  marketSyncBusy=true;
  try{
   const api=await getMarketApi();
