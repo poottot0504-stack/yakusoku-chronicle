@@ -108,6 +108,9 @@ import { huntCountApologyLoadingMarkup,huntCountApologyDialogueMarkup } from './
 import { createBrowserMarketApi } from './market/browser-market-api.js';
 import { createFeedbackApi } from './online/feedback-api.js';
 import { COLLECTION_EVENT_202611 } from './data/collection-event-202611.js';
+import { collectionEventBannerMarkup,collectionEventDetailsMarkup,nextCollectionBannerBoundary } from './ui/collection-event-banner.js';
+import { createCollectionRewardApi } from './online/collection-reward-api.js';
+import { grantCollectionReward,collectionRewardDelivered } from './core/collection-reward-claim.js';
 import { collectionRankingMarkup,collectionRankingTitleButton } from './ui/collection-ranking.js';
 import { createCollectionRankingApi } from './online/collection-ranking-api.js';
 import { feedbackFormMarkup, feedbackHistoryMarkup, feedbackSentMarkup } from './ui/feedback.js';
@@ -146,6 +149,9 @@ let equipmentSearch=''; // Browser-only query. Never update inventory or save da
 const getMarketApi=()=>marketApiPromise??=createBrowserMarketApi({storage:session.storage});
 const feedbackApi=createFeedbackApi({storage:session.storage});
 const collectionRankingApi=createCollectionRankingApi({storage:session.storage});
+const collectionRewardApi=createCollectionRewardApi({storage:session.storage});
+let collectionRewardBusy=false;
+let collectionRewardView={finalized:false,claimable:false,receipt:null,loading:false,error:false};
 let collectionRankingRequest=0;
 let collectionRankingView={rows:[],totalParticipants:0,page:1,myRank:null,myCount:0,loading:false,error:false};
 let feedbackBusy=false;
@@ -343,7 +349,7 @@ function createAdventureBattle(enemies,options={}){
  return b;
 }
 function scheduleEventRefresh(){
- clearTimeout(eventBoundaryTimer);const next=Math.min(nextFestivalBoundary(),getNextEventBoundary()??Infinity,getNextDailyTravelBonusBoundary()??Infinity,getNextRaidStart(),getRaidWindow()?.endsAt??Infinity);if(!Number.isFinite(next))return;
+ clearTimeout(eventBoundaryTimer);const next=Math.min(nextFestivalBoundary(),nextCollectionBannerBoundary(),getNextEventBoundary()??Infinity,getNextDailyTravelBonusBoundary()??Infinity,getNextRaidStart(),getRaidWindow()?.endsAt??Infinity);if(!Number.isFinite(next))return;
  eventBoundaryTimer=setTimeout(()=>{
   if(!document.hidden&&!battle&&!raidRoom&&!raidJoinBusy){if(title.classList.contains('active'))renderTitle();else if(view==='adventure'){renderGameKeepVertical();void refreshFestival(true);}}
   scheduleEventRefresh();
@@ -1075,17 +1081,67 @@ async function submitFeedback(){
  }catch(error){if(errorEl)errorEl.textContent=error?.message??'送信に失敗しました。';}
  finally{feedbackBusy=false;if(sendButton){sendButton.disabled=false;sendButton.textContent='送信する';}}
 }
+function collectionRewardStorageKey(){return 'yakusoku.collection.202611.delivered.'+String(session.userId??playerStatsHeartbeat.playerId);}
+function collectionRankingViewMarkup(){
+ const receipt=collectionRewardView.receipt;
+ return collectionRankingMarkup({...collectionRankingView,rewardLoading:collectionRewardView.loading,rewardError:collectionRewardView.error,
+  rewardFinalized:collectionRewardView.finalized,rewardClaimable:collectionRewardView.claimable,rewardReceipt:receipt,
+  rewardDelivered:!!receipt&&(collectionRewardDelivered(state,receipt)||session.storage.getItem(collectionRewardStorageKey())===receipt.id)});
+}
+function renderCollectionRankingPanel(){
+ const panel=modal.querySelector('.collection-ranking');
+ if(panel)panel.outerHTML=collectionRankingViewMarkup();
+}
+async function refreshCollectionReward(){
+ if(Date.now()<COLLECTION_EVENT_202611.endsAt||!modal.querySelector('.collection-ranking'))return;
+ collectionRewardView.loading=true;collectionRewardView.error=false;renderCollectionRankingPanel();
+ try{
+  const result=await collectionRewardApi.snapshot();
+  if(!modal.querySelector('.collection-ranking'))return;
+  collectionRewardView={finalized:result.finalized===true,claimable:result.claimable===true,
+   receipt:result.receipt??null,loading:false,error:false};
+ }catch{
+  if(!modal.querySelector('.collection-ranking'))return;
+  collectionRewardView={...collectionRewardView,loading:false,error:true};
+ }
+ renderCollectionRankingPanel();
+}
+async function claimCollectionReward(){
+ if(collectionRewardBusy||Date.now()<COLLECTION_EVENT_202611.endsAt)return;
+ collectionRewardBusy=true;
+ const target=state,slot=currentSlot;
+ try{
+  const receipt=await collectionRewardApi.claim(slot);
+  if(target!==state||slot!==currentSlot)throw new Error(`SLOT ${slot}に戻って報酬を受け取ってください`);
+  collectionRewardView.receipt=receipt;
+  if(collectionRewardDelivered(target,receipt)||session.storage.getItem(collectionRewardStorageKey())===receipt.id){
+   toast('報酬は受取済みです');return;
+  }
+  const prior={gold:target.gold,materials:{...(target.materials??{})},inventory:structuredClone(target.inventory??[]),
+   receipts:{...(target.collectionRewardReceipts??{})}};
+  try{grantCollectionReward(target,receipt,slot);saveNow();}
+  catch(err){target.gold=prior.gold;target.materials=prior.materials;target.inventory=prior.inventory;
+   target.collectionRewardReceipts=prior.receipts;throw err;}
+  try{session.storage.setItem(collectionRewardStorageKey(),receipt.id);}catch{}
+  toast('ランキング報酬を受け取りました！');
+  collectionRewardView.claimable=false;
+  renderCollectionRankingPanel();
+ }catch(error){toast(error?.message??'報酬を受け取れませんでした。');}
+ finally{collectionRewardBusy=false;renderCollectionRankingPanel();}
+}
 function openCollectionRanking(){
  collectionRankingRequest++;
  collectionRankingView={rows:[],totalParticipants:0,page:1,myRank:null,myCount:0,loading:false,error:false};
- openModal(collectionRankingMarkup(collectionRankingView));
+ collectionRewardView={finalized:false,claimable:false,receipt:null,loading:false,error:false};
+ openModal(collectionRankingViewMarkup());
  if(Date.now()>=COLLECTION_EVENT_202611.startsAt)void refreshCollectionRanking(1);
+ if(Date.now()>=COLLECTION_EVENT_202611.endsAt)void refreshCollectionReward();
 }
 async function refreshCollectionRanking(page=1){
  if(!Number.isSafeInteger(page)||page<1||page>100000||!modal.querySelector('.collection-ranking'))return;
  const request=++collectionRankingRequest;
  collectionRankingView={...collectionRankingView,page,rows:[],loading:true,error:false};
- const render=()=>{const panel=modal.querySelector('.collection-ranking');if(panel)panel.outerHTML=collectionRankingMarkup(collectionRankingView);};
+ const render=()=>renderCollectionRankingPanel();
  render();
  try{
   const payload=await collectionRankingApi.page(page);
@@ -1106,7 +1162,10 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-hunt-title-details')){titleHuntDetailsOpen=true;return renderTitleHuntDetails();}
  if(el.hasAttribute('data-hunt-title-back')){titleHuntDetailsOpen=false;renderTitle();title.scrollTop=0;return;}
  if(el.hasAttribute('data-hunt-archive')){openModal(festivalArchiveMarkup());return void refreshFestival(true);}
+ if(el.hasAttribute('data-collection-event-details'))return openModal(collectionEventDetailsMarkup());
  if(el.hasAttribute('data-collection-ranking-open'))return openCollectionRanking();
+ if(el.hasAttribute('data-collection-reward-claim'))return void claimCollectionReward();
+ if(el.hasAttribute('data-collection-reward-refresh'))return void refreshCollectionReward();
  if(el.hasAttribute('data-collection-ranking-refresh'))return void refreshCollectionRanking(collectionRankingView.page);
  if(el.hasAttribute('data-collection-ranking-page'))return void refreshCollectionRanking(Number(el.dataset.collectionRankingPage));
  if(el.hasAttribute('data-hunt-details'))return openModal(festivalDetailsMarkup());
@@ -1290,9 +1349,9 @@ function renderTitleHuntDetails(){
 }
 const titleHeaderMarkup="<header class=\"forest-title-heading\"><div class=\"title-gem\" aria-hidden=\"true\">⚔</div><p class=\"eyebrow\">CHRONICLE OF PROMISE</p><h1>約束の<br><span>クロニクル</span></h1><div class=\"title-leaf-divider\" aria-hidden=\"true\">❧ ── ✧ ── ☙</div></header>";
 function renderTitle(){if(titleHuntDetailsOpen)return;scheduleEventRefresh();if(!accountState.ready){
- title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}${collectionRankingTitleButton()}<p class="title-copy" role="status">アカウントとセーブデータを確認しています…</p></div>`;
+ title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}${collectionEventBannerMarkup()}${collectionRankingTitleButton()}<p class="title-copy" role="status">アカウントとセーブデータを確認しています…</p></div>`;
  return;
-}const slots=listSaveSlots(session);title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}${collectionRankingTitleButton()}<p class="title-copy">セーブデータを選んでください。</p><div class="save-slot-list">${slots.map(x=>`<section class="save-slot ${x.empty?'is-empty':'has-save'}"><strong><span aria-hidden="true">❧</span> SLOT ${x.slot} <span aria-hidden="true">☙</span></strong><small>${x.empty?'空きスロット':`${esc(x.heroName)} / Lv${x.heroLevel} / ${x.cycle}周目<br><span class="save-playtime">⏱ プレイ時間 ${formatPlayTime(x.playTimeSeconds)}</span>`}</small><div>${x.empty?`<button class="action-main" data-slot-new="${x.slot}">このスロットではじめる</button>`:`<button class="action-main" data-slot-load="${x.slot}">つづきから</button><button data-slot-new="${x.slot}">最初から</button><button data-slot-delete="${x.slot}">削除</button>`}</div></section>`).join('')}</div><p class="save-note">セーブデータは5つまで作成できます。</p><p class="save-migration-note">旧セーブデータはSLOT 1へ自動移行されます</p>${accountTitleMarkup()}</div>`;}
+}const slots=listSaveSlots(session);title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}${collectionEventBannerMarkup()}${collectionRankingTitleButton()}<p class="title-copy">セーブデータを選んでください。</p><div class="save-slot-list">${slots.map(x=>`<section class="save-slot ${x.empty?'is-empty':'has-save'}"><strong><span aria-hidden="true">❧</span> SLOT ${x.slot} <span aria-hidden="true">☙</span></strong><small>${x.empty?'空きスロット':`${esc(x.heroName)} / Lv${x.heroLevel} / ${x.cycle}周目<br><span class="save-playtime">⏱ プレイ時間 ${formatPlayTime(x.playTimeSeconds)}</span>`}</small><div>${x.empty?`<button class="action-main" data-slot-new="${x.slot}">このスロットではじめる</button>`:`<button class="action-main" data-slot-load="${x.slot}">つづきから</button><button data-slot-new="${x.slot}">最初から</button><button data-slot-delete="${x.slot}">削除</button>`}</div></section>`).join('')}</div><p class="save-note">セーブデータは5つまで作成できます。</p><p class="save-migration-note">旧セーブデータはSLOT 1へ自動移行されます</p>${accountTitleMarkup()}</div>`;}
 title.addEventListener('toggle',e=>{if(e.target?.matches?.('[data-title-update-details]')){titleUpdateDetailsOpen=e.target.open;const summary=e.target.querySelector('summary');if(summary)summary.firstChild.textContent=titleUpdateDetailsOpen?'詳しい更新内容を閉じる':'詳しい更新内容を見る';}},true);
 title.addEventListener('click',e=>{const el=e.target.closest('button');if(!el)return;if(el.hasAttribute('data-title-update-page')){const next=Number(el.dataset.titleUpdatePage);if(next===1||next===2){titleUpdatePage=next;const panel=title.querySelector('.title-update-panel');if(panel)panel.outerHTML=titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage);}return;}if(el.dataset.slotLoad)return continueGame(el.dataset.slotLoad);if(el.dataset.slotNew){if(!listSaveSlots(session)[Number(el.dataset.slotNew)-1]?.empty&&!confirm('このスロットを最初から始めますか？'))return;return startFresh(el.dataset.slotNew);}if(el.dataset.slotDelete){if(confirm(`SLOT ${el.dataset.slotDelete}を削除しますか？`)){deleteSlot(session,el.dataset.slotDelete);if(session.mode==='user'&&accountState.linked)void accountApi.deleteSlot(Number(el.dataset.slotDelete)).catch(()=>{});renderTitle();}}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(playStartedAt!==null){saveNow();playStartedAt=null;boostClockLastAt=null;}}else if(!title.classList.contains('active')&&playStartedAt===null){playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;}if(!document.hidden){if(battle&&!battlePlayback)scheduleNormalAuto();if(raidRoom&&!raidTurnExecuting)scheduleRaidAuto();void refreshFestival(true);if(raidRoom)void raidPoller.refresh();else if(raidLobbyPoller.active)void raidLobbyPoller.refresh();if(!battle&&!raidRoom&&!raidJoinBusy){if(title.classList.contains('active'))renderTitle();else if(view==='adventure')renderGameKeepVertical();}if(!title.classList.contains('active')&&state.market?.everUsed)void syncMarketSettlement({notify:true});scheduleEventRefresh();}});
