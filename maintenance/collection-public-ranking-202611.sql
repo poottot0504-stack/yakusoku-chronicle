@@ -29,6 +29,7 @@ begin
   or p_page_size is null or p_page_size not between 1 and 50
  then raise exception 'invalid_ranking_request'; end if;
 
+ perform yakusoku_private.collection_maybe_finalize_202611();
  select finalized_at into finalized
  from yakusoku_private.collection_event_control_202611 where id=1;
 
