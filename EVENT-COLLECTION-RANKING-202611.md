@@ -1,59 +1,41 @@
-# November 2026 monster-proof collection ranking: draft
+# 討伐の証争奪戦 | November 2026
 
-This is a **development-only specification**. It does NOT launch an event or publish a leaderboard yet.
+## Schedule (Asia/Tokyo)
+- Title banner appears automatically at **2026-11-04 00:00 JST**.
+- Collection starts **2026-11-06 00:00 JST**.
+- Collection ends **2026-11-16 23:59:59 JST**.
+- Server accepts already-issued tickets' audited victory reports through **2026-11-17 23:59:59 JST**.
+- Final standings and claim buttons are automatically unlocked after **2026-11-18 00:00 JST**, allowing a one-day audit grace period.
+- Winner reward claims are manual, never automatic, with server-generated one-time receipts.
 
-## Confirmed by owner
-- Start: 2026-11-06 00:00 Japan time.
-- End: 2026-11-16 23:59:59 Japan time (exclusive boundary: 2026-11-17 00:00 JST).
-- Eligible battle: ordinary story-region dungeon encounters, including multiple normal monsters in a single encounter.
-- Guaranteed: **one event item for every eligible monster actually defeated** (100%; no RNG).
-- Rank: descending number of validated event items owned by the player. The item cannot be sold, traded, gifted or consumed.
-- Auto-play and speed settings do not by themselves indicate cheating.
+## How scoring works
+- Ordinary adventure/story-region monster wins award 1 server-verified proof **per defeated monster**.
+- Event raids, 魔障の洞窟, story bosses, rare monsters, rematches, guild-specific quests and special event battles don't count.
+- To count, a normal battle must have a Supabase-issued server ticket when it begins and a matching accepted entry in the existing progression audit feed. Successful submissions are aggregated in an idempotent private ledger.
+- Scoring requires a network connection at battle start. An offline battle with no ticket does not earn a verified proof. Already-ticketed battle audits may be delivered late within the grace period.
+- This is tamper-resistant logging, not cryptographic proof of an honest client-side fight. Manual review is needed for suspicious patterns; fast legitimate auto-play is not automatically cheating.
+- Public leaderboard is readable by all authenticated and anonymous-login players with pagination (50 rows/page), showing only rank, safe public display name, and proof count.
+- Every validated player is ranked; ties are broken by earliest time of last earned proof, then account UUID. The account UUID is **never shown publicly**.
+- Event proof tokens exist as server-verified leaderboard balances, not saleable/tradable/consumable ordinary crafting material inventory.
 
-## Ranking rewards (configured, not yet distributed)
-
-The owner explicitly specified the first-place prize. Lower tiers are the default proposed distribution.
-Book items refer to the existing **キャラクター経験値2倍の書** (`characterExpScroll`) and **ジョブ経験値2倍の書** (`jobExpScroll`).
-
-| Rank | Gold | Orichalcum | Orihal | Character EXP books | Job EXP books |
+## Winner rewards
+| Rank | Gold | Orichalcum | Orihal | Character Exp 2x Books | Job Exp 2x Books |
 |---|---:|---:|---:|---:|---:|
-| 1st | 50,000,000 | 5 | 5 | 5 | 5 |
-| 2nd | 30,000,000 | 3 | 3 | 3 | 3 |
-| 3rd | 20,000,000 | 2 | 2 | 2 | 2 |
-| 4th–10th | 5,000,000 | 1 | 1 | 1 | 1 |
-| 11th–30th | 2,000,000 | 0 | 0 | 1 | 1 |
-| 31st–100th | 500,000 | 0 | 0 | 1 | 1 |
-| 101st+ | 100,000 | 0 | 0 | 0 | 0 |
+| 1 | 50,000,000 | 5 | 5 | 5 | 5 |
+| 2 | 30,000,000 | 3 | 3 | 3 | 3 |
+| 3 | 20,000,000 | 2 | 2 | 2 | 2 |
+| 4–10 | 5,000,000 | 1 | 1 | 1 | 1 |
+| 11–30 | 2,000,000 | 0 | 0 | 1 | 1 |
+| 31–100 | 500,000 | 0 | 0 | 1 | 1 |
+| 101+ | 100,000 | 0 | 0 | 0 | 0 |
 
-A player with zero validated collection items is not a participant and receives nothing. Eligibility, final ranking, tie-break and prizes must be determined on the server after the event ends. Do not grant a reward for a suspicious score until reviewed, and do not identify anyone publicly as a cheater from rank alone. Rewards are issued at most once per eligible account, not once per save slot. No live reward payouts are implemented in this draft.
+- No reward to an account with zero verified proofs.
+- The server decides the rank and claim eligibility. The client validates the receipt and cannot request its own prize size.
+- Manual claim button after finalization, account locked to one save slot. Same receipt never adds items twice to the saved game on the same device. Cloud-save synchronization still needs care when multiple devices are used.
+- Players with unusually high submission patterns may be queued for a private operator review; the system doesn't publicly label anybody as a cheater.
 
-## Public ranking visibility (owner confirmed)
-
-- Every player, including anonymous/guest sessions, can **view the same leaderboard**. Nobody needs to be an administrator to browse it.
-- Open from both the title screen and **その他 → 討伐の証ランキング**, during and after the event.
-- Show ranking position, public character display name, and validated event proof count; show current viewer's own rank/count when known.
-- Display all participants through server pagination of **50 players per page**, not only the top 10.
-- Keep historical final rankings viewable after the event is closed.
-- Never expose email, account UUID, IP address, security telemetry, suspicion indicators or moderation decisions.
-- User-controlled display names must be HTML escaped and bounded.
-- Public RPC contract (still to be built): `yakusoku_collection_public_ranking(p_event_id text, p_page integer, p_page_size integer)`.
-  Expected JSON: `{ "rows": [{ "rank": 1, "displayName": "旅人", "count": 100 }], "totalParticipants": 1, "myRank": 1, "myCount": 100 }`.
-- Server must limit page size to max 50, validate event ID and page number, return **only** public safe fields, apply read-only grants for anonymous and authenticated players, and enforce rate limits.
-- The user-facing view and API client are staged in PR #23. The RPC and server-authoritative collection ledger are NOT deployed or implemented; **the live leaderboard is not yet functional**.
-
-## Work-in-progress
-- Provisional event/item names: 討伐の証争奪戦 / 討伐の証.
-- Core eligibility helper and boundary tests are staged on this development branch.
-- Do not expose a local client counter as a verified ranking. A browser-only tally is forgeable.
-
-## Required before release
-1. Server issues unique, authenticated battle tickets at normal battle start during the event.
-2. Server independently validates the account, canonical monster IDs, battle timing, victory, replay protection, and duplicate battle IDs; at most one token per defeated eligible monster. Server receipt is the single source of truth.
-3. Server keeps an append-only collection ledger with account-level totals (multiple save slots do not multiply counts). Do not mix the event item with ordinary material stacks or the 9,999 material limit.
-4. Implement the server-verified public ranking RPC and personal rank, and keep pending/offline events separate from confirmed scores.
-5. Enforce transactional atomicity, idempotency, rate limits, RLS/service privileges, retention rules, review logs, and minimal display data. No public cheating accusations.
-6. Run unit, integration, replay, timezone and release tests before owner-approved production deployment.
-7. Finalize tie-break logic, exact event title, announcement date, and reward-claim UI before launch. These are not confirmed yet.
-8. Award rewards only after the server finishes audit/review, through an idempotent server-side claim operation; never trust a claimed client rank.
-
-**Important:** A rapidly increasing score or a high rank is a signal for human review, not proof of tool use. Client-side code cannot reliably establish that a battle really took place without independent server verification.
+## Production deployment
+- Frontend source/QA and the optimized uploaded user banner are in this repository. The image is a compact mobile-resolution WebP to match the submitted design. Original high-resolution banner remains available in the user's provided ZIP.
+- Supabase migrations were applied on 2026-10-23 and verified before the event. Existing October event data is not modified.
+- Deploy to the pre-existing Worker `muddy-credit-f5af` **only after** QA succeeds, by the repository's single-file `release-requests/approved.json` owner-approved release workflow.
+- Announcement will **not** display until Nov 4 at 00:00 JST even when the build is deployed earlier.
