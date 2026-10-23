@@ -93,6 +93,7 @@ declare
  receipt jsonb:=null;
 begin
  if uid is null then raise exception 'authentication_required'; end if;
+ perform yakusoku_private.collection_maybe_finalize_202611();
  select finalized_at into finalized from yakusoku_private.collection_event_control_202611 where id=1;
  select rank,proof_count,under_review into standing from yakusoku_private.collection_final_standings_202611
   where auth_user_id=uid;
@@ -128,6 +129,7 @@ begin
   return yakusoku_private.collection_reward_receipt_202611(claim.id,claim.rank,claim.save_slot,claim.claimed_at);
  end if;
  if now()<'2026-11-17T00:00:00+09:00'::timestamptz then raise exception 'collection_rank_not_final'; end if;
+ perform yakusoku_private.collection_maybe_finalize_202611();
  select finalized_at into finalized from yakusoku_private.collection_event_control_202611 where id=1;
  if finalized is null then raise exception 'collection_rank_not_final'; end if;
  select rank,under_review into standing from yakusoku_private.collection_final_standings_202611 where auth_user_id=uid;
