@@ -950,3 +950,35 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .skill-preset-actions button{min-height:42px;font-size:.75rem;padding:.4rem .55rem}
 .skill-preset-actions button:disabled{opacity:.4}
 @media(max-width:380px){.skill-preset-row{gap:.35rem;padding:.45rem}.skill-preset-actions{gap:.25rem}.skill-preset-actions button{padding:.35rem .42rem;font-size:.7rem}}
+
+
+/* November 2026 collection event: publicly viewable, paginated ranking. */
+.collection-ranking{display:grid;gap:12px;min-width:0}
+.collection-ranking h2{margin:0}
+.collection-ranking>p{margin:0;line-height:1.55}
+.collection-ranking-me{border:1px solid rgba(206,167,86,.4);border-radius:12px;padding:12px;background:rgba(206,167,86,.08)}
+.collection-ranking-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:min(52vh,500px);overflow-y:auto}
+.collection-ranking-entry{display:grid;grid-template-columns:minmax(46px,66px) minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid rgba(147,146,157,.25);border-radius:9px;padding:10px;min-width:0}
+.collection-ranking-entry strong{overflow-wrap:anywhere}
+.collection-ranking-place{font-weight:700;text-align:center;white-space:nowrap}
+.collection-ranking-total{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.collection-ranking-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.collection-ranking-actions>span{white-space:nowrap}
+@media(max-width:400px){.collection-ranking-entry{grid-template-columns:45px minmax(0,1fr) auto;gap:6px;padding:8px}.collection-ranking-actions{justify-content:center}}
+
+
+/* Official November 6–16 collection ranking banner (announced November 4). */
+.collection-event-title-banner{display:block;width:100%;padding:0;overflow:hidden;text-align:left}
+.collection-event-banner-img,.collection-event-details-img{width:100%;height:auto;aspect-ratio:8/3;object-fit:contain;display:block}
+.collection-event-title-banner .collection-event-banner-label{display:flex;flex-direction:column;gap:4px;align-items:flex-start;padding:10px 12px}
+.collection-event-title-banner .collection-event-banner-label b{font-weight:800}
+.collection-event-title-banner .collection-event-banner-label small{white-space:normal}
+.collection-event-title-banner .collection-event-banner-label em{font-style:normal}
+.collection-event-details{display:grid;gap:12px}
+.collection-event-details img{border-radius:10px}
+.collection-event-details h2,.collection-event-details p{margin:0}
+.collection-event-details p{line-height:1.65}
+.collection-ranking-reward{border:1px solid rgba(206,167,86,.45);border-radius:12px;padding:14px;background:rgba(206,167,86,.08);display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.collection-ranking-reward h3,.collection-ranking-reward p{flex-basis:100%;margin:0}
+.collection-ranking-reward .action-main{font-weight:800}
+@media(max-width:520px){.collection-event-title-banner .collection-event-banner-label{padding:8px 10px}}

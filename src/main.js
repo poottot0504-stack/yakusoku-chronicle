@@ -107,6 +107,15 @@ import { canReceiveHuntCountApology,grantHuntCountApology,isHuntCountApologyDeli
 import { huntCountApologyLoadingMarkup,huntCountApologyDialogueMarkup } from './ui/hunt-count-apology.js';
 import { createBrowserMarketApi } from './market/browser-market-api.js';
 import { createFeedbackApi } from './online/feedback-api.js';
+import { COLLECTION_EVENT_202611 } from './data/collection-event-202611.js';
+import { collectionEventBannerMarkup,collectionEventDetailsMarkup,nextCollectionBannerBoundary } from './ui/collection-event-banner.js';
+import { createCollectionRewardApi } from './online/collection-reward-api.js';
+import { grantCollectionReward,collectionRewardDelivered } from './core/collection-reward-claim.js';
+import { collectionRankingMarkup,collectionRankingTitleButton } from './ui/collection-ranking.js';
+import { createCollectionRankingApi } from './online/collection-ranking-api.js';
+import { createCollectionScoreApi } from './online/collection-score-api.js';
+import { reserveCollectionBattle } from './online/collection-battle-ticket.js';
+import {collectionDropPreview} from './core/collection-event.js';
 import { feedbackFormMarkup, feedbackHistoryMarkup, feedbackSentMarkup } from './ui/feedback.js';
 import { titleUpdatesMarkup } from './ui/title-updates.js';
 import { purchaseMarketListing,syncPendingMarketTransactions,formatMarketSaleNotifications,persistMarketReturn } from './market/market-sync.js';
@@ -142,6 +151,13 @@ const marketOperationGuard=createMarketOperationGuard({
 let equipmentSearch=''; // Browser-only query. Never update inventory or save data.
 const getMarketApi=()=>marketApiPromise??=createBrowserMarketApi({storage:session.storage});
 const feedbackApi=createFeedbackApi({storage:session.storage});
+const collectionRankingApi=createCollectionRankingApi({storage:session.storage});
+const collectionScoreApi=createCollectionScoreApi({storage:session.storage});
+const collectionRewardApi=createCollectionRewardApi({storage:session.storage});
+let collectionRewardBusy=false;
+let collectionRewardView={finalized:false,claimable:false,receipt:null,loading:false,error:false};
+let collectionRankingRequest=0;
+let collectionRankingView={rows:[],totalParticipants:0,page:1,myRank:null,myCount:0,loading:false,error:false};
 let feedbackBusy=false;
 let raidRoom=null,raidStartedAt=0,raidPendingBossAction=null,raidRewardClaimBusy=false,raidJoinBusy=false,raidBattleLog=[],raidLastHitText='',raidTurnState=null,raidTurnExecuting=false,raidEndedReason=null,raidExecutionId=0,raidClaimExecutionId=0,eventBoundaryTimer=null;
 const raidPoller=createRaidPoller({api:raidApi,getPayload:()=>({playerId:getRaidPlayerId(session.storage)}),intervalMs:1000,onSnapshot:r=>{if(!raidRoom||(r.sessionId&&r.sessionId!==raidRoom.sessionId)||(r.roomId&&r.roomId!==raidRoom.roomId))return;if(isRaidTimedOutSnapshot(r)){raidExecutionId++;raidPoller.stop();raidEndedReason='timeout';raidTurnExecuting=false;raidTurnState=null;raidPendingBossAction=null;addRaidBattleLog(`${raidRoom.boss?.name??'レイドボス'}は逃げ出した…`);renderRaidBattleScreen();return;}const motion={visualAction:raidRoom.visualAction,visualEvents:raidRoom.visualEvents};raidRoom={...raidRoomView(r),...motion};rememberRaidSnapshot(r);if(raidTurnExecuting)return;updateRaidBattleModal(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers());void tryClaimRaidReward(r,{silent:true});if(r.currentHp===0){raidPoller.stop();raidTurnState=null;raidPendingBossAction=null;saveNow();renderRaidBattleScreen();}},onError:()=>{}});
@@ -337,7 +353,7 @@ function createAdventureBattle(enemies,options={}){
  return b;
 }
 function scheduleEventRefresh(){
- clearTimeout(eventBoundaryTimer);const next=Math.min(nextFestivalBoundary(),getNextEventBoundary()??Infinity,getNextDailyTravelBonusBoundary()??Infinity,getNextRaidStart(),getRaidWindow()?.endsAt??Infinity);if(!Number.isFinite(next))return;
+ clearTimeout(eventBoundaryTimer);const next=Math.min(nextFestivalBoundary(),nextCollectionBannerBoundary(),getNextEventBoundary()??Infinity,getNextDailyTravelBonusBoundary()??Infinity,getNextRaidStart(),getRaidWindow()?.endsAt??Infinity);if(!Number.isFinite(next))return;
  eventBoundaryTimer=setTimeout(()=>{
   if(!document.hidden&&!battle&&!raidRoom&&!raidJoinBusy){if(title.classList.contains('active'))renderTitle();else if(view==='adventure'){renderGameKeepVertical();void refreshFestival(true);}}
   scheduleEventRefresh();
@@ -357,7 +373,9 @@ function awardSpecialBattleExperience(){
  const result=recordAdventureVictory(state,{regionId:battleMeta.regionId,boss:false,enemyIds:enemies.map(e=>e.bestiaryId??e.id),exp,jobExp,gold:0,countsForExploration:false});
  state.adventure.message=['試練勝利！',...result.levelUps].join('\n');auditVictory(battleMeta,exp);return result;
 }
-function startBattle(enemy,{boss=false,rematch=false,trainingArea=null,guildQuestId=null,exploration=false}={}){const enemies=Array.isArray(enemy)?enemy:[enemy];battleMeta={regionId:guildQuestId?enemies[0].regionId:state.adventure.regionId,boss,rematch,trainingArea,guildQuestId,exploration,rareEncounter:enemies.some(x=>x.rareMonster),enemy:enemies[0],enemies,auditBefore:captureProgressionSnapshot(state)};battle=createAdventureBattle(enemies,{isBoss:boss});battle.gold=enemies.reduce((n,e)=>n+(e.gold??0),0);battle.exp=enemies.reduce((n,e)=>n+(e.exp??0),0);battle.jobExp=enemies.reduce((n,e)=>n+(e.jobExp??0),0);startTurn(battle);renderBattle();}
+function startBattle(enemy,{boss=false,rematch=false,trainingArea=null,guildQuestId=null,exploration=false}={}){const enemies=Array.isArray(enemy)?enemy:[enemy];battleMeta={regionId:guildQuestId?enemies[0].regionId:state.adventure.regionId,boss,rematch,trainingArea,guildQuestId,exploration,rareEncounter:enemies.some(x=>x.rareMonster),enemy:enemies[0],enemies,auditBefore:captureProgressionSnapshot(state)};
+battleMeta.collectionProof=reserveCollectionBattle(battleMeta,enemies,params=>collectionScoreApi.begin(params),{displayName:getFeedbackAuthorName()});
+battle=createAdventureBattle(enemies,{isBoss:boss});battle.gold=enemies.reduce((n,e)=>n+(e.gold??0),0);battle.exp=enemies.reduce((n,e)=>n+(e.exp??0),0);battle.jobExp=enemies.reduce((n,e)=>n+(e.jobExp??0),0);startTurn(battle);renderBattle();}
 // Three genuine battles with HP/MP carried between waves. Each victory saves
 // materials immediately, including battles started just before the event closes.
 function startEclipseWave(wave=1){
@@ -382,7 +400,7 @@ function auditVictory(meta,expAwarded=0){
   const after=captureProgressionSnapshot(state);
   const enemyIds=(battle?.actors?.filter(x=>x.side==='enemy'&&x.hp<=0&&!x.escaped)??(meta?.enemies??[meta?.enemy]).filter(Boolean)).map(x=>x.bestiaryId??x.id);
   const events=buildProgressionAuditEvents({playerId:playerStatsHeartbeat.playerId,before:meta?.auditBefore??after,after,meta:{
-   battleId:meta?.festivalProof?.battleId,
+   battleId:meta?.festivalProof?.battleId??meta?.collectionProof?.battleId,
    battleType:festivalBattleType(meta),regionId:meta?.regionId??'',enemyIds,
    cycle:state.cycle??1,saveSlot:currentSlot,expAwarded
   }});
@@ -472,7 +490,12 @@ function finishBattleVictory(){clearNormalAuto();syncPlayTime();syncBattlePartyT
  if(battleMeta.rareEncounter){const reward=getRareBattleRewards(battle);recordAdventureVictory(state,{regionId:battleMeta.regionId,boss:false,enemyIds:reward.enemyIds,exp:reward.exp/2,gold:0,jobExp:reward.jobExp,characterExpMultiplier:2,jobExpMultiplier:2,countsForExploration:false});auditVictory(battleMeta,battle.exp??0);const rareBooks=awardBattleDrops(state,(battle.actors??[]).filter(x=>x.side==='enemy'&&x.hp<=0&&!x.escaped));state.adventure.message=reward.defeatedCount?`✨ 希少モンスター戦終了！\n撃破：${reward.defeatedCount}体 / 逃走：${reward.escapedCount}体\nキャラクター経験値2倍！\nジョブ経験値2倍！${rareBooks.length?'\n'+formatDropLines(rareBooks).join('\n'):''}`:`💨 希少モンスターは逃げ去った……\n経験値は獲得できなかった。`;saveNow();battle=null;battleScreen.classList.remove('active');view=battleMeta.exploration?'exploreResult':'adventure';renderGame();toast(reward.defeatedCount?`希少モンスター撃破！ 経験値2倍！`:'希少モンスターに逃げられた！');return;}
  if(battleMeta.trainingArea&&e.materialDrop){state.materials??={};addMaterial(state,e.materialDrop,1);}
  if(battleMeta.rematch){recordAdventureVictory(state,{regionId:battleMeta.regionId,enemyIds:(battleMeta.enemies??[e]).map(x=>x.bestiaryId??x.id),exp:0,jobExp:0,gold:battle.gold??0,countsForExploration:false});const drops=awardBattleDrops(state,battleMeta.enemies??[e],Math.random,Date.now(),{allowBoostScrollDrops:false});state.adventure.message=['図鑑再戦勝利！ Gとドロップを獲得した。',...formatDropLines(drops)].join('\n');for(const defeated of (battleMeta.enemies??[e]))updateQuestProgress(state,{type:'defeat',id:defeated.bestiaryId??defeated.id,amount:1,source:'bestiaryRematch'});}
- if(!battleMeta.rematch){recordAdventureVictory(state,{regionId:battleMeta.trainingArea?`training:${battleMeta.trainingArea}`:battleMeta.regionId,boss:battleMeta.boss,enemyIds:(battleMeta.enemies??[e]).map(x=>x.bestiaryId??x.id),exp:battle.exp??0,gold:battle.gold??0,jobExp:battle.jobExp??0,countsForExploration:!battleMeta.guildQuestId});auditVictory(battleMeta,battle.exp??0);const drops=awardBattleDrops(state,battleMeta.enemies??[e]);const dropLines=formatDropLines(drops);const msg=state.adventure.message?.split('\n')??[];state.adventure.message=[msg[0],...dropLines,...msg.slice(1)].filter(Boolean).join('\n');for(const defeated of (battleMeta.enemies??[e]))updateQuestProgress(state,{type:'defeat',id:defeated.bestiaryId??defeated.id,amount:1});if(battleMeta.guildQuestId){const q=QUESTS[battleMeta.guildQuestId],rec=state.quests?.[battleMeta.guildQuestId];state.adventure.message=[`🎯 ${q?.name??'ギルド依頼'}：${e.name}を討伐！`,...dropLines,rec?.status==='ready'?'✅ 目標達成！ 街のギルドマスターに報告しよう。':`依頼進捗 ${rec?.progress??0}/${q?.goal?.amount??1}。ギルドマスターから続けて挑戦できます。`].join('\n');}if(battleMeta.boss){const idx=getUnlockedRegions(state).findIndex(x=>x.id===battleMeta.regionId);if(battleMeta.regionId==='field')recordSpecialProgress(state,'emblem');const specialKey=grantSpecialBossKeyItem(state,battleMeta.regionId);if(specialKey)state.adventure.message+=`\n🎁 ${getItemDef(specialKey.id).name} ×1 を手に入れた！`;recordSpecialProgress(state,'treasure');if(['volcano','ruins','abyss'].includes(battleMeta.regionId))recordSpecialProgress(state,'strongEnemy');}if(getActiveParty(state).some(c=>c.hp>0&&c.hp<=c.maxHp*.25))recordSpecialProgress(state,'lowHpWin');}
+ if(!battleMeta.rematch){recordAdventureVictory(state,{regionId:battleMeta.trainingArea?`training:${battleMeta.trainingArea}`:battleMeta.regionId,boss:battleMeta.boss,enemyIds:(battleMeta.enemies??[e]).map(x=>x.bestiaryId??x.id),exp:battle.exp??0,gold:battle.gold??0,jobExp:battle.jobExp??0,countsForExploration:!battleMeta.guildQuestId});auditVictory(battleMeta,battle.exp??0);
+const proof=battleMeta.collectionProof;
+const ticketDrop=proof?collectionDropPreview(battleMeta,(battle.actors??[]),proof.startedAt,Date.now()):null;
+const drops=awardBattleDrops(state,battleMeta.enemies??[e]);
+const dropLines=formatDropLines(drops);
+if(ticketDrop?.count)dropLines.push(`🏆 討伐の証 ×${ticketDrop.count}（サーバーで確認後、ランキングに反映）`);const msg=state.adventure.message?.split('\n')??[];state.adventure.message=[msg[0],...dropLines,...msg.slice(1)].filter(Boolean).join('\n');for(const defeated of (battleMeta.enemies??[e]))updateQuestProgress(state,{type:'defeat',id:defeated.bestiaryId??defeated.id,amount:1});if(battleMeta.guildQuestId){const q=QUESTS[battleMeta.guildQuestId],rec=state.quests?.[battleMeta.guildQuestId];state.adventure.message=[`🎯 ${q?.name??'ギルド依頼'}：${e.name}を討伐！`,...dropLines,rec?.status==='ready'?'✅ 目標達成！ 街のギルドマスターに報告しよう。':`依頼進捗 ${rec?.progress??0}/${q?.goal?.amount??1}。ギルドマスターから続けて挑戦できます。`].join('\n');}if(battleMeta.boss){const idx=getUnlockedRegions(state).findIndex(x=>x.id===battleMeta.regionId);if(battleMeta.regionId==='field')recordSpecialProgress(state,'emblem');const specialKey=grantSpecialBossKeyItem(state,battleMeta.regionId);if(specialKey)state.adventure.message+=`\n🎁 ${getItemDef(specialKey.id).name} ×1 を手に入れた！`;recordSpecialProgress(state,'treasure');if(['volcano','ruins','abyss'].includes(battleMeta.regionId))recordSpecialProgress(state,'strongEnemy');}if(getActiveParty(state).some(c=>c.hp>0&&c.hp<=c.maxHp*.25))recordSpecialProgress(state,'lowHpWin');}
  recordAchievementEvent(state,{type:'firstWin'});saveNow();battle=null;battleScreen.classList.remove('active');if(battleMeta.boss&&battleMeta.regionId==='abyss'){view=state.cycle>=2?'endgame':'ending';}else if(battleMeta.trainingArea)view='endgame';else if(battleMeta.guildQuestId)view='town';else view=battleMeta.exploration?'exploreResult':'adventure';renderGame();if(battleMeta.trainingArea){const area=TRAINING_AREAS.find(x=>x.id===battleMeta.trainingArea);openEndgameReplayPrompt('training',battleMeta.trainingArea,area?.name??'修練',state.adventure.message);}else if(battleMeta.guildQuestId)openModal(`<h2>🎯 ギルド指定討伐・勝利！</h2><p class="notice endgame-replay-message">${esc(state.adventure.message)}</p><div class="endgame-replay-actions"><button class="action-main" data-npc="guildMaster">ギルドマスターに報告・続けて挑戦</button><button data-close-modal>街に戻る</button></div>`);if(!battleMeta.exploration)toast(`勝利！ ${battleMeta.enemies?.length??1}体撃破`);}
 function finishBattleDefeat(){clearNormalAuto();syncBattlePartyToState(state,battle);if(mashoRun){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'defeat');setMashoResultVisibility(state,false);mashoRun=null;}const {loss}=handlePartyWipe(state);battle=null;view='town';saveNow();renderGame();toast(`全滅… ${loss}Gを失い宿屋へ戻った`);}
 function act(action){if(!battle||battle.phase==='complete')return;const result=resolveAction(battle,action);if(result?.ok===false){toast(result.message);return;}syncBattlePartyToState(state,battle);renderBattle();}
@@ -1069,7 +1092,80 @@ async function submitFeedback(){
  }catch(error){if(errorEl)errorEl.textContent=error?.message??'送信に失敗しました。';}
  finally{feedbackBusy=false;if(sendButton){sendButton.disabled=false;sendButton.textContent='送信する';}}
 }
-function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
+function collectionRewardStorageKey(){return 'yakusoku.collection.202611.delivered.'+String(session.userId??playerStatsHeartbeat.playerId);}
+function collectionRankingViewMarkup(){
+ const receipt=collectionRewardView.receipt;
+ return collectionRankingMarkup({...collectionRankingView,rewardLoading:collectionRewardView.loading,rewardError:collectionRewardView.error,
+  rewardFinalized:collectionRewardView.finalized,rewardClaimable:collectionRewardView.claimable,rewardReceipt:receipt,
+  rewardDelivered:!!receipt&&(collectionRewardDelivered(state,receipt)||session.storage.getItem(collectionRewardStorageKey())===receipt.id)});
+}
+function renderCollectionRankingPanel(){
+ const panel=modal.querySelector('.collection-ranking');
+ if(panel)panel.outerHTML=collectionRankingViewMarkup();
+}
+async function refreshCollectionReward(){
+ if(Date.now()<COLLECTION_EVENT_202611.endsAt||!modal.querySelector('.collection-ranking'))return;
+ collectionRewardView.loading=true;collectionRewardView.error=false;renderCollectionRankingPanel();
+ try{
+  const result=await collectionRewardApi.snapshot();
+  if(!modal.querySelector('.collection-ranking'))return;
+  collectionRewardView={finalized:result.finalized===true,claimable:result.claimable===true,
+   receipt:result.receipt??null,loading:false,error:false};
+ }catch{
+  if(!modal.querySelector('.collection-ranking'))return;
+  collectionRewardView={...collectionRewardView,loading:false,error:true};
+ }
+ renderCollectionRankingPanel();
+}
+async function claimCollectionReward(){
+ if(collectionRewardBusy||Date.now()<COLLECTION_EVENT_202611.endsAt)return;
+ collectionRewardBusy=true;
+ const target=state,slot=currentSlot;
+ try{
+  const receipt=await collectionRewardApi.claim(slot);
+  if(target!==state||slot!==currentSlot)throw new Error(`SLOT ${slot}に戻って報酬を受け取ってください`);
+  collectionRewardView.receipt=receipt;
+  if(collectionRewardDelivered(target,receipt)||session.storage.getItem(collectionRewardStorageKey())===receipt.id){
+   toast('報酬は受取済みです');return;
+  }
+  const prior={gold:target.gold,materials:{...(target.materials??{})},inventory:structuredClone(target.inventory??[]),
+   receipts:{...(target.collectionRewardReceipts??{})}};
+  try{grantCollectionReward(target,receipt,slot);saveNow();}
+  catch(err){target.gold=prior.gold;target.materials=prior.materials;target.inventory=prior.inventory;
+   target.collectionRewardReceipts=prior.receipts;throw err;}
+  try{session.storage.setItem(collectionRewardStorageKey(),receipt.id);}catch{}
+  toast('ランキング報酬を受け取りました！');
+  collectionRewardView.claimable=false;
+  renderCollectionRankingPanel();
+ }catch(error){toast(error?.message??'報酬を受け取れませんでした。');}
+ finally{collectionRewardBusy=false;renderCollectionRankingPanel();}
+}
+function openCollectionRanking(){
+ collectionRankingRequest++;
+ collectionRankingView={rows:[],totalParticipants:0,page:1,myRank:null,myCount:0,loading:false,error:false};
+ collectionRewardView={finalized:false,claimable:false,receipt:null,loading:false,error:false};
+ openModal(collectionRankingViewMarkup());
+ if(Date.now()>=COLLECTION_EVENT_202611.startsAt)void refreshCollectionRanking(1);
+ if(Date.now()>=COLLECTION_EVENT_202611.endsAt)void refreshCollectionReward();
+}
+async function refreshCollectionRanking(page=1){
+ if(!Number.isSafeInteger(page)||page<1||page>100000||!modal.querySelector('.collection-ranking'))return;
+ const request=++collectionRankingRequest;
+ collectionRankingView={...collectionRankingView,page,rows:[],loading:true,error:false};
+ const render=()=>renderCollectionRankingPanel();
+ render();
+ try{
+  const payload=await collectionRankingApi.page(page);
+  if(collectionRankingRequest!==request||!modal.querySelector('.collection-ranking'))return;
+  collectionRankingView={...collectionRankingView,...payload,loading:false,error:false};
+ }catch{
+  if(collectionRankingRequest!==request||!modal.querySelector('.collection-ranking'))return;
+  collectionRankingView={...collectionRankingView,rows:[],loading:false,error:true};
+ }finally{
+  if(collectionRankingRequest===request)render();
+ }
+}
+function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=COLLECTION_EVENT_202611.startsAt?'<button data-collection-ranking-open>🏆<b>討伐の証ランキング</b></button>':''}${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
 function toggleParty(id){const ids=[...(state.activePartyIds??[])],has=ids.includes(id);if(has){if(ids.length===1)return toast('戦闘メンバーは1人以上必要です');setActiveParty(state,ids.filter(x=>x!==id));}else{if(ids.length>=4)return toast('戦闘メンバーは4人までです');setActiveParty(state,[...ids,id]);}saveNow();renderGame();}
 
 document.addEventListener('click',e=>{
@@ -1077,6 +1173,12 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-hunt-title-details')){titleHuntDetailsOpen=true;return renderTitleHuntDetails();}
  if(el.hasAttribute('data-hunt-title-back')){titleHuntDetailsOpen=false;renderTitle();title.scrollTop=0;return;}
  if(el.hasAttribute('data-hunt-archive')){openModal(festivalArchiveMarkup());return void refreshFestival(true);}
+ if(el.hasAttribute('data-collection-event-details'))return openModal(collectionEventDetailsMarkup());
+ if(el.hasAttribute('data-collection-ranking-open'))return openCollectionRanking();
+ if(el.hasAttribute('data-collection-reward-claim'))return void claimCollectionReward();
+ if(el.hasAttribute('data-collection-reward-refresh'))return void refreshCollectionReward();
+ if(el.hasAttribute('data-collection-ranking-refresh'))return void refreshCollectionRanking(collectionRankingView.page);
+ if(el.hasAttribute('data-collection-ranking-page'))return void refreshCollectionRanking(Number(el.dataset.collectionRankingPage));
  if(el.hasAttribute('data-hunt-details'))return openModal(festivalDetailsMarkup());
  if(el.hasAttribute('data-hunt-raid-guide')){const card=game.querySelector('.raid-event-panel');if(card){card.scrollIntoView({behavior:'smooth',block:'start'});return;}return openModal(raidDetailsMarkup());}
  if(el.hasAttribute('data-hunt-refresh'))return void refreshFestival(true);
@@ -1258,9 +1360,9 @@ function renderTitleHuntDetails(){
 }
 const titleHeaderMarkup="<header class=\"forest-title-heading\"><div class=\"title-gem\" aria-hidden=\"true\">⚔</div><p class=\"eyebrow\">CHRONICLE OF PROMISE</p><h1>約束の<br><span>クロニクル</span></h1><div class=\"title-leaf-divider\" aria-hidden=\"true\">❧ ── ✧ ── ☙</div></header>";
 function renderTitle(){if(titleHuntDetailsOpen)return;scheduleEventRefresh();if(!accountState.ready){
- title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}<p class="title-copy" role="status">アカウントとセーブデータを確認しています…</p></div>`;
+ title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}${collectionEventBannerMarkup()}${collectionRankingTitleButton()}<p class="title-copy" role="status">アカウントとセーブデータを確認しています…</p></div>`;
  return;
-}const slots=listSaveSlots(session);title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}<p class="title-copy">セーブデータを選んでください。</p><div class="save-slot-list">${slots.map(x=>`<section class="save-slot ${x.empty?'is-empty':'has-save'}"><strong><span aria-hidden="true">❧</span> SLOT ${x.slot} <span aria-hidden="true">☙</span></strong><small>${x.empty?'空きスロット':`${esc(x.heroName)} / Lv${x.heroLevel} / ${x.cycle}周目<br><span class="save-playtime">⏱ プレイ時間 ${formatPlayTime(x.playTimeSeconds)}</span>`}</small><div>${x.empty?`<button class="action-main" data-slot-new="${x.slot}">このスロットではじめる</button>`:`<button class="action-main" data-slot-load="${x.slot}">つづきから</button><button data-slot-new="${x.slot}">最初から</button><button data-slot-delete="${x.slot}">削除</button>`}</div></section>`).join('')}</div><p class="save-note">セーブデータは5つまで作成できます。</p><p class="save-migration-note">旧セーブデータはSLOT 1へ自動移行されます</p>${accountTitleMarkup()}</div>`;}
+}const slots=listSaveSlots(session);title.innerHTML=`<div class="title-card">${titleHeaderMarkup}${titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage)}${festivalTitleMarkup()}${titleEventNoticeMarkup()}${collectionEventBannerMarkup()}${collectionRankingTitleButton()}<p class="title-copy">セーブデータを選んでください。</p><div class="save-slot-list">${slots.map(x=>`<section class="save-slot ${x.empty?'is-empty':'has-save'}"><strong><span aria-hidden="true">❧</span> SLOT ${x.slot} <span aria-hidden="true">☙</span></strong><small>${x.empty?'空きスロット':`${esc(x.heroName)} / Lv${x.heroLevel} / ${x.cycle}周目<br><span class="save-playtime">⏱ プレイ時間 ${formatPlayTime(x.playTimeSeconds)}</span>`}</small><div>${x.empty?`<button class="action-main" data-slot-new="${x.slot}">このスロットではじめる</button>`:`<button class="action-main" data-slot-load="${x.slot}">つづきから</button><button data-slot-new="${x.slot}">最初から</button><button data-slot-delete="${x.slot}">削除</button>`}</div></section>`).join('')}</div><p class="save-note">セーブデータは5つまで作成できます。</p><p class="save-migration-note">旧セーブデータはSLOT 1へ自動移行されます</p>${accountTitleMarkup()}</div>`;}
 title.addEventListener('toggle',e=>{if(e.target?.matches?.('[data-title-update-details]')){titleUpdateDetailsOpen=e.target.open;const summary=e.target.querySelector('summary');if(summary)summary.firstChild.textContent=titleUpdateDetailsOpen?'詳しい更新内容を閉じる':'詳しい更新内容を見る';}},true);
 title.addEventListener('click',e=>{const el=e.target.closest('button');if(!el)return;if(el.hasAttribute('data-title-update-page')){const next=Number(el.dataset.titleUpdatePage);if(next===1||next===2){titleUpdatePage=next;const panel=title.querySelector('.title-update-panel');if(panel)panel.outerHTML=titleUpdatesMarkup(titleUpdateDetailsOpen,titleUpdatePage);}return;}if(el.dataset.slotLoad)return continueGame(el.dataset.slotLoad);if(el.dataset.slotNew){if(!listSaveSlots(session)[Number(el.dataset.slotNew)-1]?.empty&&!confirm('このスロットを最初から始めますか？'))return;return startFresh(el.dataset.slotNew);}if(el.dataset.slotDelete){if(confirm(`SLOT ${el.dataset.slotDelete}を削除しますか？`)){deleteSlot(session,el.dataset.slotDelete);if(session.mode==='user'&&accountState.linked)void accountApi.deleteSlot(Number(el.dataset.slotDelete)).catch(()=>{});renderTitle();}}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(playStartedAt!==null){saveNow();playStartedAt=null;boostClockLastAt=null;}}else if(!title.classList.contains('active')&&playStartedAt===null){playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;}if(!document.hidden){if(battle&&!battlePlayback)scheduleNormalAuto();if(raidRoom&&!raidTurnExecuting)scheduleRaidAuto();void refreshFestival(true);if(raidRoom)void raidPoller.refresh();else if(raidLobbyPoller.active)void raidLobbyPoller.refresh();if(!battle&&!raidRoom&&!raidJoinBusy){if(title.classList.contains('active'))renderTitle();else if(view==='adventure')renderGameKeepVertical();}if(!title.classList.contains('active')&&state.market?.everUsed)void syncMarketSettlement({notify:true});scheduleEventRefresh();}});
