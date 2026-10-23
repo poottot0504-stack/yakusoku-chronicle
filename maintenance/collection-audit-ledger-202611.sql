@@ -100,7 +100,7 @@ declare
  v_duration bigint;
 begin
  if new.battle_type<>'normal' or new.accepted_at<'2026-11-06T00:00:00+09:00'::timestamptz
-  or new.accepted_at>='2026-11-19T00:00:00+09:00'::timestamptz
+  or new.accepted_at>='2026-11-18T00:00:00+09:00'::timestamptz
   or new.client_at<'2026-11-06T00:00:00+09:00'::timestamptz
   or new.client_at>='2026-11-17T00:00:00+09:00'::timestamptz
   or new.region_id not in ('field','forest','coast','cave','snow','desert','swamp','volcano','ruins','abyss')
