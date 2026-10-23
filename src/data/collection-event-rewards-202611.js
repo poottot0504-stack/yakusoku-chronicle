@@ -1,5 +1,5 @@
-// Draft reward table for the November 2026 collection event.
-// This is data only. Do NOT grant rewards from the browser or publish this draft.
+// Final reward tiers for the November 2026 collection event.
+// Ranks and receipts are assigned server-side; this table validates client delivery.
 // Book rewards use the game's existing 2x experience book IDs.
 function makeTier(minRank,maxRank,gold,orichalcum,orihal,characterBooks,jobBooks){
  const items=[
