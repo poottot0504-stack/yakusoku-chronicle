@@ -1,4 +1,4 @@
-// 2026-11 collection ranking event. Not connected to production UI or rewards yet.
+// 2026-11 collection ranking event: title announcement, score and rewards.
 // All schedule boundaries are Japan Standard Time. The end is exclusive.
 export const COLLECTION_EVENT_202611 = Object.freeze({
  id: 'chronicle-collection-202611',
