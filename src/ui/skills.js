@@ -16,6 +16,12 @@ export function skillsMarkup(state,characterId){
 }
 export function skillLoadoutMarkup(state,characterId){
  const c=state.characters.find(x=>x.id===characterId);if(!c)return '<p>キャラクターが見つかりません。</p>';
+ if(['shielder','greatShielder'].includes(c.currentJob)){
+  const escText=esc;
+  const level=c.jobLevels?.[c.currentJob]??1;
+  const milestones=getSkillBook(c.currentJob);
+  return `<section class="panel shield-skill-list" data-no-pixel-icon><button data-skill-list-back>← 前の画面へ戻る</button><h2>🛡️ ${escText(c.name)}：${escText(JOBS[c.currentJob]?.name??'盾士')}の守護特性</h2><p class="notice">盾士系は常に防御に専念し、行動選択は防御のみ。スキルの引き継ぎはできません。下の特性は職業Lvに応じて自動適用されます。</p><div class="skill-catalog">${milestones.map(v=>`<article class="skill-catalog-row ${level>=v.level?'is-set':'is-locked'}"><h4>${escText(v.name)}（Lv${v.level}）</h4><p class="skill-description">${escText(v.description??'')}</p><small>${level>=v.level?'習得済み・自動発動':'未習得'}</small></article>`).join('')}</div></section>`;
+ }
  const lv=c.jobLevels?.[c.currentJob]??1,all=getCharacterSkillCatalog(c),ids=getSelectedSkillIds(c),selected=new Set(ids),full=ids.length>=BATTLE_SKILL_LIMIT;
  const allowedJobs=getAllowedSkillSourceJobs(c.currentJob),jobOrder=[...(allowedJobs.includes(c.currentJob)?[c.currentJob]:[]),...allowedJobs.filter(id=>id!==c.currentJob)];
  const categories=jobOrder.map(jobId=>({jobId,skills:all.filter(s=>s.sourceJob===jobId)})).filter(group=>group.skills.length),hasCurrentCategory=categories.some(group=>group.jobId===c.currentJob);
