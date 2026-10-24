@@ -98,7 +98,7 @@ def build(root=ROOT, output=OUTPUT):
     html = html.replace('<head>', f'<head><script>window.__CHRONICLE_BUILD_ID__="{build_id}";</script>', 1)
     index_file.write_text(html, encoding='utf-8')
     (output/'build-version.json').write_text(
-        json.dumps({'buildId':build_id}, ensure_ascii=False)+'\\n', encoding='utf-8'
+        json.dumps({'buildId':build_id}, ensure_ascii=False)+'\n', encoding='utf-8'
     )
     files = [p for p in output.rglob('*') if p.is_file()]
     if len(files)>MAX_FILE_COUNT:
