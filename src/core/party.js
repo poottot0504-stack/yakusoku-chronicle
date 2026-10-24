@@ -32,3 +32,25 @@ export function setActiveParty(state, characterIds) {
   state.activePartyIds = [...characterIds];
   return state.activePartyIds;
 }
+
+/**
+ * Move a battle member to a different party position while preserving all
+ * membership and character data. The existing activePartyIds array is the
+ * single source of truth for both UI order and adjacent cover positioning.
+ */
+export function movePartyMember(state,fromId,toId){
+ const current=[...(state.activePartyIds??[])];
+ if(fromId===toId)return current;
+ const from=current.indexOf(fromId),to=current.indexOf(toId);
+ if(from<0||to<0)throw new Error('編成中の仲間だけ並び替えられます');
+ current.splice(from,1);
+ current.splice(to,0,fromId);
+ return setActiveParty(state,current);
+}
+export function shiftPartyMember(state,id,direction){
+ const ids=[...(state.activePartyIds??[])],from=ids.indexOf(id),to=from+Number(direction);
+ if(from<0)throw new Error('編成中の仲間だけ並び替えられます');
+ if(!Number.isInteger(Number(direction))||![1,-1].includes(Number(direction)))throw new Error('移動方向が不正です');
+ if(to<0||to>=ids.length)return ids;
+ return movePartyMember(state,id,ids[to]);
+}
