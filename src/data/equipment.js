@@ -1,6 +1,7 @@
 import { MASHO_ABYSS_WEAPONS,MASHO_ABYSS_SPELLBOOK } from './masho-abyss-weapons.js';
 import { FESTIVAL_EQUIPMENT } from './hunt-festival.js';
 import { MASHO_EQUIPMENT } from './masho-equipment.js';
+import { SHIELDER_SHIELDS } from './shielder-equipment.js';
 import { ECLIPSE_EQUIPMENT } from './eclipse-2026.js';
 import { OATHBREAKER_DATA } from './oathbreakers.js';
 import { NORMAL_ENEMY_LIST } from './enemies.js';
@@ -227,6 +228,8 @@ WEAPON_TYPES.push('gunblade','starGlobe');
 // V60: high-grade refined-material job gear.
 // Unlock path: raw material -> refined material -> job-exclusive weapon / body armor / ring / charm.
 const HIGH_FORGE_JOB_STYLES={
+ shielder:{weaponType:'oneHandSword',weapon:'護りの短剣',armor:'守護甲',focus:'attack',tank:true},
+ greatShielder:{weaponType:'oneHandSword',weapon:'要塞剣',armor:'大盾甲',focus:'attack',tank:true},
  swordsman:{weaponType:'oneHandSword',weapon:'聖剣',armor:'剣聖装',focus:'attack'},
  mage:{weaponType:'greatStaff',weapon:'大魔杖',armor:'魔導衣',focus:'magic'},
  thief:{weaponType:'dualBlades',weapon:'双影刃',armor:'影装',focus:'attack',agile:true},
@@ -394,6 +397,7 @@ for(const def of Object.values(EQUIPMENT)){
 Object.assign(EQUIPMENT,FESTIVAL_EQUIPMENT);
 
 Object.assign(EQUIPMENT,MASHO_ABYSS_WEAPONS);
+for(const def of Object.values(SHIELDER_SHIELDS))EQUIPMENT[def.id]=E(def.id,def.name,def.slot,def);
 EQUIPMENT[MASHO_ABYSS_SPELLBOOK.id]=MASHO_ABYSS_SPELLBOOK;
 
 // Limited 2026 eclipse gear follows normal equip, resistance, upgrade and save rules.
