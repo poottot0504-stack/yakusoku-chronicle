@@ -118,7 +118,7 @@ export function getCharacterSkillCatalog(character){
    learned:s.level<=Number(character?.jobLevels?.[job]??(job===current?1:0))};
  }));
 }
-export function getLearnedBattleSkills(character){return getCharacterSkillCatalog(character).filter(s=>s.learned);}
+export function getLearnedBattleSkills(character){return getCharacterSkillCatalog(character).filter(s=>s.learned&&!s.autoPassive);}
 export function getSkillBook(jobId){return (BOOK[jobId]??[]).map(s=>enrichHealingSkill(jobId,s));}
 
 export function skillMetricLabel(skill){if(!skill)return '';if(skill.type==='buff')return skill.description??(skill.target==='all'?'味方全員を強化':'自己強化');if(skill.type==='heal')return `回復力 ${skill.power??0} / ${skill.highClear?'ハイクリア（味方全員の状態異常解除）':'クリア（状態異常解除）'}`;if(skill.type==='revive')return `蘇生HP ${Math.round((skill.hpRatio??((skill.power??0)/100))*100)}%`;if(Number.isFinite(skill.power))return `威力：${skill.power}%`;return '';}

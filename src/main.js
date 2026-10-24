@@ -808,9 +808,6 @@ function renderRaidBattleScreen(){
  if(!raidRoom)return;
  openModal(raidBattleMarkup(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers(),raidBattleLog,raidTurnInfo()));
  modal.classList.add('raid-ui-open');
- if(isShieldGuardJob(currentRaidPartyActor()?.currentJob)){
-  for(const btn of modal.querySelectorAll('[data-raid-action="attack"],[data-raid-open-skills],[data-raid-open-items]'))btn.disabled=true;
- }
  scheduleRaidAuto();
 }
 function raidActorBonus(actor){const bonus={...getEquipmentStatBonus(state,actor)};const buff=actor?.raidBuff;if(buff?.turns>0){bonus.attack=(bonus.attack??0)+Math.round((actor?.stats?.attack??0)*(buff.attackPct??0));bonus.magic=(bonus.magic??0)+Math.round((actor?.stats?.magic??0)*(buff.magicPct??0));}return bonus;}
@@ -951,7 +948,7 @@ async function executeRaidPartyTurn(){
 }
 
 function planRaidAction(action){if(!raidRoom||!raidTurnState||raidTurnExecuting||isRaidWindowDefeated(state))return;const actor=currentRaidPartyActor();if(!actor)return;
- if(isShieldGuardJob(actor.currentJob)&&action.type!=='guard')return toast('盾士系は防御のみ選択できます');try{raidTurnState=planRaidPartyAction(raidTurnState,{...action,actorId:actor.id});if(raidTurnState.complete){raidTurnExecuting=true;renderRaidBattleScreen();queueMicrotask(()=>void executeRaidPartyTurn());return;}renderRaidBattleScreen();}catch(err){toast(err.message);}}
+try{raidTurnState=planRaidPartyAction(raidTurnState,{...action,actorId:actor.id});if(raidTurnState.complete){raidTurnExecuting=true;renderRaidBattleScreen();queueMicrotask(()=>void executeRaidPartyTurn());return;}renderRaidBattleScreen();}catch(err){toast(err.message);}}
 function doRaidAction(type){if(!['attack','guard'].includes(type))return;planRaidAction({type});}
 function chooseRaidSkill(skillId){const actor=currentRaidPartyActor(),skill=skillById(actor,skillId);if(!actor||!skill)return;if((skill.mp??0)>(actor.mp??0))return toast('MPが足りない！');if(skill.type==='heal'&&skill.target!=='all')return showRaidSkillTargets(skill);if(skill.type==='revive')return showRaidSkillTargets(skill);planRaidAction({type:'skill',skillId:skill.id,targetId:actor.id});}
 function chooseRaidSkillTarget(skillId,targetId){const actor=currentRaidPartyActor(),skill=skillById(actor,skillId);if(!actor||!skill)return;planRaidAction({type:'skill',skillId:skill.id,targetId});}

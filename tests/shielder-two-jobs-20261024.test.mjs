@@ -44,7 +44,7 @@ test('shield class skill milestone catalog is self-contained and avoids inherite
  assert.ok(catalog.length>=15);
  assert.ok(catalog.every(s=>s.sourceJob==='shielder'));
 });
-test('shield jobs defend only and automatically shout before turn action or speed',()=>{
+test('shield jobs can attack while their first-turn passive shout remains automatic',()=>{
  const shielder=unit('s','盾士','shielder',70),ally=unit('a');
  const enemy={...unit('enemy','魔物'),isBoss:false,ai:[{type:'attack',power:80}]};
  const b=createBattle([shielder,ally],enemy);
@@ -52,14 +52,24 @@ test('shield jobs defend only and automatically shout before turn action or spee
  assert.equal(b.log.filter(x=>x.includes('攻撃の掛け声')).length,1);
  assert.ok(b.actorMap.a.buffs.some(effect=>effect.id==='shieldAttackShout'));
  assert.equal(b.actorMap.a.buffs[0].turns,3);
- const wrong=resolveAction(b,{type:'attack',targetId:'enemy'});
- assert.equal(wrong.ok,false);
- const first=resolveAction(b,{type:'defend'});
+ const first=resolveAction(b,{type:'attack',targetId:'enemy'},()=>.5);
  assert.equal(first.ok,true);
- const second=resolveAction(b,{type:'defend'});
+ const second=resolveAction(b,{type:'defend'},()=>.5);
  assert.equal(second.ok,true);
  assert.equal(second.resolved,true);
- assert.equal(b.actorMap.s.guarding,true);
+ assert.equal(b.actorMap.s.guarding,false,'attacking should not be silently changed into guarding');
+ assert.ok(b.actorMap.enemy.hp<600,'shield class attack should actually damage the enemy');
+});
+test('great shielder can also attack instead of being forced to defend',()=>{
+ const guardian=unit('great','大盾士','greatShielder',70);
+ const enemy={...unit('enemy','魔物'),isBoss:false,ai:[{type:'attack',power:60}]};
+ const battle=createBattle([guardian],enemy);
+ startTurn(battle);
+ assert.ok(battle.actorMap.great.buffs.some(x=>x.id==='shieldDefenseShout'));
+ const outcome=resolveAction(battle,{type:'attack',targetId:'enemy'},()=>.5);
+ assert.equal(outcome.ok,true);
+ assert.equal(battle.actorMap.great.guarding,false);
+ assert.ok(battle.actorMap.enemy.hp<600);
 });
 test('protection is 50% normally and 100% from level 300, never AoE',()=>{
  const protector={...unit('s','守り手','shielder',1),side:'ally'};
@@ -120,7 +130,7 @@ test('seven crafted shields and three special Masho drops are real equipment def
  }
  assert.ok(getMashoEquipmentDropPool(16).some(x=>x.allowedJobs?.includes('shielder')));
 });
-test('original sprites map to two atlas cells on the job and battle UI',()=>{
+test('original sprites remain available in battle, but job change menu has no portraits',()=>{
  const a=actorArt({side:'ally',currentJob:'shielder'});
  const b=actorArt({side:'ally',currentJob:'greatShielder'});
  assert.equal(a.index,0);
@@ -135,5 +145,5 @@ test('original sprites map to two atlas cells on the job and battle UI',()=>{
  assert.ok(atlas.includes(Buffer.from('tRNS')),'transparent background required');
 
  const menu=readFileSync(new URL('../src/ui/jobs.js',import.meta.url),'utf8');
- assert.match(menu,/job-shield-sprite/);
+ assert.doesNotMatch(menu,/job-shield-sprite/);
 });
