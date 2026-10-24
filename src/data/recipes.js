@@ -1,4 +1,5 @@
 import { EQUIPMENT } from './equipment.js';
+import { SHIELDER_CRAFTING_SHIELDS } from './shielder-equipment.js';
 import { ECLIPSE_EVENT,ECLIPSE_TIERS,ECLIPSE_WEAPONS,ECLIPSE_ARMOR,ECLIPSE_MATERIALS,eclipseRecipeMaterials } from './eclipse-2026.js';
 import { NORMAL_ENEMY_LIST } from './enemies.js';
 import { NEW_MONSTERS,newMonsterGearId,newMonsterMaterialId } from './new-monsters.js';
@@ -210,7 +211,7 @@ const HIGH_FORGE_RECIPE_TIERS=[
  {id:'thunder',materialId:'thunderAlloy',tier:12,gold:22000},
  {id:'promise',materialId:'promiseAlloy',tier:15,gold:34000}
 ];
-const HIGH_FORGE_JOB_IDS=['swordsman','mage','thief','fighter','healer','archer','redMage','whiteMage','blackMage','darkKnight','pirateKing','sniper','paladin','bard','trickster','bishop','highWizard','gunbreaker','astrologian','berserker','dragoon','summoner'];
+const HIGH_FORGE_JOB_IDS=['shielder','greatShielder','swordsman','mage','thief','fighter','healer','archer','redMage','whiteMage','blackMage','darkKnight','pirateKing','sniper','paladin','bard','trickster','bishop','highWizard','gunbreaker','astrologian','berserker','dragoon','summoner'];
 for(const tier of HIGH_FORGE_RECIPE_TIERS)for(const job of HIGH_FORGE_JOB_IDS)for(const part of ['weapon','body','ring','charm']){
  const equipmentId=`highforge-${tier.id}-${job}-${part}`,def=EQUIPMENT[equipmentId];
  const category=part==='body'?'armor':part;
@@ -218,6 +219,12 @@ for(const tier of HIGH_FORGE_RECIPE_TIERS)for(const job of HIGH_FORGE_JOB_IDS)fo
  add({id:`craft-${equipmentId}`,name:def?.name??equipmentId,category,tier:tier.tier,gold:tier.gold,highForgeRecipe:true,output:{kind:'equipment',equipmentId,quantity:1},materials:{[tier.materialId]:quantity},unlock:{type:'material',materialId:tier.materialId}});
 }
 
+// Shield job special shields use the existing armor/盾 forging category.
+for(const def of SHIELDER_CRAFTING_SHIELDS)add({
+ id:`craft-${def.id}`,name:def.name,category:'armor',
+ tier:def.tier,gold:def.gold,output:{kind:'equipment',equipmentId:def.id,quantity:1},
+ materials:{...def.craft},unlock:{type:'story'}
+});
 add({id:'leatherWaistRecipe',name:'革の腰帯',category:'armor',tier:1,gold:90,output:{kind:'equipment',equipmentId:'leatherWaist',quantity:1},materials:{'monster001-material':1},unlock:{type:'story'}});
 
 // Star-eclipse Halloween event: equipment recipes may be crafted after the event,
