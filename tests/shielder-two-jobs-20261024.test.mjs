@@ -128,6 +128,12 @@ test('original sprites map to two atlas cells on the job and battle UI',()=>{
  assert.equal(a.cols,2);
  assert.equal(b.cols,2);
  assert.equal(a.src,'./assets/battle/shield-jobs.png?v=20261024');
+ const atlas=readFileSync(new URL('../assets/battle/shield-jobs.png',import.meta.url));
+ assert.equal(atlas.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+ assert.equal(atlas.readUInt32BE(16),180,'two cells share a 180px atlas width');
+ assert.equal(atlas.readUInt32BE(20),120,'sprites match the other 90x120 job art');
+ assert.ok(atlas.includes(Buffer.from('tRNS')),'transparent background required');
+
  const menu=readFileSync(new URL('../src/ui/jobs.js',import.meta.url),'utf8');
  assert.match(menu,/job-shield-sprite/);
 });
