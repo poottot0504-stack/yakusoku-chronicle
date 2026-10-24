@@ -1,5 +1,5 @@
 import { normalizeBattleSkillLoadouts } from './skillbook.js';
-import { normalizeSkillPresets } from './skill-presets.js';
+import { normalizeSkillPresets,normalizeSkillPresetNames } from './skill-presets.js';
 import { normalizeMashoProgress } from './masho-cave.js';
 import { normalizeBoostScrolls } from './boost-scrolls.js';
 import { applyProgressionCaps } from './progression-caps.js';
