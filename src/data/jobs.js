@@ -4,8 +4,10 @@ J('swordsman','剣士',{attack:5,defense:5,magic:2,speed:3},['oneHandSword','gre
 J('mage','魔法使い',{attack:2,defense:2,magic:5,speed:4},['staff','greatStaff','mace'],'staffOnly',{type:'basic'},{magicPct:.02}),
 J('thief','盗賊',{attack:3,defense:3,magic:2,speed:5},['dagger','dualBlades'],'small',{type:'basic'},{speedPct:.02}),
 J('fighter','格闘家',{attack:5,defense:3,magic:1,speed:5},['fist'],'none',{type:'basic'},{maxHpPct:.02}),
+J('shielder','盾士',{attack:3,defense:6,magic:1,speed:2},['oneHandSword','spear','mace'],'standard',{type:'basic'},{defensePct:.04}),
 J('healer','ヒーラー',{attack:1,defense:2,magic:5,speed:4},['staff','greatStaff','mace'],'standard',{type:'basic'},{maxMpPct:.02}),
 J('archer','アーチャー',{attack:4,defense:2,magic:2,speed:5},['bow'],'none',{type:'basic',releaseId:'archer-sniper-2026'},{critRateBonus:.03}),
+J('greatShielder','大盾士',{attack:4,defense:8,magic:1,speed:2},['oneHandSword','spear','mace'],'standard',{type:'advanced',requires:{shielder:30}},{defensePct:.08}),
 J('redMage','赤魔道士',{attack:5,defense:3,magic:5,speed:4},['oneHandSword','dagger','staff','greatStaff'],'standard',{type:'advanced',requires:{swordsman:30,mage:30}},{magicSwordDamagePct:.10}),
 J('whiteMage','白魔道士',{attack:2,defense:4,magic:5,speed:3},['staff','greatStaff','mace'],'standard',{type:'advanced',requires:{mage:30,healer:30}},{healingPct:.10}),
 J('blackMage','黒魔術師',{attack:1,defense:2,magic:6,speed:4},['staff','greatStaff'],'staffOnly',{type:'advanced',requires:{mage:30}},{darkDamagePct:.10}),
@@ -24,6 +26,7 @@ J('dragoon','竜騎士',{attack:6,defense:4,magic:2,speed:5},['spear','greatSwor
 J('summoner','召喚士',{attack:1,defense:2,magic:6,speed:4},['staff','greatStaff','cards','starGlobe'],'none',{type:'special',requires:{blackMage:30}},{maxMpPct:.04})
 ];
 const EQUIPMENT_GROUPS={
+ shielder:['swordsman','magic','thief','fighter','archer'],greatShielder:['swordsman','magic','thief','fighter','archer'],
  swordsman:['swordsman'], mage:['magic'], healer:['magic'], thief:['thief'], fighter:['fighter'], archer:['archer'],
  redMage:['swordsman','magic'], whiteMage:['magic'], blackMage:['magic'],
  darkKnight:['swordsman','fighter'], pirateKing:['thief','fighter'], sniper:['archer'],
@@ -38,6 +41,8 @@ export const JOBS=Object.fromEntries(ALL_JOBS.map(j=>[j.id,j]));
 // Innate passives apply only while the job is equipped. Modest bonuses avoid
 // stacking with permanent mastery, equipment and temporary battle buffs.
 export const JOB_PASSIVES=Object.freeze({
+ shielder:{stat:'defense',rate:.06,name:'守りの心得'},
+ greatShielder:{stat:'defense',rate:.08,name:'不落の要塞'},
  swordsman:{stat:'attack',rate:.03,name:'剣の心得'},
  mage:{stat:'magic',rate:.03,name:'魔力の素養'},
  thief:{stat:'speed',rate:.03,name:'軽快な足取り'},

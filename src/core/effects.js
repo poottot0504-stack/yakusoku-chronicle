@@ -1,3 +1,4 @@
+import { shieldStatusImmunity } from './shielder-guard.js';
 const BASE={
  normal:{poison:.70,burn:.70,paralysis:.50,sleep:.40,confusion:.45,freeze:.30,curse:.55,debuff:.70},
  strong:{poison:.50,burn:.50,paralysis:.30,sleep:.25,confusion:.30,freeze:.20,curse:.35,debuff:.50},
@@ -10,7 +11,7 @@ export function getEffectiveStatusChance(source,target,effect){
  let chance=effect.chance??BASE[cls]?.[key]??BASE.normal[key]??1;
  if(effect.kind==='status') chance+=source.statusSuccessBonus??source.masteryBonuses?.statusDebuffSuccessBonus??0;
  if(effect.kind==='debuff') chance+=source.debuffSuccessBonus??source.masteryBonuses?.statusDebuffSuccessBonus??0;
- if(target.statusImmunities?.includes(effect.id)) return 0;
+ if(target.statusImmunities?.includes(effect.id)||shieldStatusImmunity(target,effect.id)) return 0;
  if(effect.kind==='status') chance*=Math.max(0,1-(target.statusResistance??target.masteryBonuses?.statusResistance??0));
  if((target.statusResistTurns?.[effect.id]??0)>0)return 0;
  return Math.max(0,Math.min(1,chance));

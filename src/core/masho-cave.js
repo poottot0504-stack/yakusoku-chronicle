@@ -5,6 +5,7 @@ import { BOSSES } from '../data/bosses.js';
 import { OATHBREAKER_DATA } from '../data/oathbreakers.js';
 import { RAID_BOSSES } from '../raid/raidRules.js';
 import { MASHO_EQUIPMENT } from '../data/masho-equipment.js';
+import { SHIELDER_CAVE_SHIELDS } from '../data/shielder-equipment.js';
 import { createEquipmentInstance } from '../data/equipment.js';
 import { hasFirstClear, applyProgressionCaps } from './progression-caps.js';
 import { scaledCharacterExp } from './adventure.js';
@@ -55,7 +56,9 @@ export function getMashoEquipmentDropPool(floor){
  });
 }
 export function getMashoFloorDropLabel(floor){
- return MASHO_FLOOR_DROP_FOCUS[floor]?.label??(floor>=21&&floor<=25?getMashoAbyssDropPool(floor).map(d=>d.name).join(' ／ '):null);
+ const standard=MASHO_FLOOR_DROP_FOCUS[floor]?.label??(floor>=21&&floor<=25?getMashoAbyssDropPool(floor).map(d=>d.name).join(' ／ '):'');
+ const shields=SHIELDER_CAVE_SHIELDS.filter(d=>floor>=d.mashoFloor);
+ return [standard,...shields.map(d=>`${d.name}（${(d.dropRate*100).toFixed(1)}%）`)].filter(Boolean).join(' ／ ')||null;
 }
 const story=STORY_CHAPTERS.map(ch=>({id:`storyBoss-${ch.regionId}`,name:ch.bossName,kind:'story',element:normalizeElement(ch.bossElement)==='none'?regionElement(ch.regionId):normalizeElement(ch.bossElement)}));
 const oaths=OATHBREAKER_DATA.map(o=>({...o,kind:'oath'}));
@@ -111,6 +114,23 @@ export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
  const abyssMaterialGuaranteed=floor>20&&progress.abyssClearCount%5===0;
  const enhanceMaterial=abyssMaterialGuaranteed||rng()<enhanceCrystalChance?{id:enhanceCrystalId,name:floor<=10?'強化結晶':floor<=20?'上級強化結晶':'究極強化結晶',qty:1}:null;
  if(enhanceMaterial){state.materials??={};addMaterial(state,enhanceCrystalId,1);}
- const receipt={floor,...reward,equipment,levelUps,promiseOre,enhanceMaterial};progress.lastReward=receipt;battle.mashoRewardSettled=receipt;
+ // Rare shield slots never replace existing Masho gear or consume the older drop/material RNG checks.
+ // They use their own tiny base chances and respect the same event drop boost.
+ let shieldEquipment=null;
+ if(floor>=15&&!equipment){
+  const bonus=getBattleBoostMultiplier(state,'drop',{now,includeDaily:false});
+  let roll=rng();
+  for(const def of SHIELDER_CAVE_SHIELDS.filter(d=>floor>=d.mashoFloor).sort((a,b)=>b.mashoFloor-a.mashoFloor)){
+   const chance=Math.min(1,def.dropRate*bonus);
+   if(roll<chance){
+    shieldEquipment=createEquipmentInstance(def.id);
+    state.equipmentInventory??=[];state.equipmentInventory.push(shieldEquipment);
+    recordEquipmentObtained(state,def.id,{source:'魔障の洞窟'});
+    break;
+   }
+   roll-=chance;
+  }
+ }
+ const receipt={floor,...reward,equipment,shieldEquipment,levelUps,promiseOre,enhanceMaterial};progress.lastReward=receipt;battle.mashoRewardSettled=receipt;
  state.adventure??={};state.adventure.message=`魔障の洞窟 第${floor}階層クリア！`;return receipt;
 }

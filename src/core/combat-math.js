@@ -1,3 +1,4 @@
+import { isShieldGuardJob,shieldJobLevel } from './shielder-guard.js';
 import { getCritRate,getCritMultiplier,getEvasion,getEffectiveCombatStat } from './combat-stats.js';
 import { getElementMultiplier, getSkillElement } from './elements.js';
 export function calculateHitChance(actor,target,skill={}){
@@ -7,17 +8,20 @@ export function calculateHitChance(actor,target,skill={}){
 }
 export function rollCritical(actor,skill={},rng=Math.random){if(skill.canCrit===false)return false;return rng()<getCritRate(actor,skill);}
 export function calculateDamage(actor,target,skill={},rng=Math.random){
- if(target.guarding)return 0;
+ if(target.guarding&&!isShieldGuardJob(target.currentJob))return 0;
  // 割合攻撃は防御力・属性耐性・クリティカルから独立。防御コマンドは有効。
  if(Number.isFinite(skill.maxHpDamageRatio))return Math.max(0,Math.floor(target.maxHp*Math.max(0,Math.min(1,skill.maxHpDamageRatio))));
  const hitChance=calculateHitChance(actor,target,skill);if(hitChance<1&&rng()>=hitChance)return 0;
  const offensive=getEffectiveCombatStat(actor,skill.kind==='magic'?'magic':'attack');
- const baseDefense=skill.kind==='magic'?(target.side==='enemy'?getEffectiveCombatStat(target,'magic'):0):getEffectiveCombatStat(target,'defense');const defense=baseDefense*(1-Math.max(0,Math.min(.8,skill.defensePierce??0)));
+ const baseDefense=skill.kind==='magic'?(target.side==='enemy'?getEffectiveCombatStat(target,'magic'):0):getEffectiveCombatStat(target,'defense');const originalPierce=Math.max(0,Math.min(.8,skill.defensePierce??0));
+ const effectivePierce=isShieldGuardJob(target.currentJob)&&shieldJobLevel(target)>=200?originalPierce*.5:originalPierce;
+ const defense=baseDefense*(1-effectivePierce);
  const raw=(offensive*(skill.power??100)/100)-defense*.28;
  const minimum=skill.kind==='magic'?Math.max(1,Math.ceil(offensive*.7)):Math.max(2,Math.ceil(offensive*.6));
  let damage=Math.max(minimum,Math.floor(raw));
  const crit=rollCritical(actor,skill,rng);if(crit) damage=Math.floor(damage*getCritMultiplier(actor,skill));
  const elementMult=getElementMultiplier(getSkillElement(skill),target);damage=Math.trunc(damage*elementMult);
+ if(target.guarding&&isShieldGuardJob(target.currentJob))damage=Math.max(1,Math.round(damage*.5));
  if(Number.isFinite(target.damageCap))damage=Math.min(damage,Math.max(0,target.damageCap));
  return damage;
 }

@@ -25,8 +25,8 @@ const paths=['weapon','head','body','arms','waist','legs','ring','charm'];
 const levels=['novice','veteran','astral','celestial','eternal'];
 const materials=['union','nova','star','blaze','thunder','promise'];
 
-test('22 jobs include two special jobs with exactly the requested per-character Lv30 unlocks',()=>{
- assert.equal(ALL_JOBS.length,22);
+test('24 jobs include two preexisting special jobs with exactly the requested per-character Lv30 unlocks',()=>{
+ assert.equal(ALL_JOBS.length,24);
  for(const [jobId,precursor] of [['dragoon','paladin'],['summoner','blackMage']]){
   const job=JOBS[jobId];
   assert.equal(job.unlock.type,'special');

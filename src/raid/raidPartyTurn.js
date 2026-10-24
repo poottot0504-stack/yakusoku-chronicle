@@ -1,3 +1,4 @@
+import { distributeShieldCover,isShieldGuardJob,shieldProgressBonus } from '../core/shielder-guard.js';
 import { useBattleItem } from '../core/items.js';
 import { applyJobPassiveToStat } from '../data/jobs.js';
 import { RAID_JOB_PROFILES, calculateRaidBossDamage } from './raidBattle.js';
@@ -98,12 +99,22 @@ export function applyRaidBossAction(action,party=[],plannedActions=[],bossStats=
  const hit=t=>{
   const magical=isStatus?Boolean(action?.magic):magicBoss;const kind=isAoe?(magical?'magicAoe':'aoe'):(magical?'magic':'single');
   const actionElement=getSkillElement(action),element=actionElement!=='none'?actionElement:(RAID_BOSS_ELEMENT[bossId]??'none');
-  const targetDefense=Math.max(0,applyJobPassiveToStat(t,'defense',(t?.stats?.defense??0)+(t?.battleFlatStats?.defense??0))*(1+(t.raidBuff?.turns>0?(t.raidBuff.defensePct??0):0)));
+  const targetDefense=Math.max(0,applyJobPassiveToStat(t,'defense',(t?.stats?.defense??0)+(t?.battleFlatStats?.defense??0))*(1+(t.raidBuff?.turns>0?(t.raidBuff.defensePct??0):0)+shieldProgressBonus(t,'defense')));
   const elementMult=getElementMultiplier(element,t);
   let damage=calculateRaidBossDamage(bossStats,{defense:targetDefense},kind);
   if(isStatus)damage=Math.max(1,Math.round(damage*Math.max(.1,Number(action?.damageScale??.7))));
   damage=Math.max(1,Math.round(damage*elementMult));
-  if(guardIds.has(t.id))damage=Math.max(1,Math.round(damage*.5));t.hp=Math.max(0,(t.hp??0)-damage);if(t.hp<=0)koIds.push(t.id);
+  if(guardIds.has(t.id))damage=Math.max(1,Math.round(damage*.5));
+  if(!isAoe){
+   const split=distributeShieldCover(party,t,damage,{allowNoSide:true});
+   damage=split.protectedDamage;
+   if(split.guard){
+    split.guard.hp=Math.max(0,(split.guard.hp??0)-split.guardDamage);
+    if(split.guard.hp<=0)koIds.push(split.guard.id);
+    logs.push(`🛡️ ${split.guard.name}が${t.name}のダメージを肩代わり！（${split.guardDamage}ダメージ）`);
+   }
+  }
+  t.hp=Math.max(0,(t.hp??0)-damage);if(t.hp<=0)koIds.push(t.id);
   let suffix=guardIds.has(t.id)?'（防御）':'';
   if(element!=='none'&&elementMult<1)suffix+=` / ${elementLabel(element)}耐性 ${Math.round((1-elementMult)*100)}%`;
   if(isStatus&&(t.hp??0)>0){const status=tryInflictRaidPartyStatus(t,action,rng,{guarding:guardIds.has(t.id)});if(status.applied)suffix+=` / ${status.label}付与`;else if(status.attempted)suffix+=` / ${raidStatusLabel(action.status)}は効かなかった`;}

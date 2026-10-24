@@ -5,6 +5,7 @@ const num=v=>Number(v).toLocaleString('ja-JP');
 export function describeSkill(skill,{raid=false}={}){
  if(!skill)return '';
  const s=skill,out=[];
+ if(s.autoPassive)return String(s.autoDescription??s.description??'自動発動する特性');
  if(s.type==='heal'){
   const targets=s.target==='all'?'生存中の味方全員':'味方1人';
   out.push(`${targets}のHPを${s.fullHeal?'全回復':s.healRatio!=null?`最大HPの${Math.round(s.healRatio*100)}％回復`:Number.isFinite(s.flatHeal)?`${num(s.flatHeal)}回復`:'魔法に応じて回復'}。最大HPを超えて回復しません。`);

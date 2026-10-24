@@ -1,3 +1,4 @@
+import { shieldProgressBonus } from './shielder-guard.js';
 import { getMashoSetCount } from './masho-set.js';
 import { getEnhancedStats } from './forge.js';
 import { EQUIPMENT } from '../data/equipment.js';
@@ -26,9 +27,9 @@ export function getEffectiveCombatStat(actor={},stat){
  const effects=[...(actor.buffs??[]),...(actor.debuffs??[])].filter(e=>e.turns==null||e.turns>0);
  const flat=effects.reduce((n,e)=>n+(e.values?.[stat]??0),0);
  const pct=effects.reduce((n,e)=>n+(e[`${stat}Pct`]??(stat==='magic'?e.attackPct:0)??0),0);
- return Math.max(0,((actor.stats?.[stat]??(['attack','magic'].includes(stat)?1:0))+flat)*Math.max(.25,1+pct));
+ return Math.max(0,((actor.stats?.[stat]??(['attack','magic'].includes(stat)?1:0))+flat)*Math.max(.25,1+pct+((stat==='defense')?shieldProgressBonus(actor,'defense'):0)));
 }
 export function getCharacterResourceCaps(state,character){
  const bonus=getEquipmentStatBonus(state,character);
- return {maxHP:Math.max(1,(character?.maxHp??1)+bonus.maxHp),maxMP:Math.max(0,(character?.maxMp??0)+bonus.maxMp)};
+ return {maxHP:Math.max(1,Math.round(((character?.maxHp??1)+bonus.maxHp)*(1+shieldProgressBonus(character,'hp')))),maxMP:Math.max(0,(character?.maxMp??0)+bonus.maxMp)};
 }
