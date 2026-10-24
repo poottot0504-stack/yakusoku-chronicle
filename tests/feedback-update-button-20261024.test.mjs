@@ -40,7 +40,8 @@ test('game menu has active update button, new-release red dot and save-before-re
  assert.match(header,/\/build-version\.json[\s\S]*?Cache-Control: no-store/);
 });
 
-test('current 22 job definitions have not been changed by this feature',()=>{
+test('previous 22 jobs are retained and two new shield jobs are added',()=>{
  const data=readFileSync(new URL('../src/data/jobs.js',import.meta.url),'utf8');
- assert.doesNotMatch(data,/J\('shieldWarrior'|J\('greatShieldWarrior'|盾士|大盾士/);
+ assert.match(data,/J\('shielder','盾士'/);
+ assert.match(data,/J\('greatShielder','大盾士'/);
 });
