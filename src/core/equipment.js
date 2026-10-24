@@ -93,6 +93,18 @@ export function unequipItem(state,characterId,slot){const c=state.characters.fin
 export function getEquippedItems(character,state){return Object.values(character.equipment??{}).filter(Boolean).map(ref=>typeof ref==='object'?ref:state?.equipmentInventory?.find(x=>x.instanceId===ref)??null).filter(Boolean);}
 
 
+// Manual equipment stays as previously specified: both shield jobs may equip
+// all ordinary gear. Recommended equipment is stricter and never selects
+// explicitly dedicated items from another job's armor or weapon set.
+export function recommendationAllowedForJob(character,def){
+ if(!def)return false;
+ if(!['shielder','greatShielder'].includes(character?.currentJob))return true;
+ const job=character.currentJob;
+ if(Array.isArray(def.allowedJobs)&&def.allowedJobs.length&&!def.allowedJobs.includes(job))return false;
+ if(def.armorGroup&&!['shielder','greatShielder'].includes(def.armorGroup))return false;
+ if(def.eventJobGroup&&!['shielder','greatShielder'].includes(def.eventJobGroup))return false;
+ return true;
+}
 function recommendationScore(character,inst){
  const def=EQUIPMENT[inst?.equipmentId];if(!def)return -Infinity;
  const stats=getEnhancedStats(inst),job=JOBS[character.currentJob],base=job?.stats??{attack:3,defense:3,magic:3,speed:3};
@@ -109,7 +121,7 @@ function availableRecommendationInstances(state,character){
 }
 function jobLevelAllows(character,def,inst=null){return (character.jobLevels?.[character.currentJob]??1)>=getRequiredJobLevel(def,inst);}
 function shieldCompatibleForWeapon(character,shieldDef,weaponDef,state,shieldInstance=null){
- if(!shieldDef||!canEquipForJob(character,shieldDef,state)||!jobLevelAllows(character,shieldDef,shieldInstance))return false;
+ if(!shieldDef||!canEquipForJob(character,shieldDef,state)||!recommendationAllowedForJob(character,shieldDef)||!jobLevelAllows(character,shieldDef,shieldInstance))return false;
  const job=JOBS[character.currentJob];if(!job)return false;
  // These event / Masho offhand pieces are explicitly exempt from standard
  // shield restrictions in canEquip(). Recommended gear must honor that rule.
@@ -121,13 +133,13 @@ function shieldCompatibleForWeapon(character,shieldDef,weaponDef,state,shieldIns
 }
 function bestBySlot(character,instances,slot,state){
  let best=null,bestScore=-Infinity;
- for(const inst of instances){const def=EQUIPMENT[inst.equipmentId];if(!def)continue;const actual=def.slot==='accessory'?(def.accessoryType==='charm'?'accessory2':'accessory1'):def.slot;if(actual!==slot)continue;if(!canEquipForJob(character,def,state)||!jobLevelAllows(character,def,inst))continue;const score=recommendationScore(character,inst);if(score>bestScore){best=inst;bestScore=score;}}
+ for(const inst of instances){const def=EQUIPMENT[inst.equipmentId];if(!def)continue;const actual=def.slot==='accessory'?(def.accessoryType==='charm'?'accessory2':'accessory1'):def.slot;if(actual!==slot)continue;if(!canEquipForJob(character,def,state)||!recommendationAllowedForJob(character,def)||!jobLevelAllows(character,def,inst))continue;const score=recommendationScore(character,inst);if(score>bestScore){best=inst;bestScore=score;}}
  return best;
 }
 export function equipRecommendedEquipment(state,characterId){
  const c=state.characters?.find(x=>x.id===characterId);if(!c)throw new Error('キャラクターが見つかりません');
  const pool=availableRecommendationInstances(state,c);if(!pool.length)throw new Error('おすすめできる装備がありません');
- const weapons=pool.filter(inst=>EQUIPMENT[inst.equipmentId]?.slot==='weapon'&&canEquipForJob(c,EQUIPMENT[inst.equipmentId],state)&&jobLevelAllows(c,EQUIPMENT[inst.equipmentId],inst));
+ const weapons=pool.filter(inst=>EQUIPMENT[inst.equipmentId]?.slot==='weapon'&&canEquipForJob(c,EQUIPMENT[inst.equipmentId],state)&&recommendationAllowedForJob(c,EQUIPMENT[inst.equipmentId])&&jobLevelAllows(c,EQUIPMENT[inst.equipmentId],inst));
  const shields=pool.filter(inst=>EQUIPMENT[inst.equipmentId]?.slot==='shield');
  let bestWeapon=null,bestShield=null,bestCombo=-Infinity;
  // Even when the inventory has no equippable weapon, a shield may be usable.
@@ -145,6 +157,17 @@ export function equipRecommendedEquipment(state,characterId){
    if(combo>bestCombo){bestCombo=combo;bestWeapon=weapon;bestShield=shield;}
  }
  const before={...(c.equipment??{})};c.equipment??={};
+ // A recommendation must not retain another class's dedicated pieces,
+ // even if a user had equipped them manually under the all-gear rule.
+ if(['shielder','greatShielder'].includes(c.currentJob)){
+  for(const [slot,ref] of Object.entries(c.equipment)){
+   if(!ref)continue;
+   const id=typeof ref==='object'?ref.instanceId:ref;
+   const inst=state.equipmentInventory?.find(x=>x.instanceId===id);
+   const def=EQUIPMENT[inst?.equipmentId??(typeof ref==='object'?ref.equipmentId:null)];
+   if(def&&!recommendationAllowedForJob(c,def))c.equipment[slot]=null;
+  }
+ }
  if(bestWeapon) equipItem(state,c.id,bestWeapon.instanceId,'weapon');
  if(bestShield){try{equipItem(state,c.id,bestShield.instanceId,'shield');}catch{}}
  for(const slot of ['spellbook','head','body','arms','waist','legs','accessory1','accessory2']){if(slot==='spellbook'&&c.currentJob!=='summoner')continue;const best=bestBySlot(c,pool,slot,state);if(best){try{equipItem(state,c.id,best.instanceId,slot);}catch{}}}
