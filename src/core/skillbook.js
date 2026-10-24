@@ -4,7 +4,21 @@ import { describeSkill } from './skill-description.js';
 import { getSkillElement } from './elements.js';
 export { describeSkill } from './skill-description.js';
 const S=(level,id,name,mp,power,type='attack',extra={})=>({level,id,name,mp,power,type,...(type==='heal'?{flatHeal:power}:{}),...extra});
+const shieldPerk=(level,id,name,description)=>S(level,id,name,0,0,'buff',{
+ autoPassive:true,autoDescription:description,description,target:'all'
+});
+const guardianBook=(id,great=false)=>[
+ shieldPerk(1,`${id}Cover`,'不動の守り',great?'左右の仲間の被ダメージを半分肩代わり。行動選択は防御のみ。':'右隣の仲間の被ダメージを半分肩代わり。行動選択は防御のみ。'),
+ ...[10,20,30,45,60].map((level,i)=>shieldPerk(level,`${id}Hp${level}`,'守護の生命力',`HP＋${(i+1)*3}％（他の同系列段階とは重複しない）`)),
+ shieldPerk(70,`${id}Shout`,great?'防御の掛け声':'攻撃の掛け声',great?'戦闘開始時に自動発動。3ターン、全員の防御＋20％。':'戦闘開始時に自動発動。3ターン、全員の攻撃・魔法＋20％。'),
+ ...[80,95,100,120,150].map((level,i)=>shieldPerk(level,`${id}Def${level}`,'守護の防壁',`防御＋${(i+1)*3}％（他の同系列段階とは重複しない）`)),
+ shieldPerk(200,`${id}PierceGuard`,'穿盾防御','自分への防御貫通効果を半減。'),
+ shieldPerk(250,`${id}StatusGuard`,'守護の精神','呪いと混乱を無効化。'),
+ shieldPerk(300,`${id}PerfectCover`,'完全肩代わり',great?'左右の味方への単体攻撃ダメージを100％肩代わり。':'右隣の味方への単体攻撃ダメージを100％肩代わり。')
+];
 const BOOK={
+ shielder:guardianBook('shielder'),
+ greatShielder:guardianBook('greatShielder',true),
  dragoon:[
   S(1,'wyrmPierce','竜牙突き',4,160,'attack',{defensePierce:.08}),
   S(10,'wingGuard','飛竜の構え',8,0,'buff',{selfBuff:{defensePct:.22},turns:3}),
@@ -74,12 +88,15 @@ function enrichHealingSkill(jobId,skill){const s=applyJobTierDamageBonus(jobId,s
 // 特技・魔法の共有グループ。装備グループとは独立したルールです。
 // 2026-10-08: 物理/魔法の2分割から、剣士系・魔法使い系・盗賊系・赤魔専用へ再編。
 export const SKILL_SOURCE_GROUPS={
+ shielder:['shielder'],greatShielder:['greatShielder'],
  swordsman:['swordsman','fighter','darkKnight','paladin','gunbreaker','berserker','dragoon'],
  mage:['mage','healer','whiteMage','blackMage','bard','bishop','astrologian','highWizard','summoner'],
  thief:['thief','archer','sniper','pirateKing','trickster'],
  redMage:['redMage','swordsman','mage','healer','whiteMage','blackMage','highWizard']
 };
 const SKILL_FAMILY_BY_JOB=new Map([
+ ...SKILL_SOURCE_GROUPS.shielder.map(job=>[job,'shielder']),
+ ...SKILL_SOURCE_GROUPS.greatShielder.map(job=>[job,'greatShielder']),
  ...SKILL_SOURCE_GROUPS.swordsman.map(job=>[job,'swordsman']),
  ...SKILL_SOURCE_GROUPS.mage.map(job=>[job,'mage']),
  ...SKILL_SOURCE_GROUPS.thief.map(job=>[job,'thief']),
