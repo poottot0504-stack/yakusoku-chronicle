@@ -106,10 +106,18 @@ export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
  let promiseOre=0;if(floor>=18&&floor<=20){promiseOre=floor===20?2:1;state.materials??={};addMaterial(state,'promiseOre',promiseOre);}
  const progress=normalizeMashoProgress(state);progress.highestCleared=Math.max(progress.highestCleared,floor);progress.clearCounts[floor]=(progress.clearCounts[floor]??0)+1;if(floor>20)progress.abyssClearCount++;
  let equipment=null;const equipmentDropRate=Math.min(1,(floor>20?MASHO_ABYSS_DROP_RATE:MASHO_DROP_RATE)*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));if(rng()<equipmentDropRate){const def=pick(floor>20?getMashoAbyssDropPool(floor):getMashoEquipmentDropPool(floor),rng);equipment=createEquipmentInstance(def.id);state.equipmentInventory??=[];state.equipmentInventory.push(equipment);recordEquipmentObtained(state,def.id,{source:'魔障の洞窟'});}
- // Exclusive rare shield rolls do not replace existing Masho gear / abyss weapons.
+ const enhanceCrystalId=floor<=10?'enhanceCrystal':floor<=20?'advancedEnhanceCrystal':'ultimateEnhanceCrystal';
+ const enhanceCrystalBaseRate=floor<=10?.25:floor<=20?.20:.12;
+ const enhanceCrystalChance=Math.min(1,enhanceCrystalBaseRate*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));
+ // A material safety net every five completed abyss runs (across floors 21-25).
+ // The five unique abyss weapons keep their deliberately rare 0.2% chance.
+ const abyssMaterialGuaranteed=floor>20&&progress.abyssClearCount%5===0;
+ const enhanceMaterial=abyssMaterialGuaranteed||rng()<enhanceCrystalChance?{id:enhanceCrystalId,name:floor<=10?'強化結晶':floor<=20?'上級強化結晶':'究極強化結晶',qty:1}:null;
+ if(enhanceMaterial){state.materials??={};addMaterial(state,enhanceCrystalId,1);}
+ // Rare shield slots never replace existing Masho gear or consume the older drop/material RNG checks.
  // They use their own tiny base chances and respect the same event drop boost.
  let shieldEquipment=null;
- if(floor>=15){
+ if(floor>=15&&!equipment){
   const bonus=getBattleBoostMultiplier(state,'drop',{now,includeDaily:false});
   let roll=rng();
   for(const def of SHIELDER_CAVE_SHIELDS.filter(d=>floor>=d.mashoFloor).sort((a,b)=>b.mashoFloor-a.mashoFloor)){
@@ -123,14 +131,6 @@ export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
    roll-=chance;
   }
  }
- const enhanceCrystalId=floor<=10?'enhanceCrystal':floor<=20?'advancedEnhanceCrystal':'ultimateEnhanceCrystal';
- const enhanceCrystalBaseRate=floor<=10?.25:floor<=20?.20:.12;
- const enhanceCrystalChance=Math.min(1,enhanceCrystalBaseRate*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));
- // A material safety net every five completed abyss runs (across floors 21-25).
- // The five unique abyss weapons keep their deliberately rare 0.2% chance.
- const abyssMaterialGuaranteed=floor>20&&progress.abyssClearCount%5===0;
- const enhanceMaterial=abyssMaterialGuaranteed||rng()<enhanceCrystalChance?{id:enhanceCrystalId,name:floor<=10?'強化結晶':floor<=20?'上級強化結晶':'究極強化結晶',qty:1}:null;
- if(enhanceMaterial){state.materials??={};addMaterial(state,enhanceCrystalId,1);}
  const receipt={floor,...reward,equipment,shieldEquipment,levelUps,promiseOre,enhanceMaterial};progress.lastReward=receipt;battle.mashoRewardSettled=receipt;
  state.adventure??={};state.adventure.message=`魔障の洞窟 第${floor}階層クリア！`;return receipt;
 }
