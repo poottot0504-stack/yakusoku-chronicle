@@ -21,7 +21,7 @@ const unit=(id,name='仲間',job='swordsman',lv=1)=>({
 });
 test('new jobs are defined as initial and advanced, with only Shielder Lv30 unlocking GreatShielder',()=>{
  assert.equal(ALL_JOBS.length,24);
- const newIds=ALL_JOBS.slice(-2).map(x=>x.id);
+ const newIds=ALL_JOBS.map(x=>x.id);
  assert.ok(newIds.includes('shielder')&&newIds.includes('greatShielder'));
  assert.equal(JOBS.shielder.unlock.type,'basic');
  assert.equal(JOBS.greatShielder.unlock.type,'advanced');
