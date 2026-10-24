@@ -1,3 +1,4 @@
+import { isShieldGuardJob,shieldJobLevel } from './shielder-guard.js';
 import { getCritRate,getCritMultiplier,getEvasion,getEffectiveCombatStat } from './combat-stats.js';
 import { getElementMultiplier, getSkillElement } from './elements.js';
 export function calculateHitChance(actor,target,skill={}){
@@ -12,7 +13,9 @@ export function calculateDamage(actor,target,skill={},rng=Math.random){
  if(Number.isFinite(skill.maxHpDamageRatio))return Math.max(0,Math.floor(target.maxHp*Math.max(0,Math.min(1,skill.maxHpDamageRatio))));
  const hitChance=calculateHitChance(actor,target,skill);if(hitChance<1&&rng()>=hitChance)return 0;
  const offensive=getEffectiveCombatStat(actor,skill.kind==='magic'?'magic':'attack');
- const baseDefense=skill.kind==='magic'?(target.side==='enemy'?getEffectiveCombatStat(target,'magic'):0):getEffectiveCombatStat(target,'defense');const defense=baseDefense*(1-Math.max(0,Math.min(.8,skill.defensePierce??0)));
+ const baseDefense=skill.kind==='magic'?(target.side==='enemy'?getEffectiveCombatStat(target,'magic'):0):getEffectiveCombatStat(target,'defense');const originalPierce=Math.max(0,Math.min(.8,skill.defensePierce??0));
+ const effectivePierce=isShieldGuardJob(target.currentJob)&&shieldJobLevel(target)>=200?originalPierce*.5:originalPierce;
+ const defense=baseDefense*(1-effectivePierce);
  const raw=(offensive*(skill.power??100)/100)-defense*.28;
  const minimum=skill.kind==='magic'?Math.max(1,Math.ceil(offensive*.7)):Math.max(2,Math.ceil(offensive*.6));
  let damage=Math.max(minimum,Math.floor(raw));
