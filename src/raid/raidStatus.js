@@ -1,3 +1,4 @@
+import {shieldStatusImmunity} from '../core/shielder-guard.js';
 export const RAID_STATUS_LABELS=Object.freeze({
  poison:'毒',burn:'火傷',paralysis:'麻痺',sleep:'睡眠',confusion:'混乱',freeze:'凍結',curse:'呪い'
 });
@@ -100,7 +101,7 @@ export function chooseRaidBossStatusAction(bossId,rng=Math.random){
 export function tryInflictRaidPartyStatus(target,action,rng=Math.random,{guarding=false}={}){
  const id=action?.status;if(!target||!RAID_STATUS_LABELS[id]||(target.hp??0)<=0)return {attempted:false,applied:false};
  target.statusAilments??=[];target.raidStatusResistTurns??={};
- if((target.raidStatusResistTurns[id]??0)>0)return {attempted:true,applied:false,id,label:raidStatusLabel(id),reason:'resist'};
+ if(shieldStatusImmunity(target,id)||(target.raidStatusResistTurns[id]??0)>0)return {attempted:true,applied:false,id,label:raidStatusLabel(id),reason:'resist'};
  const resistance=clamp(Number(target.statusResistance??target.masteryBonuses?.statusResistance??0),0,.8);
  let chance=clamp(Number(action.statusChance??.3)*(1-resistance),0,.8);if(guarding)chance*=.4;
  if(rng()>=chance)return {attempted:true,applied:false,id,label:raidStatusLabel(id),chance};
