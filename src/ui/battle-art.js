@@ -23,7 +23,7 @@ BOSS_ART['trial-gunbreaker']=descriptor('specialJobs',2);
 BOSS_ART['trial-astrologian']=descriptor('specialJobs',3);
 // Nox reuses a dark boss pixel sprite from the existing oath atlas.
 BOSS_ART['event-eclipse-nox']=descriptor('oaths',4);
-const jobArt=job=>['shielder','greatShielder'].includes(job)?{sheet:'shieldJobs',index:job==='shielder'?0:1,cols:2,rows:1,aspect:.75,src:'./assets/battle/shield-jobs.png?v=20261024'}:['dragoon','summoner'].includes(job)?{sheet:job,index:0,cols:1,rows:1,aspect:.75,src:`./assets/battle/${job}.png?v=approved-height-20261020`}:['gunbreaker','astrologian'].includes(job)?descriptor('specialJobs',job==='gunbreaker'?0:1):job==='highWizard'?descriptor('highWizardFemale',0):descriptor('jobs',Math.max(0,JOB_ART_IDS.indexOf(job)));
+const jobArt=job=>['shielder','greatShielder'].includes(job)?{sheet:'shieldJobs',index:job==='shielder'?0:1,cols:2,rows:1,aspect:.75,src:'./assets/battle/shield-jobs.png?v=20261024-opaque'}:['dragoon','summoner'].includes(job)?{sheet:job,index:0,cols:1,rows:1,aspect:.75,src:`./assets/battle/${job}.png?v=approved-height-20261020`}:['gunbreaker','astrologian'].includes(job)?descriptor('specialJobs',job==='gunbreaker'?0:1):job==='highWizard'?descriptor('highWizardFemale',0):descriptor('jobs',Math.max(0,JOB_ART_IDS.indexOf(job)));
 export function actorArt(actor={}){
  if(actor.side==='ally')return jobArt(actor.currentJob);
  if(actor.raidBoss&&['fenrir','chryps'].includes(actor.bossId??actor.id))return descriptor(actor.bossId??actor.id,0);
