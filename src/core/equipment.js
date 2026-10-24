@@ -7,9 +7,10 @@ import { getRequiredJobLevel } from './equipment-requirements.js';
 // Only weapons that explicitly declare alternate types can use the added job paths.
 // Existing instrument copies keep working for bards after Elgancio's fist correction.
 const compatibleWeaponTypes=item=>[item.weaponType,...(item.alternateWeaponTypes??[])];
-const weaponJobCompatible=(job,item)=>job.weaponTypes?.some(type=>compatibleWeaponTypes(item).includes(type))===true;
+const isShieldJob=job=>['shielder','greatShielder'].includes(job?.id);
+const weaponJobCompatible=(job,item)=>isShieldJob(job)||job.weaponTypes?.some(type=>compatibleWeaponTypes(item).includes(type))===true;
 function weaponJobLabel(item){
- const jobs=Object.values(JOBS).filter(job=>weaponJobCompatible(job,item)&&(!item.allowedJobs||item.allowedJobs.includes(job.id)));
+ const jobs=Object.values(JOBS).filter(job=>weaponJobCompatible(job,item)&&(isShieldJob(job)||!item.allowedJobs||item.allowedJobs.includes(job.id)));
  if(!jobs.length)return '';
  return `${jobs.map(job=>job.name).join('・')}装備可`;
 }
@@ -19,17 +20,23 @@ const ARMOR_JOB_LABELS={
 export function equipmentJobLabel(item){
  if(!item)return '';
  if(item.slot==='spellbook')return '召喚士専用・魔本枠';
+ const appendShieldJobs=label=>[label,'盾士','大盾士'].filter(Boolean).join('・');
  if(item.slot==='weapon')return weaponJobLabel(item);
- if(item.eventJobGroup){const m={swordsman:'剣士専用',mage:'魔法使い専用',healer:'ヒーラー専用',thief:'盗賊専用',fighter:'格闘家専用',archer:'アーチャー専用',bard:'吟遊詩人専用'};return m[item.eventJobGroup]??'';}
- if(item.allowedJobs)return item.allowedJobs.map(id=>JOBS[id]?.name??id).join('・')+'専用';
- if(item.armorGroup)return ARMOR_JOB_LABELS[item.armorGroup]??'';
- return '';
+ if(item.eventJobGroup){const m={swordsman:'剣士専用',mage:'魔法使い専用',healer:'ヒーラー専用',thief:'盗賊専用',fighter:'格闘家専用',archer:'アーチャー専用',bard:'吟遊詩人専用'};return appendShieldJobs(m[item.eventJobGroup]??'');}
+ if(item.allowedJobs)return appendShieldJobs(item.allowedJobs.map(id=>JOBS[id]?.name??id).join('・'))+'装備可';
+ if(item.armorGroup)return appendShieldJobs(ARMOR_JOB_LABELS[item.armorGroup]??'')+'装備可';
+ return item.slot==='shield'||item.slot==='accessory'||['head','body','arms','waist','legs'].includes(item.slot)?'盾士・大盾士も装備可':'';
 }
 
 function equippedWeaponDef(character,state){const ref=character.equipment?.weapon;if(!ref)return null;if(typeof ref==='object')return EQUIPMENT[ref.equipmentId];const inst=state?.equipmentInventory?.find(x=>x.instanceId===ref);return EQUIPMENT[inst?.equipmentId??ref]??null;}
 export function canEquipForJob(character,item,state){
  if(!item)return false;
  if(item.ownerCharacterId&&item.ownerCharacterId!==character.id)return false;
+ // Shield jobs can equip all existing weapons, armour and accessories as requested.
+ // A character-owned heirloom remains owned; spellbooks remain Summoner-exclusive.
+ if(['shielder','greatShielder'].includes(character.currentJob)&&
+    ['weapon','shield','head','body','arms','waist','legs','accessory'].includes(item.slot))
+   return true;
  if(item.allowedJobs&&!item.allowedJobs.includes(character.currentJob))return false;
  const job=JOBS[character.currentJob];if(!job)return false;
  if(item.armorGroup&&!job.equipmentGroups?.includes(item.armorGroup))return false;
