@@ -65,7 +65,7 @@ test('the Cave shows repeat controls before results before END CONTENTS on mobil
 });
 test('focused tier-3 drops are job-group and part specific; floors 19/20 retain full drop pools',()=>{
  const allTier3=Object.values(MASHO_EQUIPMENT).filter(d=>d.mashoTier===3);
- assert.equal(allTier3.length,22*9);
+ assert.equal(allTier3.length,24*9);
  const pools=[15,16,17,18,19,20].map(getMashoEquipmentDropPool);
  for(const pool of pools)assert.ok(pool.length>0);
  assert.equal(pools[0].every(x=>['weapon','ring','charm'].some(t=>x.id.endsWith('-'+t))),true);
