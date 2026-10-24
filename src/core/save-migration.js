@@ -33,6 +33,7 @@ export function migrateSave(raw = {}) {
     characters,
     activePartyIds,
     skillPresets: normalizeSkillPresets(raw.skillPresets),
+    skillPresetNames: normalizeSkillPresetNames(raw.skillPresetNames),
     bankGold: Number.isSafeInteger(Number(raw.bankGold)) && Number(raw.bankGold)>0 ? Math.min(9_000_000_000_000,Number(raw.bankGold)) : 0,
     inventory: (raw.inventory ?? []).map(x=>({...x})),
     boostScrolls: normalizeBoostScrolls(raw.boostScrolls),
