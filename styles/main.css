@@ -994,3 +994,8 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 [data-game-update] .game-update-dot{position:absolute;right:10px;top:9px}
 [data-game-update] small{display:block;color:var(--muted);font-size:.68rem}
 [data-skill-preset-name-input]{display:block;width:100%;max-width:100%;margin:.5rem 0 1rem;background:#0e192a;color:#fff;border:1px solid #566883;border-radius:8px;padding:.65rem;font:inherit}
+
+/* 盾士・大盾士：90×120セル×2のドット絵を既存ジョブ一覧に表示 */
+.job-shield-sprite{display:inline-block;float:left;width:48px;height:64px;margin:0 9px 0 0;background-image:url('../assets/battle/shield-jobs.png?v=20261024');background-size:200% 100%;background-position:left center;background-repeat:no-repeat;image-rendering:pixelated}
+.job-shield-sprite.advanced{background-position:right center}
+.job-name-block:has(.job-shield-sprite){display:block;min-height:64px}
