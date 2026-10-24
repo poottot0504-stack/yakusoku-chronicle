@@ -53,11 +53,10 @@ export function shielderCoverTarget(allies,target){
    return protector;
  return null;
 }
-export function distributeShieldCover(actors,target,amount,{allTargets=false}={}){
+export function distributeShieldCover(actors,target,amount,{allTargets=false,allowNoSide=false}={}){
  const damage=Math.max(0,Math.floor(Number(amount)||0));
- const argumentsAllowNoSide=arguments[3]?.allowNoSide===true;
- if(allTargets||(target?.side!=='ally'&&!argumentsAllowNoSide)||damage<=0)return {protectedDamage:damage,guardDamage:0,guard:null};
- const allies=(actors??[]).filter(a=>a.side==='ally'||argumentsAllowNoSide&&a.side==null);
+ if(allTargets||(target?.side!=='ally'&&!allowNoSide)||damage<=0)return {protectedDamage:damage,guardDamage:0,guard:null};
+ const allies=(actors??[]).filter(a=>a.side==='ally'||allowNoSide&&a.side==null);
  const guardian=shielderCoverTarget(allies,target);
  if(!guardian)return {protectedDamage:damage,guardDamage:0,guard:null};
  const share=shieldJobLevel(guardian)>=300?damage:Math.floor(damage/2);
