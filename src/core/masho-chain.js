@@ -16,6 +16,7 @@ export function recordMashoRunVictory(run,receipt,actualGold=0){
   run.materials[id]=(run.materials[id]??0)+Math.max(1,Number(receipt.enhanceMaterial.qty)||1);
  }
  if(receipt.equipment?.equipmentId)run.equipment.push(receipt.equipment.equipmentId);
+ if(receipt.shieldEquipment?.equipmentId)run.equipment.push(receipt.shieldEquipment.equipmentId);
  return run;
 }
 export const mashoRunCanContinue=run=>Boolean(run&&run.completed>0&&run.completed<run.total&&!run.stopAfterCurrent);
