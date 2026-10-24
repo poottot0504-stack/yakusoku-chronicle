@@ -23,6 +23,7 @@ import { createDefaultRoster } from './data/characters.js';
 import { listSaveSlots,saveToSlot,loadFromSlot,loadSlotRecord,deleteSlot,migrateLegacySaveToSlot1 } from './save/save-slots.js';
 import { ensureAdventureState, getUnlockedRegions, travelToRegion, makeEncounterEnemy, makeEncounterGroup, makeRegionBoss, canChallengeBoss, recordAdventureVictory, mergeLatestLevelUps, usePotion, syncBattlePartyToState, getAdventureBattleParty, makeBestiaryRematchEnemy, makeEndgameBoss, makeLegendaryTrialEnemy } from './core/adventure.js';
 import { createBattle, startTurn, finishTurn, getPendingActor, resolveAction, attemptEscape, undoPlannedAction } from './core/battle.js';
+import { isShieldGuardJob,shieldJobLevel } from './core/shielder-guard.js';
 import { getBattleSkills, skillMetricLabel, getSelectedSkillIds, setBattleSkillLoadout, getRecommendedBattleSkillIds, getRecommendedBattleSkillSummary, describeSkill } from './core/skillbook.js';
 import { saveSkillPreset,applySkillPreset,getSkillPresetName,renameSkillPreset } from './core/skill-presets.js';
 import { isGameUpdateAvailable,fetchLatestGameBuild } from './core/game-update.js';
@@ -780,10 +781,38 @@ async function tryClaimRaidReward(snapshot=raidRoom,{silent=false}={}){
  catch(err){if(!silent)toast(err.message??'レイド報酬の受取に失敗しました');return null;}
  finally{if(claimExecutionId===raidClaimExecutionId)raidRewardClaimBusy=false;}
 }
-function startRaidPartyTurn(){raidAutoRound++;raidTurnState=createRaidTurnState(raidPartyMembers());}
+function startRaidPartyTurn(){
+ raidAutoRound++;
+ const party=raidPartyMembers();
+ if(raidAutoRound===1){
+  const shields=party.filter(x=>isShieldGuardJob(x.currentJob)&&shieldJobLevel(x)>=70&&x.hp>0);
+  const seen=new Set();
+  for(const c of shields){
+   if(seen.has(c.currentJob))continue;
+   seen.add(c.currentJob);
+   const bonus=c.currentJob==='shielder'?{attackPct:.2,magicPct:.2}:{defensePct:.2};
+   for(const target of party){
+    target.raidBuff??={turns:3,attackPct:0,magicPct:0,defensePct:0};
+    for(const key of Object.keys(bonus))target.raidBuff[key]=(target.raidBuff[key]??0)+bonus[key];
+    target.raidBuff.turns=Math.max(3,target.raidBuff.turns??0);
+   }
+   addRaidBattleLog(`🛡️ ${c.name}の${c.currentJob==='shielder'?'攻撃':'防御'}の掛け声！ 味方全員が3ターン強化された！`);
+  }
+  if(seen.size)syncRaidParty(party);
+ }
+ raidTurnState=createRaidTurnState(party);
+}
 function raidTurnInfo(){const receipt=state.raid?.claimedRewards?.[raidRewardKey(raidRoom)]??null;return {currentActorId:raidTurnState?.currentActorId??null,index:raidTurnState?.index??0,total:raidTurnState?.actorIds?.length??0,executing:raidTurnExecuting,endedReason:raidEndedReason,autoEnabled:autoSettings().enabled,autoStopped:raidAutoStopped,rewardText:receipt?formatRaidReward(receipt):null,lastHitText:raidLastHitText};}
 function currentRaidPartyActor(){return currentRaidTurnActor(raidTurnState,raidPartyMembers());}
-function renderRaidBattleScreen(){if(!raidRoom)return;openModal(raidBattleMarkup(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers(),raidBattleLog,raidTurnInfo()));modal.classList.add('raid-ui-open');scheduleRaidAuto();}
+function renderRaidBattleScreen(){
+ if(!raidRoom)return;
+ openModal(raidBattleMarkup(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers(),raidBattleLog,raidTurnInfo()));
+ modal.classList.add('raid-ui-open');
+ if(isShieldGuardJob(currentRaidPartyActor()?.currentJob)){
+  for(const btn of modal.querySelectorAll('[data-raid-action="attack"],[data-raid-open-skills],[data-raid-open-items]'))btn.disabled=true;
+ }
+ scheduleRaidAuto();
+}
 function raidActorBonus(actor){const bonus={...getEquipmentStatBonus(state,actor)};const buff=actor?.raidBuff;if(buff?.turns>0){bonus.attack=(bonus.attack??0)+Math.round((actor?.stats?.attack??0)*(buff.attackPct??0));bonus.magic=(bonus.magic??0)+Math.round((actor?.stats?.magic??0)*(buff.magicPct??0));}return bonus;}
 function tickRaidBuffs(party){for(const c of party){if(c.raidBuff?.turns>0){c.raidBuff.turns--;if(c.raidBuff.turns<=0)delete c.raidBuff;}}}
 function allRaidPartyKo(){const p=raidPartyMembers();return !p.length||p.every(x=>(x?.hp??0)<=0);}
@@ -921,7 +950,8 @@ async function executeRaidPartyTurn(){
  }catch(err){if(executionId!==raidExecutionId||!raidRoom)return;raidTurnExecuting=false;toast(err.message??'レイド通信に失敗しました');startRaidPartyTurn();renderRaidBattleScreen();}
 }
 
-function planRaidAction(action){if(!raidRoom||!raidTurnState||raidTurnExecuting||isRaidWindowDefeated(state))return;const actor=currentRaidPartyActor();if(!actor)return;try{raidTurnState=planRaidPartyAction(raidTurnState,{...action,actorId:actor.id});if(raidTurnState.complete){raidTurnExecuting=true;renderRaidBattleScreen();queueMicrotask(()=>void executeRaidPartyTurn());return;}renderRaidBattleScreen();}catch(err){toast(err.message);}}
+function planRaidAction(action){if(!raidRoom||!raidTurnState||raidTurnExecuting||isRaidWindowDefeated(state))return;const actor=currentRaidPartyActor();if(!actor)return;
+ if(isShieldGuardJob(actor.currentJob)&&action.type!=='guard')return toast('盾士系は防御のみ選択できます');try{raidTurnState=planRaidPartyAction(raidTurnState,{...action,actorId:actor.id});if(raidTurnState.complete){raidTurnExecuting=true;renderRaidBattleScreen();queueMicrotask(()=>void executeRaidPartyTurn());return;}renderRaidBattleScreen();}catch(err){toast(err.message);}}
 function doRaidAction(type){if(!['attack','guard'].includes(type))return;planRaidAction({type});}
 function chooseRaidSkill(skillId){const actor=currentRaidPartyActor(),skill=skillById(actor,skillId);if(!actor||!skill)return;if((skill.mp??0)>(actor.mp??0))return toast('MPが足りない！');if(skill.type==='heal'&&skill.target!=='all')return showRaidSkillTargets(skill);if(skill.type==='revive')return showRaidSkillTargets(skill);planRaidAction({type:'skill',skillId:skill.id,targetId:actor.id});}
 function chooseRaidSkillTarget(skillId,targetId){const actor=currentRaidPartyActor(),skill=skillById(actor,skillId);if(!actor||!skill)return;planRaidAction({type:'skill',skillId:skill.id,targetId});}
