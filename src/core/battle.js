@@ -41,8 +41,6 @@ function executePlannedTurn(b,rng){
   let action=a.side==='enemy'?chooseEnemyAction(b,a,rng):(b.plannedActions[id]??{type:'wait'});
   const confused=!isShieldGuardJob(a.currentJob)&&a.statusAilments?.some(x=>x.id==='confusion'&&x.turns>0);
   if(confused&&rng()<.5){const targets=b.actors.filter(x=>x.hp>0&&x.id!==a.id);const target=targets[Math.floor(rng()*Math.max(1,targets.length))];if(target){b.log.push(`${a.name}は混乱している！`);action={type:'attack',targetId:target.id};}}
-  // Shield jobs have no attack, item or active-skill command. They always guard.
-  if(a.side==='ally'&&isShieldGuardJob(a.currentJob))action={type:'defend'};
   const before=Object.fromEntries(b.actors.map(x=>[x.id,x.hp]));
   const result=resolveActionInternal(b,a,action,rng);markActed(b,id);
   if(result?.ok===true)b.options?.onActionExecuted?.(action,a,result);
@@ -128,7 +126,6 @@ function resolveActionInternal(b,a,action,rng){
 }
 export function resolveAction(battle,action,rng=Math.random){
  const actor=getPendingActor(battle);if(!actor)throw new Error('入力待ちの味方がいません');
- if(isShieldGuardJob(actor.currentJob)&&action.type!=='defend')return {ok:false,message:'盾士系は防御のみ選択できます'};
  if(action.type==='skill'&&((actor.mp??0)<Number(action.skill?.mp??0)))return {ok:false,message:'MPが足りない！'};
  battle.plannedActions[actor.id]=action;battle.planningIndex++;battle.awaitingActorId=battle.planningIds[battle.planningIndex]??null;
  if(battle.awaitingActorId)return {ok:true,planned:true};
