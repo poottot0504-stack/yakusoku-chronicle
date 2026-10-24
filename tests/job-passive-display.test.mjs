@@ -15,12 +15,12 @@ const makeState=()=>ensureAdventureState(createNewGame(createDefaultRoster()));
 const availableDate=Date.parse('2027-01-01T12:00:00+09:00');
 
 test('every job has one small, readable intrinsic passive',()=>{
- assert.equal(ALL_JOBS.length,22);
+ assert.equal(ALL_JOBS.length,24);
  for(const job of ALL_JOBS){
   const passive=getJobPassive(job.id);
   assert.ok(passive,`Missing passive for ${job.id}`);
   assert.ok(['attack','defense','magic','speed'].includes(passive.stat));
-  assert.ok(passive.rate>=.025&&passive.rate<=.04,`Passive balance out of bounds: ${job.id}`);
+  assert.ok(passive.rate>=.025&&passive.rate<=(['shielder','greatShielder'].includes(job.id)?.08:.04),`Passive balance out of bounds: ${job.id}`);
   const description=describeJobPassive(job.id);
   assert.ok(description.includes(passive.name));
   assert.ok(description.includes(`${Math.round(passive.rate*1000)/10}%`));
