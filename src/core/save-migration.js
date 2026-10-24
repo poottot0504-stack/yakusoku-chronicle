@@ -1,5 +1,5 @@
 import { normalizeBattleSkillLoadouts } from './skillbook.js';
-import { normalizeSkillPresets } from './skill-presets.js';
+import { normalizeSkillPresets,normalizeSkillPresetNames } from './skill-presets.js';
 import { normalizeMashoProgress } from './masho-cave.js';
 import { normalizeBoostScrolls } from './boost-scrolls.js';
 import { applyProgressionCaps } from './progression-caps.js';
@@ -33,6 +33,7 @@ export function migrateSave(raw = {}) {
     characters,
     activePartyIds,
     skillPresets: normalizeSkillPresets(raw.skillPresets),
+    skillPresetNames: normalizeSkillPresetNames(raw.skillPresetNames),
     bankGold: Number.isSafeInteger(Number(raw.bankGold)) && Number(raw.bankGold)>0 ? Math.min(9_000_000_000_000,Number(raw.bankGold)) : 0,
     inventory: (raw.inventory ?? []).map(x=>({...x})),
     boostScrolls: normalizeBoostScrolls(raw.boostScrolls),

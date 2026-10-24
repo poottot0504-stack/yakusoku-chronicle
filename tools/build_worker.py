@@ -5,6 +5,8 @@ GitHub Actions runs this after all tests and before manual deployment.
 """
 from __future__ import annotations
 import shutil
+import hashlib
+import json
 from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urlsplit, unquote
@@ -76,6 +78,28 @@ def build(root=ROOT, output=OUTPUT):
                 dest = output/file.relative_to(root)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(file, dest)
+    # A deterministic fingerprint of every public asset marks a deployment.
+    # Previously opened tabs check this without logging out or clearing saves.
+    source_assets = sorted(
+        (p for p in output.rglob('*') if p.is_file()),
+        key=lambda p: p.relative_to(output).as_posix()
+    )
+    digest = hashlib.sha256()
+    for asset in source_assets:
+        digest.update(asset.relative_to(output).as_posix().encode('utf-8') + b'|')
+        with asset.open('rb') as stream:
+            for part in iter(lambda: stream.read(1024*1024), b''):
+                digest.update(part)
+    build_id = digest.hexdigest()[:24]
+    index_file = output/'index.html'
+    html = index_file.read_text(encoding='utf-8')
+    if '<head>' not in html or '__CHRONICLE_BUILD_ID__' in html:
+        raise ValueError('Build ID injection requires a clean public index head')
+    html = html.replace('<head>', f'<head><script>window.__CHRONICLE_BUILD_ID__="{build_id}";</script>', 1)
+    index_file.write_text(html, encoding='utf-8')
+    (output/'build-version.json').write_text(
+        json.dumps({'buildId':build_id}, ensure_ascii=False)+'\n', encoding='utf-8'
+    )
     files = [p for p in output.rglob('*') if p.is_file()]
     if len(files)>MAX_FILE_COUNT:
         raise ValueError('Cloudflare Workers static file count exceeded')

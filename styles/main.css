@@ -982,3 +982,15 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .collection-ranking-reward h3,.collection-ranking-reward p{flex-basis:100%;margin:0}
 .collection-ranking-reward .action-main{font-weight:800}
 @media(max-width:520px){.collection-event-title-banner .collection-event-banner-label{padding:8px 10px}}
+
+
+/* Skill preset labels and opt-in update alerts (mobile-friendly). */
+.skill-preset-row .skill-preset-detail>b{overflow-wrap:anywhere;word-break:break-word}
+.skill-preset-row .skill-preset-actions{display:flex;gap:6px;flex-wrap:wrap}
+[data-game-update],[data-nav="more"]{position:relative}
+.game-update-dot{display:inline-block;width:9px;height:9px;min-width:9px;min-height:9px;vertical-align:middle;border-radius:50%;background:#ed4d58;box-shadow:0 0 0 2px #401620,0 0 9px rgba(237,77,88,.55)}
+.game-update-dot[hidden]{display:none!important}
+[data-nav="more"] .game-update-dot{position:absolute;right:7px;top:4px}
+[data-game-update] .game-update-dot{position:absolute;right:10px;top:9px}
+[data-game-update] small{display:block;color:var(--muted);font-size:.68rem}
+[data-skill-preset-name-input]{display:block;width:100%;max-width:100%;margin:.5rem 0 1rem;background:#0e192a;color:#fff;border:1px solid #566883;border-radius:8px;padding:.65rem;font:inherit}

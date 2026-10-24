@@ -46,6 +46,7 @@ export function createDefaultState() {
     characters: [],
     activePartyIds: [],
     skillPresets: Array.from({length:10},()=>null),
+    skillPresetNames: Array.from({length:10},()=>''),
     gold: 0,
     bankGold: 0,
     inventory: [],
