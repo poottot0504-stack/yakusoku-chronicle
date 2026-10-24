@@ -24,7 +24,8 @@ import { listSaveSlots,saveToSlot,loadFromSlot,loadSlotRecord,deleteSlot,migrate
 import { ensureAdventureState, getUnlockedRegions, travelToRegion, makeEncounterEnemy, makeEncounterGroup, makeRegionBoss, canChallengeBoss, recordAdventureVictory, mergeLatestLevelUps, usePotion, syncBattlePartyToState, getAdventureBattleParty, makeBestiaryRematchEnemy, makeEndgameBoss, makeLegendaryTrialEnemy } from './core/adventure.js';
 import { createBattle, startTurn, finishTurn, getPendingActor, resolveAction, attemptEscape, undoPlannedAction } from './core/battle.js';
 import { getBattleSkills, skillMetricLabel, getSelectedSkillIds, setBattleSkillLoadout, getRecommendedBattleSkillIds, getRecommendedBattleSkillSummary, describeSkill } from './core/skillbook.js';
-import { saveSkillPreset,applySkillPreset } from './core/skill-presets.js';
+import { saveSkillPreset,applySkillPreset,getSkillPresetName,renameSkillPreset } from './core/skill-presets.js';
+import { isGameUpdateAvailable,fetchLatestGameBuild } from './core/game-update.js';
 import { restAtInn, handlePartyWipe, getInnPrice } from './core/inn.js';
 import { bankBalance, depositGold, withdrawGold } from './core/bank.js';
 import { getShopInventory, buyItem } from './core/shop.js';
@@ -229,7 +230,7 @@ function updateRankingApologyModalContent(content){const card=modal.querySelecto
 function closeModal(){modal.classList.remove('open','ranking-apology-open','raid-ui-open');modal.innerHTML='';if(battle&&battle.phase==='planning')queueMicrotask(scheduleNormalAuto);}
 function topbar(){const hero=state.characters.find(c=>c.isHero)??state.characters[0];return `<header class="topbar"><button class="brand" data-nav="adventure"><span class="brand-mark">✦</span><span>約束のクロニクル</span></button><div class="top-resources"><span>💰 ${state.gold??0}G</span><span>⭐ Lv${hero?.level??1}</span></div></header>`;}
 function partyDock(){const active=new Set(state.activePartyIds??[]);return `<div class="party-dock">${state.characters.filter(c=>active.has(c.id)).map(c=>{const caps=getCharacterResourceCaps(state,c),hp=Math.max(0,Math.min(100,Math.round((c.hp??0)/Math.max(1,caps.maxHP)*100))),mp=Math.max(0,Math.min(100,Math.round((c.mp??0)/Math.max(1,caps.maxMP)*100)));return `<button data-character-id="${esc(c.id)}" class="dock-member ${c.id===selectedId()?'selected':''}"><span>${esc(c.name.slice(0,1))}</span><small>${esc(c.name)}<br>Lv${c.level}</small><i class="dock-hp" role="progressbar" aria-label="HP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${hp}"><b style="width:${hp}%"></b></i><i class="dock-mp" role="progressbar" aria-label="MP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${mp}"><b style="width:${mp}%"></b></i></button>`;}).join('')}</div>`;}
-const nav=()=>`<nav class="main-nav"><button data-nav="adventure">🗺️<span>冒険</span></button><button data-nav="party">👥<span>仲間</span></button><button data-nav="status">📊<span>能力</span></button><button data-nav="jobs">🔯<span>転職</span></button><button data-nav="equipment">⚔️<span>装備</span></button><button data-nav="items">🎒<span>アイテム</span></button><button data-nav="more">☰<span>その他</span></button></nav>`;
+const nav=()=>`<nav class="main-nav"><button data-nav="adventure">🗺️<span>冒険</span></button><button data-nav="party">👥<span>仲間</span></button><button data-nav="status">📊<span>能力</span></button><button data-nav="jobs">🔯<span>転職</span></button><button data-nav="equipment">⚔️<span>装備</span></button><button data-nav="items">🎒<span>アイテム</span></button><button data-nav="more">☰<span>その他</span><i class="game-update-dot" data-game-update-dot aria-label="更新あり" ${gameUpdateAvailable?'':'hidden'}></i></button></nav>`;
 function panelForView(){if(view==='exploreResult')return `<section class="panel exploration-result"><h2>探索を続けますか？</h2><p>${esc(state.adventure?.message??'戦闘終了！').replace(/\n/g,'<br>')}</p><div class="hunt-actions"><button class="action-main" data-explore-continue>はい</button><button data-explore-return>いいえ（町へ戻る）</button></div></section>`;if(view==='masho')return mashoCaveMarkup(state);const switcher=()=>characterSwitcherMarkup(state,selectedId());if(view==='town')return townMarkup(state,huntCountApologyStatus,currentSlot);if(view==='market')return marketMarkup(state,marketUi);if(view==='party')return partyMarkup(state);if(view==='status')return switcher()+statusMarkup(state,selectedId());if(view==='skillList')return switcher()+skillLoadoutMarkup(state,selectedId());if(view==='jobs')return switcher()+jobsMarkup(state,selectedId())+skillsMarkup(state,selectedId());if(view==='equipment')return switcher()+equipmentMarkup(state,selectedId(),equipmentSearch);if(view==='items')return itemsMarkup(state);if(view==='bestiary')return bestiaryMarkup(state);if(view==='quests')return questsMarkup(state,getVisibleQuestDefinitions(state));if(view==='achievements')return achievementsMarkup(state,Object.values(ACHIEVEMENTS));if(view==='forge')return forgeMarkup(state);if(view==='ending')return endingMarkup(state);if(view==='guide')return adventureGuideMarkup(state);if(view==='eidelEnding')return eidelEndingMarkup(state,state.ui?.eidelEndingView??(state.endgame?.complete?'saved':state.endgame?.eidelEnding));if(view==='endgame')return endgameMarkup(state);return adventureMarkup(state);}
 function syncEquipmentCandidateFilters(){
  const screen=game.querySelector('.equipment-screen'),candidates=game.querySelector('.equipment-candidates');
@@ -1165,7 +1166,57 @@ async function refreshCollectionRanking(page=1){
   if(collectionRankingRequest===request)render();
  }
 }
-function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=COLLECTION_EVENT_202611.startsAt?'<button data-collection-ranking-open>🏆<b>討伐の証ランキング</b></button>':''}${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
+let gameUpdateAvailable=false;
+let gameUpdateReloading=false;
+const currentGameBuildId=String(window.__CHRONICLE_BUILD_ID__??'');
+function updateGameNotice(){
+ document.querySelectorAll('[data-game-update-dot]').forEach(node=>{node.hidden=!gameUpdateAvailable;});
+}
+async function pollForGameUpdate(){
+ if(document.hidden||!currentGameBuildId||gameUpdateReloading)return;
+ try{
+  const newest=await fetchLatestGameBuild();
+  gameUpdateAvailable=isGameUpdateAvailable(currentGameBuildId,newest);
+  updateGameNotice();
+ }catch{/* Offline players keep playing without interruption. */}
+}
+async function refreshGameToLatest(){
+ if(gameUpdateReloading)return;
+ gameUpdateReloading=true;
+ try{
+  // Save locally first; finish any queued account save before navigating away.
+  if(!title.classList.contains('active')){
+   saveNow();
+   await flushAccountCloudSave(currentSlot);
+  }
+  const next=new URL(location.href);
+  next.searchParams.set('updated',String(Date.now()));
+  location.replace(next.toString());
+ }catch(error){
+  gameUpdateReloading=false;
+  toast(error?.message??'更新できませんでした。もう一度お試しください。');
+ }
+}
+function openSkillPresetRename(slot,characterId){
+ if(battle||raidRoom)return toast('戦闘中は変更できません');
+ if(!state.characters.some(x=>x.id===characterId))return;
+ try{
+  const current=getSkillPresetName(state,slot);
+  openModal(`<h2>✏️ スキルセット名の変更</h2><p class="notice">セット${Number(slot)}の名前を変更できます。空欄で保存すると元の名前に戻ります。</p><label>セット名（最大24文字）<input data-skill-preset-name-input maxlength="24" value="${esc((state.skillPresetNames??[])[Number(slot)-1]??'')}" placeholder="${esc(current)}"></label><div class="hunt-actions"><button class="action-main" data-skill-preset-rename-confirm="${Number(slot)}" data-skill-character="${esc(characterId)}">保存する</button><button data-close-modal>キャンセル</button></div>`);
+  modal.querySelector('[data-skill-preset-name-input]')?.focus();
+ }catch(error){toast(error.message);}
+}
+function confirmSkillPresetRename(slot,characterId){
+ if(battle||raidRoom)return toast('戦闘中は変更できません');
+ if(!state.characters.some(x=>x.id===characterId))return;
+ try{
+  const name=modal.querySelector('[data-skill-preset-name-input]')?.value??'';
+  const result=renameSkillPreset(state,slot,name);
+  saveNow();closeModal();renderGameKeepVertical();
+  toast(`「${result.name}」に変更しました`);
+ }catch(error){toast(error.message);}
+}
+function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-game-update>🔄<b>更新</b><i class="game-update-dot" data-game-update-dot aria-label="更新あり" ${gameUpdateAvailable?'':'hidden'}></i><small>最新版を読み込む</small></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=COLLECTION_EVENT_202611.startsAt?'<button data-collection-ranking-open>🏆<b>討伐の証ランキング</b></button>':''}${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
 function toggleParty(id){const ids=[...(state.activePartyIds??[])],has=ids.includes(id);if(has){if(ids.length===1)return toast('戦闘メンバーは1人以上必要です');setActiveParty(state,ids.filter(x=>x!==id));}else{if(ids.length>=4)return toast('戦闘メンバーは4人までです');setActiveParty(state,[...ids,id]);}saveNow();renderGame();}
 
 document.addEventListener('click',e=>{
@@ -1188,6 +1239,8 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-hunt-debug')&&festivalView.debug){festivalApi.change(el.dataset.huntDebug);return void refreshFestival(true);}
  if(el.matches('[data-close-modal]')||e.target.matches?.('[data-modal-backdrop]')){if(raidRoom||raidJoinBusy){if(raidRoom&&raidEndedReason!=='timeout')void tryClaimRaidReward(raidRoom,{silent:false});cancelRaidSession();raidLobbyPoller.start();renderGameKeepVertical();}return closeModal();}
  if(el.hasAttribute('data-auto-stop')){if(raidRoom){raidAutoStopped=true;clearRaidAuto();}else if(battle){battle.autoPlayStopped=true;clearNormalAuto();}document.querySelectorAll('[data-auto-stop]').forEach(button=>{button.disabled=true;button.textContent='手動';});toast('この戦闘だけオートを停止しました。次の戦闘では設定どおり再開します');return;}
+ if(el.hasAttribute('data-game-update'))return void refreshGameToLatest();
+ if(el.hasAttribute('data-skill-preset-rename-confirm'))return confirmSkillPresetRename(el.dataset.skillPresetRenameConfirm,el.dataset.skillCharacter);
  if(el.hasAttribute('data-feedback-open'))return openFeedback();
  if(el.hasAttribute('data-feedback-submit'))return void submitFeedback();
  if(el.hasAttribute('data-feedback-mine'))return void showMyFeedback();
@@ -1314,6 +1367,7 @@ document.addEventListener('click',e=>{
  if(el.dataset.useSkill)return useSkill(el.dataset.useSkill);
  if(el.dataset.characterSkills){if(battle||raidRoom)return toast('特技・魔法のセットは戦闘前に変更してください');if(!state.characters.some(c=>c.id===el.dataset.characterSkills))return;state.ui??={};state.ui.skillReturnView=view;state.selectedCharacterId=el.dataset.characterSkills;view='skillList';return renderGame();}
  if(el.hasAttribute('data-skill-list-back')){view=['party','jobs','status','equipment'].includes(state.ui?.skillReturnView)?state.ui.skillReturnView:'party';return renderGame();}
+ if(el.dataset.skillPresetRename){openSkillPresetRename(el.dataset.skillPresetRename,el.dataset.skillCharacter);return;}
  if(el.dataset.skillPresetSave){if(battle||raidRoom)return toast('戦闘中は変更できません');try{const r=saveSkillPreset(state,el.dataset.skillCharacter,el.dataset.skillPresetSave);saveNow();renderGameKeepVertical();toast(`セット${r.slot}に${r.count}個のスキルを保存しました`);}catch(err){toast(err.message);}return;}
  if(el.dataset.skillPresetApply){if(battle||raidRoom)return toast('戦闘中は変更できません');try{const r=applySkillPreset(state,el.dataset.skillCharacter,el.dataset.skillPresetApply);saveNow();renderGameKeepVertical();toast(`セット${r.slot}を適用：${r.equipped}個${r.skipped?'（使用不可'+r.skipped+'個を除外）':''}`);}catch(err){toast(err.message);}return;}
  if(el.dataset.autoBattleSkills){if(battle||raidRoom)return toast('戦闘中は変更できません');const c=state.characters.find(x=>x.id===el.dataset.autoBattleSkills);if(!c)return;try{const ids=getRecommendedBattleSkillIds(c);if(!ids.length)return toast('おまかせで選べる習得済みの技がありません');setBattleSkillLoadout(c,ids);const summary=getRecommendedBattleSkillSummary(c,ids);saveNow();renderGameKeepVertical();toast(`おまかせ編成：${summary||ids.length+'個'}をセットしました`);}catch(err){toast(err.message);}return;}
@@ -1391,10 +1445,14 @@ setInterval(()=>{
   if(expired)renderGameKeepVertical();
  }
 },1000);
+// A background check detects deployments without interrupting active battles.
+setInterval(()=>{void pollForGameUpdate();},120000);
+window.addEventListener('focus',()=>{void pollForGameUpdate();});
 window.addEventListener('beforeunload',()=>{playerStatsHeartbeat.stop();if(playStartedAt!==null){syncPlayTime();saveToSlot(session,currentSlot,state);}});
 installPixelIconRenderer();
 renderTitle(); // Show announcements immediately; never await network account checks for first paint.
 void initializeAccountSystem();
+void pollForGameUpdate();
 
 function festivalDeliveryKey(goal=HUNT_FESTIVAL.goal){
  const prefix=festivalView.debug?'yakusoku.admin':'yakusoku';
