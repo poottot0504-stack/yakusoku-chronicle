@@ -137,7 +137,7 @@ test('original sprites remain available in battle, but job change menu has no po
  assert.equal(b.index,1);
  assert.equal(a.cols,2);
  assert.equal(b.cols,2);
- assert.equal(a.src,'./assets/battle/shield-jobs.png?v=20261024');
+ assert.equal(a.src,'./assets/battle/shield-jobs.png?v=20261024-opaque');
  const atlas=readFileSync(new URL('../assets/battle/shield-jobs.png',import.meta.url));
  assert.equal(atlas.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
  assert.equal(atlas.readUInt32BE(16),180,'two cells share a 180px atlas width');

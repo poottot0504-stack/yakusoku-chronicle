@@ -32,7 +32,7 @@ import { bankBalance, depositGold, withdrawGold } from './core/bank.js';
 import { getShopInventory, buyItem } from './core/shop.js';
 import { sell, sellEquipmentInstance, getSellPrice, getSellDefinition, getSellWarning, getSellableQuantity } from './core/selling.js';
 import { changeJob } from './core/jobs.js';
-import { setActiveParty } from './core/party.js';
+import { setActiveParty,movePartyMember,shiftPartyMember } from './core/party.js';
 import { equipItem,equipRecommendedEquipment,unequipAllEquipment,toggleEquipmentLock } from './core/equipment.js';
 import { enhanceEquipment,getEnhancedStats } from './core/forge.js';
 import { craftItem } from './core/crafting.js';
@@ -46,6 +46,7 @@ import { skillsMarkup, skillLoadoutMarkup } from './ui/skills.js?v=skill-presets
 import { equipmentMarkup } from './ui/equipment.js';
 import { equipmentCandidateVisible } from './ui/equipment-search.js';
 import { characterSwitcherMarkup } from './ui/character-switcher.js';
+import { wirePartyDockDrag } from './ui/party-dock-drag.js';
 import { captureHorizontalScroll, restoreHorizontalScroll } from './ui/horizontal-scroll.js';
 import { bestiaryMarkup } from './ui/bestiary.js';
 import { createBestiaryRematch } from './core/bestiary.js';
@@ -230,7 +231,7 @@ function openRankingApologyModal(content){modal.classList.add('ranking-apology-o
 function updateRankingApologyModalContent(content){const card=modal.querySelector('.modal-card');if(!card)return openRankingApologyModal(content);card.innerHTML=`<button class="modal-close" data-close-modal>×</button>${content}`;}
 function closeModal(){modal.classList.remove('open','ranking-apology-open','raid-ui-open');modal.innerHTML='';if(battle&&battle.phase==='planning')queueMicrotask(scheduleNormalAuto);}
 function topbar(){const hero=state.characters.find(c=>c.isHero)??state.characters[0];return `<header class="topbar"><button class="brand" data-nav="adventure"><span class="brand-mark">✦</span><span>約束のクロニクル</span></button><div class="top-resources"><span>💰 ${state.gold??0}G</span><span>⭐ Lv${hero?.level??1}</span></div></header>`;}
-function partyDock(){const active=new Set(state.activePartyIds??[]);return `<div class="party-dock">${state.characters.filter(c=>active.has(c.id)).map(c=>{const caps=getCharacterResourceCaps(state,c),hp=Math.max(0,Math.min(100,Math.round((c.hp??0)/Math.max(1,caps.maxHP)*100))),mp=Math.max(0,Math.min(100,Math.round((c.mp??0)/Math.max(1,caps.maxMP)*100)));return `<button data-character-id="${esc(c.id)}" class="dock-member ${c.id===selectedId()?'selected':''}"><span>${esc(c.name.slice(0,1))}</span><small>${esc(c.name)}<br>Lv${c.level}</small><i class="dock-hp" role="progressbar" aria-label="HP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${hp}"><b style="width:${hp}%"></b></i><i class="dock-mp" role="progressbar" aria-label="MP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${mp}"><b style="width:${mp}%"></b></i></button>`;}).join('')}</div>`;}
+function partyDock(){const byId=new Map((state.characters??[]).map(c=>[c.id,c]));const ordered=(state.activePartyIds??[]).map(id=>byId.get(id)).filter(Boolean);return `<div class="party-dock" role="group" aria-label="戦闘パーティの隊列：横にドラッグで並び替え">${ordered.map(c=>{const caps=getCharacterResourceCaps(state,c),hp=Math.max(0,Math.min(100,Math.round((c.hp??0)/Math.max(1,caps.maxHP)*100))),mp=Math.max(0,Math.min(100,Math.round((c.mp??0)/Math.max(1,caps.maxMP)*100)));return `<button data-character-id="${esc(c.id)}" data-dock-member="${esc(c.id)}" class="dock-member ${c.id===selectedId()?'selected':''}"><span>${esc(c.name.slice(0,1))}</span><small>${esc(c.name)}<br>Lv${c.level}</small><i class="dock-hp" role="progressbar" aria-label="HP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${hp}"><b style="width:${hp}%"></b></i><i class="dock-mp" role="progressbar" aria-label="MP" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${mp}"><b style="width:${mp}%"></b></i></button>`;}).join('')}</div>`;}
 const nav=()=>`<nav class="main-nav"><button data-nav="adventure">🗺️<span>冒険</span></button><button data-nav="party">👥<span>仲間</span></button><button data-nav="status">📊<span>能力</span></button><button data-nav="jobs">🔯<span>転職</span></button><button data-nav="equipment">⚔️<span>装備</span></button><button data-nav="items">🎒<span>アイテム</span></button><button data-nav="more">☰<span>その他</span><i class="game-update-dot" data-game-update-dot aria-label="更新あり" ${gameUpdateAvailable?'':'hidden'}></i></button></nav>`;
 function panelForView(){if(view==='exploreResult')return `<section class="panel exploration-result"><h2>探索を続けますか？</h2><p>${esc(state.adventure?.message??'戦闘終了！').replace(/\n/g,'<br>')}</p><div class="hunt-actions"><button class="action-main" data-explore-continue>はい</button><button data-explore-return>いいえ（町へ戻る）</button></div></section>`;if(view==='masho')return mashoCaveMarkup(state);const switcher=()=>characterSwitcherMarkup(state,selectedId());if(view==='town')return townMarkup(state,huntCountApologyStatus,currentSlot);if(view==='market')return marketMarkup(state,marketUi);if(view==='party')return partyMarkup(state);if(view==='status')return switcher()+statusMarkup(state,selectedId());if(view==='skillList')return switcher()+skillLoadoutMarkup(state,selectedId());if(view==='jobs')return switcher()+jobsMarkup(state,selectedId())+skillsMarkup(state,selectedId());if(view==='equipment')return switcher()+equipmentMarkup(state,selectedId(),equipmentSearch);if(view==='items')return itemsMarkup(state);if(view==='bestiary')return bestiaryMarkup(state);if(view==='quests')return questsMarkup(state,getVisibleQuestDefinitions(state));if(view==='achievements')return achievementsMarkup(state,Object.values(ACHIEVEMENTS));if(view==='forge')return forgeMarkup(state);if(view==='ending')return endingMarkup(state);if(view==='guide')return adventureGuideMarkup(state);if(view==='eidelEnding')return eidelEndingMarkup(state,state.ui?.eidelEndingView??(state.endgame?.complete?'saved':state.endgame?.eidelEnding));if(view==='endgame')return endgameMarkup(state);return adventureMarkup(state);}
 function syncEquipmentCandidateFilters(){
@@ -1243,9 +1244,14 @@ function confirmSkillPresetRename(slot,characterId){
   toast(`「${result.name}」に変更しました`);
  }catch(error){toast(error.message);}
 }
-function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-game-update>🔄<b>更新</b><i class="game-update-dot" data-game-update-dot aria-label="更新あり" ${gameUpdateAvailable?'':'hidden'}></i><small>最新版を読み込む</small></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=COLLECTION_EVENT_202611.startsAt?'<button data-collection-ranking-open>🏆<b>討伐の証ランキング</b></button>':''}${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="save">💾<b>セーブ</b></button><button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
+function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-game-update>🔄<b>更新</b><i class="game-update-dot" data-game-update-dot aria-label="更新あり" ${gameUpdateAvailable?'':'hidden'}></i><small>最新版を読み込む</small></button><button data-more="save">💾<b>セーブ</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=COLLECTION_EVENT_202611.startsAt?'<button data-collection-ranking-open>🏆<b>討伐の証ランキング</b></button>':''}${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
 function toggleParty(id){const ids=[...(state.activePartyIds??[])],has=ids.includes(id);if(has){if(ids.length===1)return toast('戦闘メンバーは1人以上必要です');setActiveParty(state,ids.filter(x=>x!==id));}else{if(ids.length>=4)return toast('戦闘メンバーは4人までです');setActiveParty(state,[...ids,id]);}saveNow();renderGame();}
 
+wirePartyDockDrag({root:game,onReorder(fromId,toId){
+ if(battle||raidRoom)return toast('戦闘中は隊列を変更できません');
+ try{movePartyMember(state,fromId,toId);saveNow();renderGameKeepVertical();toast('🛡️ 編成順を保存しました');}
+ catch(error){toast(error.message??'編成順を変更できませんでした');}
+}});
 document.addEventListener('click',e=>{
  const el=e.target.closest('button,[data-modal-backdrop]');if(!el)return;
  if(el.hasAttribute('data-hunt-title-details')){titleHuntDetailsOpen=true;return renderTitleHuntDetails();}
@@ -1400,6 +1406,12 @@ document.addEventListener('click',e=>{
  if(el.dataset.autoBattleSkills){if(battle||raidRoom)return toast('戦闘中は変更できません');const c=state.characters.find(x=>x.id===el.dataset.autoBattleSkills);if(!c)return;try{const ids=getRecommendedBattleSkillIds(c);if(!ids.length)return toast('おまかせで選べる習得済みの技がありません');setBattleSkillLoadout(c,ids);const summary=getRecommendedBattleSkillSummary(c,ids);saveNow();renderGameKeepVertical();toast(`おまかせ編成：${summary||ids.length+'個'}をセットしました`);}catch(err){toast(err.message);}return;}
  if(el.dataset.toggleBattleSkill){if(battle||raidRoom)return toast('戦闘中は変更できません');const c=state.characters.find(x=>x.id===el.dataset.skillCharacter);if(!c)return;try{const ids=getSelectedSkillIds(c),id=el.dataset.toggleBattleSkill;setBattleSkillLoadout(c,ids.includes(id)?ids.filter(x=>x!==id):[...ids,id]);saveNow();renderGameKeepVertical();}catch(err){toast(err.message);}return;}
  if(el.dataset.characterId){state.selectedCharacterId=el.dataset.characterId;saveNow();return renderGame();}
+ if(el.dataset.partyShift){
+  if(battle||raidRoom)return toast('戦闘中は隊列を変更できません');
+  try{shiftPartyMember(state,el.dataset.partyShift,Number(el.dataset.partyDir));saveNow();renderGameKeepVertical();toast('🛡️ 編成順を保存しました');}
+  catch(error){toast(error.message??'編成順を変更できませんでした');}
+  return;
+ }
  if(el.dataset.toggleParty)return toggleParty(el.dataset.toggleParty);
  if(el.hasAttribute('data-masho-open')){if(!hasFirstClear(state))return toast('一周目クリアで解放されます');setMashoResultVisibility(state,false);view='masho';closeModal();return renderGame();}
  if(el.hasAttribute('data-masho-back')){setMashoResultVisibility(state,false);view='adventure';return renderGame();}

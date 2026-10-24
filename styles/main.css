@@ -996,3 +996,14 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 [data-skill-preset-name-input]{display:block;width:100%;max-width:100%;margin:.5rem 0 1rem;background:#0e192a;color:#fff;border:1px solid #566883;border-radius:8px;padding:.65rem;font:inherit}
 
 /* 盾士・大盾士：90×120セル×2のドット絵を既存ジョブ一覧に表示 */
+
+
+/* Order = left-to-right position of the dock's four active members.
+   Mobile pointer drag is horizontal; vertical page scrolling remains enabled. */
+.party-dock .dock-member{touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
+.party-dock.is-reordering .dock-member{transition:transform .12s,border-color .12s,background .12s}
+.party-dock .dock-member.is-dragging{cursor:grabbing;transform:translateY(-4px);border-color:#f0c96f;box-shadow:0 2px 9px rgba(240,201,111,.25)}
+.party-dock .dock-member.is-drop-target:not(.is-dragging){border-color:#69baff;background:#223855}
+.party-order-buttons{display:flex;gap:8px;margin-top:8px}
+.party-order-buttons button{flex:1;min-height:38px;border:1px solid #647b9a;background:#17263e;border-radius:8px}
+.party-order-buttons button:disabled{opacity:.35}
