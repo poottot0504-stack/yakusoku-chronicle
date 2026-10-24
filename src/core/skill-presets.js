@@ -2,6 +2,27 @@ import { JOBS } from '../data/jobs.js';
 import { getCharacterSkillCatalog, getSelectedSkillIds, setBattleSkillLoadout, BATTLE_SKILL_LIMIT } from './skillbook.js';
 
 export const SKILL_PRESET_COUNT = 10;
+export const SKILL_PRESET_NAME_LIMIT = 24;
+export function normalizeSkillPresetNames(raw){
+ const source=Array.isArray(raw)?raw:[];
+ return Array.from({length:SKILL_PRESET_COUNT},(_,index)=>
+  typeof source[index]==='string'?source[index].trim().slice(0,SKILL_PRESET_NAME_LIMIT):'');
+}
+export function getSkillPresetName(state,slot){
+ const index=assertSlot(slot);
+ return normalizeSkillPresetNames(state?.skillPresetNames)[index]||`セット${index+1}`;
+}
+export function renameSkillPreset(state,slot,name){
+ const index=assertSlot(slot);
+ if(typeof name!=='string')throw new Error('名前が不正です');
+ const value=name.trim();
+ if(value.length>SKILL_PRESET_NAME_LIMIT)throw new Error(`名前は${SKILL_PRESET_NAME_LIMIT}文字以内にしてください`);
+ if(/[\u0000-\u001F\u007F]/.test(value))throw new Error('名前に使用できない文字があります');
+ const names=normalizeSkillPresetNames(state?.skillPresetNames);
+ names[index]=value;state.skillPresetNames=names;
+ return {slot:index+1,name:value||`セット${index+1}`};
+}
+
 
 // Presets belong to the save slot, not to one character or one current job.
 // Store canonical (sourceJob, originalId) pairs: learned skills may use different
