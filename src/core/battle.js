@@ -67,7 +67,7 @@ function resolveOffensiveSkill(b,a,action,skill,rng){
   for(let hit=0;hit<(skill.multiHit??1)&&victim.hp>0;hit++){
     const amount=calculateDamage(a,victim,hitSkill,rng);
     const beforeHp=victim.hp;
-    if(a.side==='enemy'&&!skill.allTargets)applyShieldCoverDamage(b,victim,amount);
+    if(a.side==='enemy')applyShieldCoverDamage(b,victim,amount,{allTargets:!!skill.allTargets});
     else victim.hp=Math.max(0,victim.hp-amount);
     damage+=beforeHp-victim.hp;
    }
