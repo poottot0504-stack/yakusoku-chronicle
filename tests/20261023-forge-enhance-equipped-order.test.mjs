@@ -13,7 +13,7 @@ const base=()=>({
  equipmentInventory:[]
 });
 
-test('equipped unenhanced gear precedes equipped +15 gear; remaining gear keeps original order',()=>{
+test('all equipped +0 through +15 gear stays at the top in stable inventory order',()=>{
  const s=base();
  s.equipmentInventory=[
   inst('unused-max',15),
@@ -33,8 +33,8 @@ test('equipped unenhanced gear precedes equipped +15 gear; remaining gear keeps 
  const oldOrder=s.equipmentInventory.map(i=>i.instanceId);
  const sorted=sortForgeEnhanceInstances(s.equipmentInventory,equipped).map(i=>i.instanceId);
  assert.deepEqual(sorted,[
-  'worn-zero-a','worn-zero-b','worn-max-a','worn-max-b',
-  'unused-max','worn-mid','unused-zero','unused-mid','worn-mid-b'
+  'worn-mid','worn-max-a','worn-zero-a','worn-zero-b','worn-max-b','worn-mid-b',
+  'unused-max','unused-zero','unused-mid'
  ]);
  assert.deepEqual(s.equipmentInventory.map(i=>i.instanceId),oldOrder,'should never mutate inventory');
 });
@@ -48,7 +48,7 @@ test('the actual forge enhancement page respects equipped instance IDs, includin
  s.characters[0].equipment={weapon:'mid-worn',head:{instanceId:'max-worn'},body:'zero-worn'};
  const html=forgeMarkup(s,'enhance');
  const shown=[...html.matchAll(/data-forge="([^"]+)"/g)].map(x=>x[1]);
- assert.deepEqual(shown,['zero-worn','max-worn','max-unworn','mid-worn','zero-unworn']);
+ assert.deepEqual(shown,['mid-worn','max-worn','zero-worn','max-unworn','zero-unworn']);
  assert.match(html,/装備中：勇者/);
  assert.match(html,/data-forge="max-worn"[^>]*disabled/,'maxed gear remains visible, but not enhanceable');
 });
@@ -65,7 +65,7 @@ test('existing category filters are applied before sorting, with stable fallback
   body:'weapon-worn-zero'};
  const html=forgeMarkup(s,'enhance');
  const shown=[...html.matchAll(/data-forge="([^"]+)"/g)].map(x=>x[1]);
- assert.deepEqual(shown,['weapon-worn-zero','weapon-worn-max','weapon-other','weapon-other-2']);
+ assert.deepEqual(shown,['weapon-worn-max','weapon-worn-zero','weapon-other','weapon-other-2']);
  assert.doesNotMatch(html,/data-forge="armor-worn-zero"/);
 });
 
