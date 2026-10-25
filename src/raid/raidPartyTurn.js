@@ -105,14 +105,14 @@ export function applyRaidBossAction(action,party=[],plannedActions=[],bossStats=
   if(isStatus)damage=Math.max(1,Math.round(damage*Math.max(.1,Number(action?.damageScale??.7))));
   damage=Math.max(1,Math.round(damage*elementMult));
   if(guardIds.has(t.id))damage=Math.max(1,Math.round(damage*.5));
-  if(!isAoe){
-   const split=distributeShieldCover(party,t,damage,{allowNoSide:true});
-   damage=split.protectedDamage;
-   if(split.guard){
-    split.guard.hp=Math.max(0,(split.guard.hp??0)-split.guardDamage);
-    if(split.guard.hp<=0)koIds.push(split.guard.id);
-    logs.push(`🛡️ ${split.guard.name}が${t.name}のダメージを肩代わり！（${split.guardDamage}ダメージ）`);
-   }
+  // AoE hits each party member normally, then nearby shields intercept their share.
+  // Redirected damage is applied once, preventing either recursion or double covering.
+  const split=distributeShieldCover(party,t,damage,{allowNoSide:true,allTargets:isAoe});
+  damage=split.protectedDamage;
+  if(split.guard){
+   split.guard.hp=Math.max(0,(split.guard.hp??0)-split.guardDamage);
+   if(split.guard.hp<=0&&!koIds.includes(split.guard.id))koIds.push(split.guard.id);
+   logs.push(`🛡️ ${split.guard.name}が${t.name}のダメージを肩代わり！（${split.guardDamage}ダメージ）`);
   }
   t.hp=Math.max(0,(t.hp??0)-damage);if(t.hp<=0)koIds.push(t.id);
   let suffix=guardIds.has(t.id)?'（防御）':'';
