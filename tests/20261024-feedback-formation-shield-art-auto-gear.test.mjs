@@ -59,12 +59,12 @@ test('dock renders actual activePartyIds rather than character-array order; save
  assert.match(gestures,/pointercancel/);
  assert.match(js,/wirePartyDockDrag\(\{root:game,onReorder/);
 });
-test('manual equipment can still use older other-job pieces; auto equip only selects dedicated shield or common gear',()=>{
+test('manual armor remains compatible; offensive weapons are blocked and auto gear keeps shield-compatible items',()=>{
  for(const job of ['shielder','greatShielder']){
   const c=char('allen',job);
   const other=EQUIPMENT['masho-3-swordsman-body'];
   const own=EQUIPMENT['masho-1-'+job+'-body'];
-  assert.equal(canEquipForJob(c,other,{}),true,'manual all-equipment rule remains unchanged');
+  assert.equal(canEquipForJob(c,other,{}),true,'manual armor can still use other-job pieces');
   assert.equal(recommendationAllowedForJob(c,other),false);
   assert.equal(recommendationAllowedForJob(c,own),true);
   assert.equal(recommendationAllowedForJob(c,EQUIPMENT['raid-orichalcum-ring']),true);
