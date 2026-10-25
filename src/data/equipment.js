@@ -228,8 +228,8 @@ WEAPON_TYPES.push('gunblade','starGlobe');
 // V60: high-grade refined-material job gear.
 // Unlock path: raw material -> refined material -> job-exclusive weapon / body armor / ring / charm.
 const HIGH_FORGE_JOB_STYLES={
- shielder:{weaponType:'oneHandSword',weapon:'護りの短剣',armor:'守護甲',focus:'attack',tank:true},
- greatShielder:{weaponType:'oneHandSword',weapon:'要塞剣',armor:'大盾甲',focus:'attack',tank:true},
+ shielder:{weaponType:'shield',weapon:'護手盾',armor:'守護甲',focus:'defense',tank:true},
+ greatShielder:{weaponType:'shield',weapon:'要塞盾',armor:'大盾甲',focus:'defense',tank:true},
  swordsman:{weaponType:'oneHandSword',weapon:'聖剣',armor:'剣聖装',focus:'attack'},
  mage:{weaponType:'greatStaff',weapon:'大魔杖',armor:'魔導衣',focus:'magic'},
  thief:{weaponType:'dualBlades',weapon:'双影刃',armor:'影装',focus:'attack',agile:true},
@@ -264,7 +264,7 @@ const HIGH_FORGE_TIERS=[
 for(const tier of HIGH_FORGE_TIERS)for(const [job,cfg] of Object.entries(HIGH_FORGE_JOB_STYLES)){
  const common={requiredLevel:tier.requiredLevel,rarity:tier.rarity,allowedJobs:[job],highForgeGear:true,highForgeTier:tier.id,description:`精錬素材から鍛造された${job}専用の${tier.label}シリーズ。装備条件はジョブLv${tier.requiredLevel}。`};
  const isMagic=cfg.focus==='magic',hybrid=cfg.focus==='hybrid';
- const weaponStats=hybrid?{attack:Math.round(tier.weapon*.82),magic:Math.round(tier.weapon*.82)}:isMagic?{magic:tier.weapon}:{attack:tier.weapon};
+ const weaponStats=cfg.focus==='defense'?{defense:tier.weapon,maxHp:Math.round(tier.hp*.5)}:hybrid?{attack:Math.round(tier.weapon*.82),magic:Math.round(tier.weapon*.82)}:isMagic?{magic:tier.weapon}:{attack:tier.weapon};
  if(cfg.agile)weaponStats.speed=Math.max(3,Math.round(tier.ring*.35));
  EQUIPMENT[`highforge-${tier.id}-${job}-weapon`]=E(`highforge-${tier.id}-${job}-weapon`,`${tier.label}・${cfg.weapon}`,'weapon',{...common,weaponType:cfg.weaponType,twoHanded:['greatSword','greatStaff','starGlobe'].includes(cfg.weaponType),...weaponStats});
  const bodyStats={defense:tier.armor+(cfg.tank?10:0),maxHp:cfg.focus==='attack'?Math.round(tier.hp*.55):Math.round(tier.hp*.3),maxMp:isMagic?Math.round(tier.mp*.55):hybrid?Math.round(tier.mp*.35):0};
