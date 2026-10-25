@@ -111,8 +111,8 @@ test('shield jobs cannot wield attack weapons but can equip conventional armor a
   const regular=Object.values(EQUIPMENT).filter(def=>['weapon','shield','head','body','arms','waist','legs','accessory'].includes(def.slot)&&!def.ownerCharacterId);
   assert.ok(regular.length>300);
   for(const def of regular){
-   assert.equal(canEquipForJob(c,def,{}),def.slot!=='weapon',`${job} compatibility for ${def.id}`);
-   if(def.slot!=='weapon')assert.match(equipmentJobLabel(def),/盾士|大盾士/,`equipment label ${def.id}`);
+   assert.equal(canEquipForJob(c,def,{}),def.slot!=='weapon'||def.weaponType==='shield'&&(!def.allowedJobs||def.allowedJobs.includes(job)),`${job} compatibility for ${def.id}`);
+   if(def.slot!=='weapon'||def.weaponType==='shield')assert.match(equipmentJobLabel(def),/盾士|大盾士/,`equipment label ${def.id}`);
   }
  }
 });
