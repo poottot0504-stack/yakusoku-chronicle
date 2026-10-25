@@ -8,7 +8,7 @@ import { getRequiredJobLevel } from './equipment-requirements.js';
 // Existing instrument copies keep working for bards after Elgancio's fist correction.
 const compatibleWeaponTypes=item=>[item.weaponType,...(item.alternateWeaponTypes??[])];
 const isShieldJob=job=>['shielder','greatShielder'].includes(job?.id);
-const weaponJobCompatible=(job,item)=>!isShieldJob(job)&&job.weaponTypes?.some(type=>compatibleWeaponTypes(item).includes(type))===true;
+const weaponJobCompatible=(job,item)=>isShieldJob(job)?item.weaponType==='shield':job.weaponTypes?.some(type=>compatibleWeaponTypes(item).includes(type))===true;
 function weaponJobLabel(item){
  const jobs=Object.values(JOBS).filter(job=>weaponJobCompatible(job,item)&&(!item.allowedJobs||item.allowedJobs.includes(job.id)));
  if(!jobs.length)return '';
@@ -36,7 +36,7 @@ export function canEquipForJob(character,item,state){
  // Legacy offensive weapons are kept in inventory but cannot be equipped by shield classes.
  // Shield armour and accessories retain their previous free-equipment compatibility.
  if(isShieldJob(JOBS[character.currentJob]))
-   return item.slot==='shield'||['head','body','arms','waist','legs','accessory'].includes(item.slot);
+   return item.slot==='shield'||item.slot==='weapon'&&item.weaponType==='shield'&&(!item.allowedJobs||item.allowedJobs.includes(character.currentJob))||['head','body','arms','waist','legs','accessory'].includes(item.slot);
  if(item.allowedJobs&&!item.allowedJobs.includes(character.currentJob))return false;
  const job=JOBS[character.currentJob];if(!job)return false;
  if(item.armorGroup&&!job.equipmentGroups?.includes(item.armorGroup))return false;
@@ -99,7 +99,7 @@ export function getEquippedItems(character,state){return Object.values(character
 export function recommendationAllowedForJob(character,def){
  if(!def)return false;
  if(!['shielder','greatShielder'].includes(character?.currentJob))return true;
- if(def.slot==='weapon'||def.slot==='spellbook')return false;
+ if(def.slot==='spellbook'||def.slot==='weapon'&&def.weaponType!=='shield')return false;
  const job=character.currentJob;
  if(Array.isArray(def.allowedJobs)&&def.allowedJobs.length&&!def.allowedJobs.includes(job))return false;
  if(def.armorGroup&&!['shielder','greatShielder'].includes(def.armorGroup))return false;
@@ -141,14 +141,14 @@ export function equipRecommendedEquipment(state,characterId){
  const c=state.characters?.find(x=>x.id===characterId);if(!c)throw new Error('キャラクターが見つかりません');
  const pool=availableRecommendationInstances(state,c);if(!pool.length)throw new Error('おすすめできる装備がありません');
  const shieldJob=isShieldJob(JOBS[c.currentJob]);
- const weapons=shieldJob?[]:pool.filter(inst=>EQUIPMENT[inst.equipmentId]?.slot==='weapon'&&canEquipForJob(c,EQUIPMENT[inst.equipmentId],state)&&recommendationAllowedForJob(c,EQUIPMENT[inst.equipmentId])&&jobLevelAllows(c,EQUIPMENT[inst.equipmentId],inst));
+ const weapons=pool.filter(inst=>EQUIPMENT[inst.equipmentId]?.slot==='weapon'&&canEquipForJob(c,EQUIPMENT[inst.equipmentId],state)&&recommendationAllowedForJob(c,EQUIPMENT[inst.equipmentId])&&jobLevelAllows(c,EQUIPMENT[inst.equipmentId],inst));
  const shields=pool.filter(inst=>EQUIPMENT[inst.equipmentId]?.slot==='shield');
  let bestWeapon=null,bestShield=null,bestCombo=-Infinity;
  if(shieldJob){
   // Choose two DISTINCT shield instances. The strongest becomes the mainhand,
   // the next the offhand, without stealing equipment from other characters.
   const candidates=shields.filter(inst=>shieldCompatibleForWeapon(c,EQUIPMENT[inst.equipmentId],null,state,inst)).sort((a,b)=>recommendationScore(c,b)-recommendationScore(c,a));
-  bestWeapon=candidates[0]??null;
+  bestWeapon=[...weapons,...candidates].sort((a,b)=>recommendationScore(c,b)-recommendationScore(c,a))[0]??null;
   bestShield=candidates.find(inst=>inst.instanceId!==bestWeapon?.instanceId)??null;
  }
  // Even when the inventory has no equippable weapon, a shield may be usable.
@@ -179,7 +179,7 @@ export function equipRecommendedEquipment(state,characterId){
  }
  if(shieldJob&&c.equipment.weapon){
   const equipped=state.equipmentInventory?.find(x=>x.instanceId===c.equipment.weapon);
-  if(EQUIPMENT[equipped?.equipmentId]?.slot!=='shield')c.equipment.weapon=null;
+  if(EQUIPMENT[equipped?.equipmentId]?.slot!=='shield'&&EQUIPMENT[equipped?.equipmentId]?.weaponType!=='shield')c.equipment.weapon=null;
  }
  if(bestWeapon) equipItem(state,c.id,bestWeapon.instanceId,'weapon');
  if(bestShield){try{equipItem(state,c.id,bestShield.instanceId,'shield');}catch{}}
