@@ -71,14 +71,14 @@ test('great shielder can also attack instead of being forced to defend',()=>{
  assert.equal(battle.actorMap.great.guarding,false);
  assert.ok(battle.actorMap.enemy.hp<600);
 });
-test('protection is 50% normally and 100% from level 300, never AoE',()=>{
+test('protection is 50% normally and 100% from level 300, including AoE',()=>{
  const protector={...unit('s','守り手','shielder',1),side:'ally'};
  const target={...unit('t','右隣'),side:'ally'};
  assert.equal(shielderCoverTarget([protector,target],target).id,'s');
  let result=distributeShieldCover([protector,target],target,100);
  assert.equal(result.protectedDamage,50);
  assert.ok(result.guardDamage>0);
- assert.equal(distributeShieldCover([protector,target],target,100,{allTargets:true}).guard,null);
+ assert.equal(distributeShieldCover([protector,target],target,100,{allTargets:true}).guard.id,'s');
  protector.jobLevels.shielder=300;
  result=distributeShieldCover([protector,target],target,100);
  assert.equal(result.protectedDamage,0);
@@ -105,14 +105,14 @@ test('progression bonuses and rare status immunity apply at requested levels',()
  assert.equal(shieldStatusImmunity(c,'confusion'),true);
  assert.equal(shieldStatusImmunity(c,'poison'),false);
 });
-test('both jobs may equip ALL existing conventional weapons, armor, rings, charms; character heirlooms remain owned',()=>{
+test('shield jobs cannot wield attack weapons but can equip conventional armor and shields',()=>{
  for(const job of ['shielder','greatShielder']){
   const c=unit('owner','盾',job,400);
   const regular=Object.values(EQUIPMENT).filter(def=>['weapon','shield','head','body','arms','waist','legs','accessory'].includes(def.slot)&&!def.ownerCharacterId);
   assert.ok(regular.length>300);
   for(const def of regular){
-   assert.equal(canEquipForJob(c,def,{}),true,`${job} should be allowed ${def.id}`);
-   assert.match(equipmentJobLabel(def),/盾士|大盾士/,`equipment label ${def.id}`);
+   assert.equal(canEquipForJob(c,def,{}),def.slot!=='weapon',`${job} compatibility for ${def.id}`);
+   if(def.slot!=='weapon')assert.match(equipmentJobLabel(def),/盾士|大盾士/,`equipment label ${def.id}`);
   }
  }
 });
