@@ -59,10 +59,7 @@ function buildEquipmentWearerMap(state){
 export function sortForgeEnhanceInstances(instances=[],equipped=new Map()){
  const priority=inst=>{
   if(!equipped.has(inst?.instanceId))return 2;
-  const level=Math.max(0,Math.floor(Number(inst?.enhanceLevel)||0));
-  if(level===0)return 0;   // 装備中：未強化
-  if(level===15)return 1;  // 装備中：最大強化
-  return 2;                // そのほかは従来の順
+  return 0; // 装備中は +0〜+15 のすべての段階で最優先
  };
  return instances.map((inst,index)=>({inst,index})).sort((a,b)=>
   priority(a.inst)-priority(b.inst)||a.index-b.index
