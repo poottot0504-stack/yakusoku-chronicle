@@ -20,7 +20,7 @@ const ARMOR_JOB_LABELS={
 export function equipmentJobLabel(item){
  if(!item)return '';
  if(item.slot==='spellbook')return '召喚士専用・魔本枠';
- const appendShieldJobs=label=>[label,'盾士','大盾士'].filter(Boolean).join('・');
+ const appendShieldJobs=label=>[label,...(['盾士','大盾士'].filter(name=>!String(label??'').includes(name)))].filter(Boolean).join('・');
  if(item.slot==='weapon')return weaponJobLabel(item);
  if(item.eventJobGroup){const m={swordsman:'剣士専用',mage:'魔法使い専用',healer:'ヒーラー専用',thief:'盗賊専用',fighter:'格闘家専用',archer:'アーチャー専用',bard:'吟遊詩人専用'};return appendShieldJobs(m[item.eventJobGroup]??'');}
  if(item.allowedJobs)return appendShieldJobs(item.allowedJobs.map(id=>JOBS[id]?.name??id).join('・'))+'装備可';
