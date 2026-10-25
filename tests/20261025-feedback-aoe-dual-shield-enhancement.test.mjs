@@ -55,6 +55,19 @@ for(const job of ['shielder','greatShielder']){
  });
 }
 
+test('existing job-specific Masho and highforge weapons are reclassified as shields and remain equippable',()=>{
+ for(const job of ['shielder','greatShielder']){
+  const c=hero(job,job);
+  for(const id of [`masho-3-${job}-weapon`,`highforge-union-${job}-weapon`]){
+   const gear=EQUIPMENT[id];assert.ok(gear,id);
+   assert.equal(gear.weaponType,'shield');
+   assert.equal(gear.attack??0,0);
+   assert.ok(gear.defense>0);
+   assert.equal(canEquipForJob(c,gear,{}),true);
+  }
+ }
+});
+
 test('shield can move between weapon and shield slot without duplication',()=>{
  const s=setup();equipItem(s,'tank','shield-0','shield');
  equipItem(s,'tank','shield-0','weapon');
