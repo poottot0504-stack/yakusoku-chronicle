@@ -55,13 +55,13 @@ export function shielderCoverTarget(allies,target){
 }
 export function distributeShieldCover(actors,target,amount,{allTargets=false,allowNoSide=false}={}){
  const damage=Math.max(0,Math.floor(Number(amount)||0));
- if(allTargets||(target?.side!=='ally'&&!allowNoSide)||damage<=0)return {protectedDamage:damage,guardDamage:0,guard:null};
+ if((target?.side!=='ally'&&!allowNoSide)||damage<=0)return {protectedDamage:damage,guardDamage:0,guard:null};
  const allies=(actors??[]).filter(a=>a.side==='ally'||allowNoSide&&a.side==null);
  const guardian=shielderCoverTarget(allies,target);
  if(!guardian)return {protectedDamage:damage,guardDamage:0,guard:null};
  const share=shieldJobLevel(guardian)>=300?damage:Math.floor(damage/2);
  const cut=Math.max(0,Number(guardian.shieldCoverReduction??0));
- // The guard stance itself mitigates redirected damage by 35%, but cannot
+ // Area attacks also redirect adjacent damage. The guard stance itself mitigates redirected damage by 35%, but cannot
  // make redirected damage 0; thus a tank can still be knocked out.
  const absorbed=Math.max(1,Math.round(share*.65*(1-Math.min(.5,cut))));
  return {protectedDamage:damage-share,guardDamage:absorbed,guard:guardian};
