@@ -7,6 +7,7 @@ import { healTarget, reviveTarget, applyTimedEffect, tickEffects } from './effec
 import { updateEidelPhase } from './eidel.js';
 import { ensureEnemyStatusAi } from './enemy-status.js';
 import { statusCastChance } from './status-caster-rules.js';
+import { applyDepthArmorShred,applyDepthTurnRegen } from './masho-depth-effects.js';
 import { getSkillElement, getElementMultiplier, elementLabel } from './elements.js';
 
 const cloneActor=a=>{const out=structuredClone({...a,statusAilments:a.statusAilments??[],buffs:a.buffs??[],debuffs:a.debuffs??[]});if(a.currentJob&&a.level){out.stats={attack:Math.round(a.stats?.attack??1)+(a.battleFlatStats?.attack??0),defense:Math.round(a.stats?.defense??1)+(a.battleFlatStats?.defense??0),magic:Math.round(a.stats?.magic??1)+(a.battleFlatStats?.magic??0),speed:Math.round(a.stats?.speed??1)+(a.battleFlatStats?.speed??0)};const passive=getJobPassive(a.currentJob);if(passive){out.stats[passive.stat]=Math.max(1,applyJobPassiveToStat(a,passive.stat,out.stats[passive.stat]));out.jobPassive=passive.name;}}return out;};
@@ -71,6 +72,7 @@ function resolveOffensiveSkill(b,a,action,skill,rng){
     else victim.hp=Math.max(0,victim.hp-amount);
     damage+=beforeHp-victim.hp;
    }
+  if(damage>0)applyDepthArmorShred(a,victim,damage);
   const elementMult=getElementMultiplier(hitSkill.element,victim);damageByTarget[victim.id]=damage;weaknessByTarget[victim.id]=hitSkill.element!=='none'&&elementMult>1;resistByTarget[victim.id]=hitSkill.element!=='none'&&elementMult<1?Math.round((1-elementMult)*100):0;
   if(victim.eidel)updateEidelPhase(victim);
   const secondary=[];
@@ -90,7 +92,7 @@ function resolveActionInternal(b,a,action,rng){
   const originalHp=target.hp;
   if(a.side==='enemy')applyShieldCoverDamage(b,target,rawDamage);
   else target.hp=Math.max(0,target.hp-rawDamage);
-  const damage=originalHp-target.hp;if(target.eidel)updateEidelPhase(target);b.log.push(`${a.name}の攻撃！ ${target.name}は攻撃を受けた　${damage}ダメージ`);return {ok:true,type:'attack',damage,targetId:target.id,outcome:battleOutcome(b)};
+  const damage=originalHp-target.hp;if(damage>0)applyDepthArmorShred(a,target,damage);if(target.eidel)updateEidelPhase(target);b.log.push(`${a.name}の攻撃！ ${target.name}は攻撃を受けた　${damage}ダメージ`);return {ok:true,type:'attack',damage,targetId:target.id,outcome:battleOutcome(b)};
  }
  if(action.type==='skill'){
   const skill=action.skill??{};const cost=Math.max(0,Number(skill.mp??0));if((a.mp??0)<cost)return {ok:false,message:'MPが足りない！'};if(skill.type==='revive'&&(!b.actorMap[action.targetId]||b.actorMap[action.targetId].hp>0))return {ok:false,message:'戦闘不能の仲間がいません'};a.mp-=cost;
@@ -131,7 +133,7 @@ export function resolveAction(battle,action,rng=Math.random){
  if(battle.awaitingActorId)return {ok:true,planned:true};
  const outcome=executePlannedTurn(battle,rng);return {ok:true,planned:true,resolved:true,outcome};
 }
-export function finishTurn(battle){if(battle.phase!=='complete')throw new Error('ターンが完了していません');for(const actor of battle.actors){if(actor.hp>0){for(const st of actor.statusAilments??[]){let damage=0;if(st.id==='poison'){const rate=actor.isBoss?.015:.03;damage=Math.max(1,Math.floor((actor.maxHp??actor.hp)*rate));}if(st.id==='burn')damage=Math.max(1,Math.floor((actor.maxHp??actor.hp)*.08));if(st.id==='curse')damage=Math.max(1,Math.floor((actor.maxHp??actor.hp)*.05));if(damage){actor.hp=Math.max(0,actor.hp-damage);const label=st.id==='poison'?'毒':st.id==='burn'?'火傷':'呪い';battle.log.push(`${actor.name}：${label} ${damage}ダメージ`);}}}tickEffects(actor,'statusEnd');tickEffects(actor,'turnEnd');}battle.turnNumber++;return battle;}
+export function finishTurn(battle){if(battle.phase!=='complete')throw new Error('ターンが完了していません');for(const actor of battle.actors){if(actor.hp>0){for(const st of actor.statusAilments??[]){let damage=0;if(st.id==='poison'){const rate=actor.isBoss?.015:.03;damage=Math.max(1,Math.floor((actor.maxHp??actor.hp)*rate));}if(st.id==='burn')damage=Math.max(1,Math.floor((actor.maxHp??actor.hp)*.08));if(st.id==='curse')damage=Math.max(1,Math.floor((actor.maxHp??actor.hp)*.05));if(damage){actor.hp=Math.max(0,actor.hp-damage);const label=st.id==='poison'?'毒':st.id==='burn'?'火傷':'呪い';battle.log.push(`${actor.name}：${label} ${damage}ダメージ`);}}}tickEffects(actor,'statusEnd');tickEffects(actor,'turnEnd');const recovered=applyDepthTurnRegen(actor);if(recovered.hp||recovered.mp)battle.log.push(`🌿 ${actor.name}は悠久樹の祝福でHP${recovered.hp}・MP${recovered.mp}回復！`);}battle.turnNumber++;return battle;}
 
 export function attemptEscape(battle,rng=Math.random){
  if(battle.isBoss)return {success:false,consumesTurn:false,message:'ボス戦からは逃げられない！'};

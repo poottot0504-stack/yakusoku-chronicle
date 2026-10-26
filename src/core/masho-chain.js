@@ -1,6 +1,6 @@
 /** Session-only, sequential Masho battles. Rewards are settled by settleMashoVictory, once per fight. */
 export function createMashoRun(floor,total=10){
- if(!Number.isInteger(floor)||floor<1||floor>25)throw new Error('階層が不正です');
+ if(!Number.isInteger(floor)||floor<1||floor>28)throw new Error('階層が不正です');
  if(total!==10)throw new Error('10連戦のみ選択できます');
  return {floor,total,completed:0,stopAfterCurrent:false,queueNextTen:false,manualOnly:false,earnedGold:0,exp:0,jobExp:0,promiseOre:0,materials:{},equipment:[]};
 }
