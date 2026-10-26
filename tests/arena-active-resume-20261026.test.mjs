@@ -41,13 +41,7 @@ test('two committed rounds deterministically reconstruct party/enemy HP and next
    assert.equal(b.phase,'complete');
    if(!b.actors.some(a=>a.side==='ally'&&a.hp>0)||!b.actors.some(a=>a.side==='enemy'&&a.hp>0))break;
    finishTurn(b);
-   if(round<1)startTurn(b,rng);
-  }
-  // A complete checkpoint resumes at the next planning phase, as the browser did.
-  if(b.phase==='complete'&&b.actors.some(a=>a.side==='ally'&&a.hp>0)&&b.actors.some(a=>a.side==='enemy'&&a.hp>0)){
-   finishTurn(b);startTurn(b,rng);
-  }else if(b.phase==='planning'&&b.turnNumber===1){
-   // The loop already prepared turn 2; no additional transitions are necessary.
+   startTurn(b,rng);
   }
   const replay=replayArenaCheckpoint(record);
   assert.deepEqual(replay.actions,record.actions);
