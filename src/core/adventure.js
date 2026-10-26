@@ -1,4 +1,5 @@
 import { EQUIPMENT } from '../data/equipment.js';
+import { depthAccessoryEffects } from './masho-depth-effects.js';
 import { shieldProgressBonus } from './shielder-guard.js';
 import { REGIONS } from '../data/regions.js';
 import { STORY_CHAPTERS, STORY_BY_REGION } from '../data/story.js';
@@ -164,7 +165,7 @@ export function syncBattlePartyToState(state,battle){
 
 export function startAdventureNewGamePlus(state){state.starterGearGranted=state.starterGearGranted||state.adventure?.starterGearGranted||false;startNewGamePlus(state);state.adventure={regionId:'field',regionWins:{},completedRegions:[],chapter:1,message:'時を越え、もう一度約束の旅が始まる。',chests:{},visitedTowns:['field'],starterGearGranted:state.starterGearGranted};state.world??={};state.world.regionId='field';state.world.battleCountInPhase=0;return state;}
 
-export function getAdventureBattleParty(state){const byId=new Map((state.characters??[]).map(c=>[c.id,c]));return (state.activePartyIds??[]).map(id=>byId.get(id)).filter(Boolean).map(c=>{const out=structuredClone(c);const bonus=getEquipmentStatBonus(state,c);out.battleFlatStats={attack:bonus.attack,defense:bonus.defense,magic:bonus.magic,speed:bonus.speed};const shieldRef=c.equipment?.shield;
+export function getAdventureBattleParty(state){const byId=new Map((state.characters??[]).map(c=>[c.id,c]));return (state.activePartyIds??[]).map(id=>byId.get(id)).filter(Boolean).map(c=>{const out=structuredClone(c);Object.assign(out,depthAccessoryEffects(state,c));const bonus=getEquipmentStatBonus(state,c);out.battleFlatStats={attack:bonus.attack,defense:bonus.defense,magic:bonus.magic,speed:bonus.speed};const shieldRef=c.equipment?.shield;
 const shieldInstance=typeof shieldRef==='object'?shieldRef:state.equipmentInventory?.find(x=>x.instanceId===shieldRef);
 out.shieldCoverReduction=Math.max(0,Number(EQUIPMENT[shieldInstance?.equipmentId]?.coverDamageReduction??0));
 out.elementResist=getEquipmentElementResist(state,c);out.statusResistance=Math.max(0,out.statusResistance??out.masteryBonuses?.statusResistance??0);out.statusSuccessBonus=Math.max(0,out.statusSuccessBonus??out.masteryBonuses?.statusDebuffSuccessBonus??0);out.debuffSuccessBonus=Math.max(0,out.debuffSuccessBonus??out.masteryBonuses?.statusDebuffSuccessBonus??0);out.maxHp=Math.round((out.maxHp+(bonus.maxHp??0))*(1+shieldProgressBonus(c,'hp')));out.maxMp+=(bonus.maxMp??0);out.hp=Math.min(out.hp,out.maxHp);out.mp=Math.min(out.mp,out.maxMp);return out;});}
