@@ -5,6 +5,8 @@ import {JOBS} from '../src/data/jobs.js';
 import {getSkillBook} from '../src/core/skillbook.js';
 import {EQUIPMENT} from '../src/data/equipment.js';
 import {actorArt,BOSS_ART} from '../src/ui/battle-art.js';
+import {arenaMarkup} from '../src/ui/arena.js';
+import {createDefaultState} from '../src/core/save-schema.js';
 import {createArenaSession,arenaSessionSkills} from '../src/core/arena.js';
 import {startTurn,resolveAction,finishTurn} from '../src/core/battle.js';
 import {arenaSeededRandom,verifyArenaTranscript} from '../src/core/arena-proof.js';
@@ -95,4 +97,21 @@ test('S rank is reachable with legitimate fixed-skill actions and validated serv
   assert.ok(success,id+' must be realistically S-rankable in <=3 turns');
   assert.equal(success.receipt.coins,5);
  }
+});
+
+test('arena menu exposes skill level, real MP, power and effect for all fixed roles',()=>{
+ const html=arenaMarkup(createDefaultState());
+ for(const id of Object.keys(ARENA_QUESTS)){
+  const q=ARENA_QUESTS[id];
+  for(const t of q.roster){
+   for(const skill of t.skills){
+    assert.ok(html.includes(skill.name),id+' name '+skill.id);
+    assert.ok(html.includes('習得Lv'+skill.level),id+' level '+skill.id);
+    assert.ok(html.includes('MP'+skill.mp),id+' MP '+skill.id);
+   }
+  }
+ }
+ assert.match(html,/威力/);
+ assert.match(html,/回復力/);
+ assert.match(html,/補助効果/);
 });
