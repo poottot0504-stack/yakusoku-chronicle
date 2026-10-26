@@ -52,7 +52,7 @@ test('the game guards every inventory-changing market operation and slot switchi
  for(const name of ['marketSubmitListing','marketBuy','marketCancelListing','marketUpdatePrice']){
   assert.match(main,new RegExp('async function '+name+'\\([^)]*\\)\\{return marketOperationGuard\\.run\\(async\\(\\)=>\\{'));
  }
- assert.match(main,/function startFresh\(slot=currentSlot\)\{if\(marketOperationGuard\.busy\|\|marketSyncBusy\)/);
- assert.match(main,/function continueGame\(slot=currentSlot\)\{if\(marketOperationGuard\.busy\|\|marketSyncBusy\)/);
+ assert.match(main,/function startFresh\(slot=currentSlot\)\{if\(marketOperationGuard\.busy\|\|marketSyncBusy\|\|arenaOperationBusy\|\|arenaClaimBusy\)/);
+ assert.match(main,/function continueGame\(slot=currentSlot\)\{if\(marketOperationGuard\.busy\|\|marketSyncBusy\|\|arenaOperationBusy\|\|arenaClaimBusy\)/);
  assert.match(main,/!targetState\.market\?\.everUsed\|\|marketSyncBusy\|\|marketOperationGuard\.busy/);
 });
