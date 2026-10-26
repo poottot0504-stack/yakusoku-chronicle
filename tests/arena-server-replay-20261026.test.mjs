@@ -6,7 +6,7 @@ import {arenaSeededRandom,verifyArenaTranscript} from '../src/core/arena-proof.j
 
 function recordRun(questId,seed,{defend=false}={}){
  const session=createArenaSession(questId),b=session.battle,rng=arenaSeededRandom(seed),actions=[];
- const maxRounds=defend?5:100;
+ const maxRounds=100;
  for(let round=1;round<=maxRounds;round++){
   startTurn(b,rng);
   for(const actorId of [...b.planningIds]){
@@ -54,7 +54,7 @@ test('server rejects nonexistent targets, illegal powers, foreign actors, and mi
 });
 test('server replays normal 100-turn cap safely, and enforces seeded input',()=>{
  assert.throws(()=>arenaSeededRandom(-1),/不正/);
- assert.throws(()=>verifyArenaTranscript({questId:'arena30',seed:-1,actions:[]}),/不正/);
+ assert.throws(()=>verifyArenaTranscript({questId:'arena30',seed:-1,actions:[]}),/無効/);
  assert.throws(()=>verifyArenaTranscript({questId:'arena30',seed:1001,actions:Array.from({length:401},()=>({actorId:'fake',type:'wait'}))}),/無効/);
  assert.throws(()=>verifyArenaTranscript({questId:'arena999',seed:1001,actions:[]}),/クエスト/);
  const result=recordRun('arena30',1001,{defend:true});
