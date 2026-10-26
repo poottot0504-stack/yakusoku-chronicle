@@ -207,12 +207,13 @@ test('new receipts can resume delivery after server has already reserved reward'
  assert.equal((done.match(/✓ 受取済み/g)||[]).length,3);
 });
 
-test('title updates advertise 5 stages while retaining old two dated pages',()=>{
- assert.equal(TITLE_UPDATES.length,2);
- assert.equal(TITLE_UPDATES[0].date,'2026-10-16');
- assert.equal(TITLE_UPDATES[1].date,'2026-10-15');
+test('title update archive preserves all five hunt festival rewards',()=>{
+ assert.equal(TITLE_UPDATES.length,3);
+ assert.equal(TITLE_UPDATES[0].date,'2026-10-26');
+ assert.equal(TITLE_UPDATES[1].date,'2026-10-16');
+ assert.equal(TITLE_UPDATES[2].date,'2026-10-15');
  for(const a of ['2,500','5,000','10,000','50,000','100,000','1,000万G','3,000万G','強化結晶'])
-  assert.match(JSON.stringify(TITLE_UPDATES[0]),new RegExp(a));
+  assert.match(JSON.stringify(TITLE_UPDATES[1]),new RegExp(a));
 });
 
 test('new stages are wired to same server claimBonus, save rollback and unique cache keys',()=>{
