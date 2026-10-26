@@ -91,3 +91,10 @@ test('expired or invalid arena UI always offers a way back without modifying ser
  assert.match(ui,/if\(status\.status!=='issued'\|\|Date\.parse\(status\.expiresAt\)<=Date\.now\(\)\)/);
  assert.match(ui,/clearArenaActive\(session\.storage,owner,slot,checkpoint\.matchId\);\s+closeModal\(\)/);
 });
+
+test('a corrupt local battle checkpoint cannot block an authenticated pending server receipt',()=>{
+ const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+ assert.match(source,/clearArenaPending\(session\.storage,ownerId,slot,entry\);/);
+ assert.match(source,/if\(entry\.kind==='claim'\)\{[\s\S]*?try\{clearArenaActive\(session\.storage,ownerId,slot,entry\.matchId\);\}/);
+ assert.match(source,/const pending=loadArenaPending\(session\.storage,owner,slot\);[\s\S]*?if\(!pending\)\{\s*try\{savedBattle=loadArenaActive/);
+});
