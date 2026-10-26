@@ -42,6 +42,7 @@ function validatedAction(session,b,entry,actorId){
  if(!alliesAction&&target.hp<=0)invalid('討伐済み敵を攻撃');
  return type==='skill'?{type,skill,targetId}:{type,targetId};
 }
+/** @param {{questId?: string,seed?: number,actions?: any[],balanceVersion?: number}} [input] */
 export function verifyArenaTranscript({questId,seed,actions,balanceVersion=2}={}){
  // No user IDs, victory booleans, turn counts or coin totals from the client
  // are ever accepted as authoritative verification inputs.
