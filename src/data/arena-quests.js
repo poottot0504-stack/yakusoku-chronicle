@@ -1,52 +1,71 @@
-// 闘技大会の初期試作。ここは通常育成データから完全に独立した固定編成。
-// All participants are standardized to the quest's level, equipment and skills.
-const S=(id,name,mp,power,kind='physical',extra={})=>({id,name,mp,power,type:'attack',kind,description:'闘技大会の固定特技',...extra});
-const H=(id,name,mp,power)=>({id,name,mp,power,type:'heal',description:'味方1人のHPを回復'});
-const fighter=(slot,job,weapon,skills=[])=>({slot,job,weapon,skills});
+// 闘技大会の固定編成。通常の育成・所持品・継承スキルとは独立。
+// Skills come from the existing job's real skillbook, capped at quest level.
+// Shield class has passive-only job skills at these levels, so the arena supplies
+// 4 explicit, independently balanced ACTIVE moves for the fixed defender.
+import {getSkillBook} from '../core/skillbook.js';
+
 export const ARENA_RANKS=Object.freeze([
  {grade:'S',maxTurns:3,coins:5},
  {grade:'A',maxTurns:6,coins:3},
  {grade:'B',maxTurns:10,coins:2},
  {grade:'C',maxTurns:100,coins:1}
 ]);
+const guardianSkills=Object.freeze([
+ {id:'arena-greatshield-smash',level:1,name:'シールドクラッシュ',mp:16,power:190,type:'attack',kind:'physical',description:'大盾を叩きつける単体物理攻撃'},
+ {id:'arena-greatshield-stance',level:30,name:'大盾防御',mp:18,power:0,type:'buff',selfBuff:{defensePct:.35},turns:3,description:'自分の防御＋35%（3ターン）'},
+ {id:'arena-greatshield-aegis',level:50,name:'鉄壁の構え',mp:32,power:0,type:'buff',target:'all',selfBuff:{defensePct:.2},turns:3,description:'味方全員の防御＋20%（3ターン）'},
+ {id:'arena-greatshield-breaker',level:70,name:'城壁破砕',mp:28,power:300,type:'attack',kind:'physical',defensePierce:.18,description:'敵の防御を18%貫通する単体物理攻撃'}
+]);
+function fighter(slot,job,weapon,level){
+ const skills=getSkillBook(job).filter(s=>s.level<=level&&!s.autoPassive)
+  .map(s=>({...s,description:s.description??'闘技大会の固定特技'}));
+ if(job==='greatShielder')skills.push(...guardianSkills.filter(s=>s.level<=level).map(s=>({...s})));
+ return {slot,job,weapon,skills};
+}
 export const ARENA_QUESTS=Object.freeze({
- 'arena30':{
-  id:'arena30',name:'闘技大会・青銅の試練',level:30,description:'基礎技と回復の組み合わせで、岩甲の魔獣を討伐する。',
+ arena30:{
+  id:'arena30',name:'闘技大会・青銅の試練',level:30,
+  description:'赤魔道士・魔法使い・トリックスター・ビショップの連携で、岩甲の魔獣を討伐する。',
   roster:[
-   fighter('アレン','swordsman','ironSword',[S('arena-brave30','ブレイブエッジ',12,215)]),
-   fighter('ミラ','mage','noviceStaff',[S('arena-thunder30','サンダー',9,200,'magic',{element:'thunder'})]),
-   fighter('レン','thief','bronzeDagger',[S('arena-shadow30','シャドウレイド',11,220)]),
-   fighter('ソラ','healer','oakMace',[H('arena-heal30','ヒール',6,75),S('arena-holy30','ホーリー',12,160,'magic',{element:'light'})])
+   fighter('アレン','redMage','ironSword',30),
+   fighter('ミラ','mage','noviceStaff',30),
+   fighter('レン','trickster','bronzeDagger',30),
+   fighter('ソラ','bishop','oakMace',30)
   ],
+  // Existing first-story boss pixel atlas, actual griffin silhouette.
   enemy:{id:'arena30-stonebeast',name:'岩甲のグリフォン',artId:'storyBoss-field',element:'earth',maxHp:1450,attack:80,defense:75,magic:65,speed:44}
  },
- 'arena50':{
-  id:'arena50',name:'闘技大会・白銀の試練',level:50,description:'盾士を中心とした編成で、雷獣の猛攻を攻略する。',
+ arena50:{
+  id:'arena50',name:'闘技大会・白銀の試練',level:50,
+  description:'パラディン・ハイウィザード・吟遊詩人・ビショップの連携で雷獣を倒す。',
   roster:[
-   fighter('アレン','swordsman','gold-oneHandSword',[S('arena-edge50','英雄剣',20,275)]),
-   fighter('ミラ','mage','gold-staff',[S('arena-flare50','フレア',24,300,'magic',{element:'fire'})]),
-   fighter('レン','shielder','smallShield',[S('arena-bash50','盾撃',9,180)]),
-   fighter('ソラ','healer','gold-mace',[H('arena-heal50','ハイヒール',10,155),S('arena-holy50','ホーリー',15,210,'magic',{element:'light'})])
+   fighter('アレン','paladin','gold-oneHandSword',50),
+   fighter('ミラ','highWizard','gold-staff',50),
+   fighter('レン','bard','gold-dagger',50),
+   fighter('ソラ','bishop','gold-mace',50)
   ],
-  enemy:{id:'arena50-thunderbeast',name:'雷牙のガルディオン',artId:'storyBoss-mountain',element:'thunder',maxHp:2950,attack:145,defense:110,magic:125,speed:70}
+  // Existing fifth-story boss pixel atlas, wolf silhouette.
+  enemy:{id:'arena50-thunderbeast',name:'雷牙のガルディオン',artId:'storyBoss-snow',element:'thunder',maxHp:2950,attack:145,defense:110,magic:125,speed:70}
  },
- 'arena70':{
-  id:'arena70',name:'闘技大会・黄金の試練',level:70,description:'火力と防御を使い分けて、古代竜に挑む。',
+ arena70:{
+  id:'arena70',name:'闘技大会・黄金の試練',level:70,
+  description:'竜騎士・召喚士・大盾士・占星術師で黄金の古竜に挑む。',
   roster:[
-   fighter('アレン','swordsman','platinum-oneHandSword',[S('arena-edge70','剛剣・天断',27,330)]),
-   fighter('ミラ','mage','platinum-staff',[S('arena-flare70','蒼炎の大魔法',30,340,'magic',{element:'fire'})]),
-   fighter('レン','thief','platinum-dagger',[S('arena-shadow70','瞬影連閃',23,300)]),
-   fighter('ソラ','healer','platinum-mace',[H('arena-heal70','聖光の治癒',18,220),S('arena-holy70','神聖光',24,280,'magic',{element:'light'})])
+   fighter('アレン','dragoon','platinum-oneHandSword',70),
+   fighter('ミラ','summoner','platinum-staff',70),
+   fighter('レン','greatShielder','towerShield',70),
+   fighter('ソラ','astrologian','platinum-staff',70)
   ],
-  enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-abyss',element:'dark',maxHp:6400,attack:235,defense:165,magic:205,speed:100}
+  // Existing eighth-story boss pixel atlas, dragon silhouette.
+  enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-volcano',element:'dark',maxHp:6400,attack:235,defense:165,magic:205,speed:100}
  }
 });
-// Full fixed equipment list: mainhand, offhand where applicable, five armor
-// pieces, ring and charm. All equipment is simulated; none is borrowed.
 export function arenaFixedEquipment(template,level){
  const tier=level===30?'iron':level===50?'gold':level===70?'platinum':null;
  if(!tier)throw new Error('闘技大会の固定レベルが不正です');
- const group=['mage','healer'].includes(template.job)?'magic':template.job==='thief'?'thief':null;
+ // Preserve the same armor families used by those jobs in the normal game.
+ const group=['mage','healer','highWizard','bishop','summoner','astrologian'].includes(template.job)
+  ?'magic':['trickster','bard'].includes(template.job)?'thief':null;
  const gear={weapon:template.weapon};
  if(template.job==='shielder'||template.job==='greatShielder')gear.shield='towerShield';
  for(const slot of ['head','body','arms','waist','legs'])gear[slot]=tier+'-'+(group?group+'-':'')+slot;
