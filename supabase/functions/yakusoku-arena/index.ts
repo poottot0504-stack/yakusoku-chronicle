@@ -71,6 +71,14 @@ Deno.serve(async req=>{
    await rpc('issue',{p_quest:quest,p_id:id,p_seed:seed[0]});
    return respond(200,{ok:true,data:{matchId:id,questId:quest,seed:seed[0],expiresInSeconds:3600}},origin);
   }
+  if(action==='resume'){
+   const matchId=safeString(body.matchId,50);
+   if(!matchId||!validId.test(matchId))return respond(400,{ok:false,error:'INVALID_MATCH_ID'},origin);
+   const match=await rpc('lookup',{p_id:matchId});
+   if(!match)return respond(404,{ok:false,error:'ARENA_MATCH_NOT_FOUND'},origin);
+   return respond(200,{ok:true,data:{matchId,questId:match.questId,seed:Number(match.seed),
+    status:match.status,expiresAt:match.expiresAt}},origin);
+  }
   if(action==='claim'){
    const matchId=safeString(body.matchId,50);
    if(!matchId||!validId.test(matchId))return respond(400,{ok:false,error:'INVALID_MATCH_ID'},origin);
