@@ -7,6 +7,8 @@ import { JOBS } from '../data/jobs.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const n=value=>Number(value??0).toLocaleString('ja-JP');
 const gradeDisplay=g=>g==='S'?'🏆 S':g==='A'?'🥇 A':g==='B'?'🥈 B':g==='C'?'🥉 C':'未クリア';
+const skillMetric=s=>s.type==='heal'?`回復力 ${n(s.flatHeal??s.power)}`:s.type==='buff'?'補助効果':s.type==='revive'?'蘇生':`威力 ${n(s.power)}%`;
+const skillList=c=>`<details class="arena-skill-list"><summary>使用可能な特技 ${c.skills.length}種（Lv・威力・消費MP・効果）</summary><ul>${c.skills.map(s=>`<li><b>${esc(s.name)}</b> / 習得Lv${s.level} / MP${s.mp} / ${skillMetric(s)}<br><small>${esc(s.description??'')}</small></li>`).join('')}</ul></details>`;
 const RANK_TABLE=`<table class="arena-rank-table"><thead><tr><th>評価</th><th>クリアターン</th><th>コイン</th></tr></thead><tbody>${ARENA_RANKS.map(x=>`<tr><td><b>${x.grade}</b></td><td>${x.maxTurns===3?'1〜3':x.maxTurns===6?'4〜6':x.maxTurns===10?'7〜10':'11〜100'}ターン</td><td>${x.coins}枚</td></tr>`).join('')}</tbody></table>`;
 export function arenaMarkup(state){
  const progress=normalizeArenaProgress(state);
@@ -19,7 +21,7 @@ export function arenaMarkup(state){
     <p>${esc(q.description)}</p>
     <p>🏅 自己ベスト：${best?`${best}ターン / ${r.grade}`:'記録なし'}</p>
     <details><summary>固定パーティ・ジョブ・装備・特技</summary>
-      <ul>${q.roster.map(c=>`<li><b>${esc(c.slot)} / ${esc(JOBS[c.job]?.name??c.job)}</b>　${esc(Object.values(arenaFixedEquipment(c,q.level)).map(id=>EQUIPMENT[id]?.name??id).join('・'))}<br><small>特技：${esc(c.skills.map(s=>s.name).join('・'))}</small></li>`).join('')}</ul>
+      <ul>${q.roster.map(c=>`<li><b>${esc(c.slot)} / ${esc(JOBS[c.job]?.name??c.job)}</b>　${esc(Object.values(arenaFixedEquipment(c,q.level)).map(id=>EQUIPMENT[id]?.name??id).join('・'))}<br>${skillList(c)}</li>`).join('')}</ul>
       <p>プレイヤーのレベル・装備・固有スキル・永久強化は一切持ち込めません。</p>
     </details>
     <button class="wide-button action-main" data-arena-start="${q.id}">Lv${q.level}に挑戦する</button>
