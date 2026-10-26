@@ -571,8 +571,19 @@ async function recoverArenaPending(){
      openModal('<h2>🏟️ 闘技大会の保存データを読み込めません</h2><p>記録が破損しています。サーバーのコインは変更せず、端末内の挑戦記録だけ棄権できます。</p><button data-arena-abandon>破損した挑戦記録を棄権する</button>');
     return;
    }
-   if(saved&&!title.classList.contains('active'))
-    openModal('<h2>🏟️ 闘技大会を再開</h2><p>前回の挑戦が残っています。最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>闘技大会を再開する</button><button data-arena-abandon>前回の挑戦を棄権する</button>');
+   if(saved){
+    if(!title.classList.contains('active'))
+     openModal('<h2>🏟️ 闘技大会を再開</h2><p>前回の挑戦が残っています。最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>闘技大会を再開する</button><button data-arena-abandon>前回の挑戦を棄権する</button>');
+    return;
+   }
+   // Restore only verified equipment for normal adventures, without opening
+   // the tournament screen. Prevent older browser saves from losing gear.
+   if(!normalizeArenaProgress(targetState).needsServerSync)return;
+   const profile=await arenaApi.profile(slot);
+   if(state!==targetState||currentSlot!==slot)return;
+   applyAuthoritativeArenaProfile(state,profile);
+   saveNow();
+   if(!title.classList.contains('active'))renderGameKeepVertical();
    return;
   }
   const applied=await settleSavedArenaOperation(entry,owner,slot,targetState);
@@ -692,6 +703,7 @@ async function abandonArenaCheckpoint(){
   discardArenaActive(session.storage,owner,slot);
   closeModal();
   toast('前回の挑戦を棄権しました。新しい挑戦を始められます');
+  void recoverArenaPending();
  }catch(err){toast(err?.message??'闘技大会の棄権に失敗しました');}
 }
 async function startArenaMatch(questId){
