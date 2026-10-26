@@ -18,6 +18,8 @@ import { createArenaSession,arenaSessionSkills,normalizeArenaProgress } from './
 import { arenaSeededRandom } from './core/arena-proof.js';
 import { applyAuthoritativeArenaProfile,suspendUnverifiedArenaAssets,recordArenaServerReceipt } from './core/arena-authority.js';
 import { loadArenaPending,saveArenaPending,clearArenaPending } from './online/arena-recovery.js';
+import { loadArenaActive,saveArenaActive,clearArenaActive } from './online/arena-active.js';
+import { replayArenaCheckpoint } from './core/arena-replay.js';
 import { ensureYakusokuSession } from './online/supabase-auth.js';
 import { createArenaApi } from './online/arena-api.js';
 import { deathWarningText } from './ui/death-warning.js';
@@ -520,6 +522,11 @@ function act(action){if(!battle||battle.phase==='complete')return;
     ...(planned.skill?.id?{skillId:planned.skill.id}:{}),
     ...(planned.targetId?{targetId:planned.targetId}:{})});
   }
+  try{
+   const checkpoint=loadArenaActive(session.storage,arenaSession.ownerId,currentSlot);
+   if(checkpoint?.matchId===arenaSession.matchId)
+    saveArenaActive(session.storage,arenaSession.ownerId,currentSlot,{...checkpoint,actions:structuredClone(arenaSession.actions)});
+  }catch(err){toast('闘技大会の途中保存に失敗しました：'+(err?.message??'保存エラー'));}
  }
  if(!battle.arenaQuestId)syncBattlePartyToState(state,battle);
  renderBattle();
@@ -543,6 +550,7 @@ async function settleSavedArenaOperation(entry,ownerId,slot,targetState){
  if(receipt)recordArenaServerReceipt(state,receipt);
  saveNow(); // A crash before journal removal may retry, but server receipts are idempotent.
  clearArenaPending(session.storage,ownerId,slot,entry);
+ if(entry.kind==='claim')clearArenaActive(session.storage,ownerId,slot,entry.matchId);
  return true;
 }
 async function recoverArenaPending(){
@@ -550,7 +558,12 @@ async function recoverArenaPending(){
  const targetState=state,slot=currentSlot;arenaOperationBusy=true;
  try{
   const owner=await arenaOwnerId(),entry=loadArenaPending(session.storage,owner,slot);
-  if(!entry)return;
+  if(!entry){
+   const saved=loadArenaActive(session.storage,owner,slot);
+   if(saved&&!title.classList.contains('active'))
+    openModal('<h2>🏟️ 闘技大会を再開</h2><p>前回の挑戦が残っています。最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>闘技大会を再開する</button>');
+   return;
+  }
   const applied=await settleSavedArenaOperation(entry,owner,slot,targetState);
   if(!applied)return;
   if(!title.classList.contains('active'))renderGameKeepVertical();
@@ -589,6 +602,11 @@ async function openArena(){
  try{
   const owner=await arenaOwnerId();
   const pending=loadArenaPending(session.storage,owner,slot);
+  const savedBattle=loadArenaActive(session.storage,owner,slot);
+  if(savedBattle&&!pending){
+   openModal('<h2>🏟️ 未完了の闘技大会</h2><p>前回の挑戦を最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>前回の挑戦を再開</button>');
+   return;
+  }
   if(pending){
    if(!await settleSavedArenaOperation(pending,owner,slot,targetState))return;
   }else{
@@ -603,17 +621,50 @@ async function openArena(){
  }catch(err){toast(err.message??'闘技大会サーバーに接続できません');}
  finally{arenaOperationBusy=false;}
 }
+async function resumeArenaMatch(){
+ if(battle||arenaOperationBusy||arenaClaimBusy)return;
+ const targetState=state,slot=currentSlot;arenaOperationBusy=true;
+ try{
+  const owner=await arenaOwnerId();
+  if(loadArenaPending(session.storage,owner,slot))
+   throw new Error('先に未確定の報酬を受け取ってください');
+  const checkpoint=loadArenaActive(session.storage,owner,slot);
+  if(!checkpoint)throw new Error('再開できる闘技大会はありません');
+  const status=await arenaApi.resume(slot,checkpoint.matchId);
+  if(targetState!==state||currentSlot!==slot)return;
+  if(status.questId!==checkpoint.questId||Number(status.seed)!==checkpoint.seed)
+   throw new Error('サーバーの対戦情報が保存データと一致しません');
+  if(status.status==='settled'){
+   const profile=await arenaApi.profile(slot);
+   if(targetState!==state||currentSlot!==slot)return;
+   applyAuthoritativeArenaProfile(state,profile);
+   saveNow();clearArenaActive(session.storage,owner,slot,checkpoint.matchId);
+   view='arena';closeModal();renderGame();
+   return toast('この対戦はサーバーで精算済みです');
+  }
+  if(status.status!=='issued'||Date.parse(status.expiresAt)<=Date.now()){
+   clearArenaActive(session.storage,owner,slot,checkpoint.matchId);
+   return toast('闘技大会の有効期限が過ぎています。もう一度挑戦してください');
+  }
+  const restored=replayArenaCheckpoint(checkpoint);
+  restored.ownerId=owner;
+  arenaSession=restored;battle=restored.battle;battleMeta={arena:true,arenaQuestId:checkpoint.questId};
+  closeModal();renderBattle();toast('最後の確定ターンから闘技大会を再開しました');
+ }catch(err){toast(err?.message??'闘技大会を再開できません');}
+ finally{arenaOperationBusy=false;}
+}
 async function startArenaMatch(questId){
  if(battle||arenaOperationBusy||raidRoom)return;
  const targetState=state,slot=currentSlot;arenaOperationBusy=true;
  try{
   const owner=await arenaOwnerId();
-  if(loadArenaPending(session.storage,owner,slot))
-   throw new Error('前回の報酬処理が未完了です。闘技大会を開き直してください');
+  if(loadArenaPending(session.storage,owner,slot)||loadArenaActive(session.storage,owner,slot))
+   throw new Error('前回の闘技大会が未完了です。先に再開してください');
   const match=await arenaApi.start(slot,questId);
   if(targetState!==state||slot!==currentSlot)return;
   const active=createArenaSession(questId);
-  active.matchId=match.matchId;active.actions=[];active.rng=arenaSeededRandom(match.seed);
+  active.matchId=match.matchId;active.actions=[];active.rng=arenaSeededRandom(match.seed);active.ownerId=owner;
+  saveArenaActive(session.storage,owner,slot,{matchId:match.matchId,questId,seed:Number(match.seed),actions:[],createdAt:Date.now()});
   arenaSession=active;battle=active.battle;battleMeta={arena:true,arenaQuestId:questId};
   startTurn(battle,active.rng);closeModal();renderBattle();
  }catch(err){arenaSession=null;toast(err.message??'闘技大会を開始できません');}
@@ -1488,6 +1539,7 @@ document.addEventListener('click',e=>{
  if(el.dataset.arenaStart)return void startArenaMatch(el.dataset.arenaStart);
  if(el.hasAttribute('data-arena-back')){view='adventure';return renderGame();}
  if(el.hasAttribute('data-arena-retry')){if(arenaSession){arenaSession.claimError=false;closeModal();void finishArenaBattle();}return;}
+ if(el.hasAttribute('data-arena-resume'))return void resumeArenaMatch();
  if(el.dataset.arenaCraft)return void arenaMutation('craft',el.dataset.arenaCraft);
  if(el.dataset.arenaEnhance)return void arenaMutation('enhance',el.dataset.arenaEnhance);
  if(el.dataset.forgePage){state.forgeCategory=el.dataset.forgePage;saveNow();return renderGame();}
