@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createDefaultState} from '../src/core/save-schema.js';
+import {migrateSave} from '../src/core/save-migration.js';
 import {applyAuthoritativeArenaProfile,suspendUnverifiedArenaAssets,arenaInventoryId} from '../src/core/arena-authority.js';
 import {createArenaApi} from '../src/online/arena-api.js';
 import {ARENA_EQUIPMENT} from '../src/data/arena-equipment.js';
@@ -88,4 +89,83 @@ test('main game arena integration no longer calls local coin settlement or local
  assert.ok(main.includes('arenaSeededRandom(match.seed)'));
  assert.ok(main.includes('saveArenaPending(session.storage,owner,slot,entry)'));
  assert.ok(main.includes('clearArenaPending(session.storage,ownerId,slot,entry)'));
+});
+
+test('verified tournament ring remains equipped after save migration and reload',()=>{
+ const inst=arenaInventoryId(goodId);
+ const s=state();
+ s.characters[0].currentJob='swordsman';
+ s.characters[0].jobLevels={swordsman:90};
+ s.characters[0].equipment.accessory1=inst;
+ s.equipmentInventory.push({instanceId:inst,equipmentId:'arena-gold-ring',enhanceLevel:7});
+ s.arena.coins=12;
+ suspendUnverifiedArenaAssets(s);
+ assert.equal(s.characters[0].equipment.accessory1,null);
+ assert.equal(s.arena.coins,0);
+ assert.equal(s.arena.needsServerSync,true);
+ assert.equal(s.arena.equippedRestore.hero.accessory1,inst);
+ const reloaded=migrateSave(structuredClone(s));
+ assert.equal(reloaded.arena.equippedRestore.hero.accessory1,inst);
+ applyAuthoritativeArenaProfile(reloaded,{coins:12,gear:[{id:goodId,equipmentId:'arena-gold-ring',enhanceLevel:7}]});
+ assert.equal(reloaded.characters[0].equipment.accessory1,inst);
+ assert.equal(reloaded.characters[0].equipment.weapon,'normal-1');
+ assert.equal(reloaded.arena.needsServerSync,false);
+ assert.deepEqual(reloaded.arena.equippedRestore,{});
+ assert.equal(reloaded.arena.coins,12);
+ assert.equal(reloaded.equipmentInventory.find(x=>x.instanceId===inst).enhanceLevel,7);
+});
+
+test('missing, forged, incompatible or duplicated gear cannot be restored',()=>{
+ const instance=arenaInventoryId(goodId);
+ const invalid=state();
+ invalid.characters[0].currentJob='swordsman';
+ invalid.characters[0].jobLevels={swordsman:90};
+ invalid.characters[0].equipment.accessory1=instance;
+ invalid.equipmentInventory.push({instanceId:instance,equipmentId:'arena-gold-ring',enhanceLevel:10});
+ suspendUnverifiedArenaAssets(invalid);
+ applyAuthoritativeArenaProfile(invalid,{coins:0,gear:[]});
+ assert.equal(invalid.characters[0].equipment.accessory1,null);
+ assert.equal(invalid.equipmentInventory.some(x=>x.instanceId===instance),false);
+
+ const mismatched=state();
+ mismatched.characters[0].currentJob='swordsman';
+ mismatched.characters[0].jobLevels={swordsman:5};
+ mismatched.equipmentInventory.push({instanceId:instance,equipmentId:'arena-gold-ring',enhanceLevel:5});
+ mismatched.characters[0].equipment.shield=instance;
+ suspendUnverifiedArenaAssets(mismatched);
+ applyAuthoritativeArenaProfile(mismatched,{coins:4,gear:[{id:goodId,equipmentId:'arena-gold-ring',enhanceLevel:5}]});
+ assert.equal(mismatched.characters[0].equipment.shield,null); // Wrong slot and job level
+
+ const duplicate=state();
+ duplicate.characters=[{
+  id:'hero',currentJob:'swordsman',jobLevels:{swordsman:100},
+  equipment:{accessory1:instance}
+ },{
+  id:'friend',currentJob:'swordsman',jobLevels:{swordsman:100},
+  equipment:{accessory1:instance}
+ }];
+ duplicate.equipmentInventory.push({instanceId:instance,equipmentId:'arena-gold-ring',enhanceLevel:0});
+ suspendUnverifiedArenaAssets(duplicate);
+ applyAuthoritativeArenaProfile(duplicate,{coins:1,gear:[{id:goodId,equipmentId:'arena-gold-ring',enhanceLevel:0}]});
+ assert.equal(duplicate.characters.filter(c=>c.equipment.accessory1===instance).length,1);
+});
+
+test('another item in the previously occupied slot is never overwritten by profile recovery',()=>{
+ const instance=arenaInventoryId(goodId);
+ const s=state();
+ s.characters[0].currentJob='swordsman';
+ s.characters[0].jobLevels={swordsman:100};
+ s.equipmentInventory.push({instanceId:instance,equipmentId:'arena-gold-ring',enhanceLevel:0});
+ s.characters[0].equipment.accessory1=instance;
+ suspendUnverifiedArenaAssets(s);
+ s.characters[0].equipment.accessory1='normal-ring';
+ applyAuthoritativeArenaProfile(s,{coins:15,gear:[{id:goodId,equipmentId:'arena-gold-ring',enhanceLevel:0}]});
+ assert.equal(s.characters[0].equipment.accessory1,'normal-ring');
+});
+
+test('saved arena equipment recovery fetches server wallet in ordinary adventure without navigating to arena',()=>{
+ const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+ assert.match(main,/if\(!normalizeArenaProgress\(targetState\)\.needsServerSync\)return/);
+ assert.match(main,/const profile=await arenaApi\.profile\(slot\);\s*if\(state!==targetState\|\|currentSlot!==slot\)return;\s*applyAuthoritativeArenaProfile\(state,profile\);/);
+ assert.match(main,/showGame\(\);void recoverArenaPending\(\);/);
 });
