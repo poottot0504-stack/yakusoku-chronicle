@@ -9,7 +9,7 @@ import {ARENA_EQUIPMENT} from '../src/data/arena-equipment.js';
 const goodId='b1234567-8abc-4def-8abc-123456789012';
 const state=()=>({...createDefaultState(),
  equipmentInventory:[{instanceId:'normal-1',equipmentId:'ironSword',enhanceLevel:5}],
- characters:[{id:'hero',equipment:{weapon:'normal-1',shield:null,accessory1:null,accessory2:null}}]
+ characters:[{id:'hero',currentJob:'swordsman',jobLevels:{swordsman:90},equipment:{weapon:'normal-1',shield:null,accessory1:null,accessory2:null}}]
 });
 test('local saves cannot grant arena coins or counterfeit arena equipment',()=>{
  const s=state();
