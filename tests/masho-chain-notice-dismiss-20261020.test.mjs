@@ -12,7 +12,7 @@ test('previously saved cave chain notices never reappear on entry',()=>{
  assert.doesNotMatch(html,/10連戦 2\/10戦/);
  assert.doesNotMatch(html,/途中で連戦を終了しました/);
  assert.doesNotMatch(html,/第9階層 クリア！/);
- assert.match(html,/25階層/);
+ assert.match(html,/28階層/);
  assert.equal(s.mashoCave.lastRunSummary.earnedGold,30000);
 });
 
