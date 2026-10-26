@@ -20,6 +20,7 @@ const ARMOR_JOB_LABELS={
 export function equipmentJobLabel(item){
  if(!item)return '';
  if(item.slot==='spellbook')return '召喚士専用・魔本枠';
+ if(item.heroOnly)return '主人公専用・全職業装備可（名前変更後も有効）';
  const appendShieldJobs=label=>[label,...(['盾士','大盾士'].filter(name=>!String(label??'').includes(name)))].filter(Boolean).join('・');
  if(item.slot==='weapon')return weaponJobLabel(item);
  if(item.eventJobGroup){const m={swordsman:'剣士専用',mage:'魔法使い専用',healer:'ヒーラー専用',thief:'盗賊専用',fighter:'格闘家専用',archer:'アーチャー専用',bard:'吟遊詩人専用'};return appendShieldJobs(m[item.eventJobGroup]??'');}
@@ -32,6 +33,8 @@ function equippedWeaponDef(character,state){const ref=character.equipment?.weapo
 export function canEquipForJob(character,item,state){
  if(!item)return false;
  if(item.ownerCharacterId&&item.ownerCharacterId!==character.id)return false;
+ // Hero identity is immutable across custom names; the protagonist remains eligible.
+ if(item.heroOnly)return character.isHero===true;
  // Shield classes use a real shield in BOTH weapon and shield slots.
  // Legacy offensive weapons are kept in inventory but cannot be equipped by shield classes.
  // Shield armour and accessories retain their previous free-equipment compatibility.
@@ -98,6 +101,7 @@ export function getEquippedItems(character,state){return Object.values(character
 // Recommendations exclude other jobs' dedicated equipment sets.
 export function recommendationAllowedForJob(character,def){
  if(!def)return false;
+ if(def.heroOnly)return character?.isHero===true;
  if(!['shielder','greatShielder'].includes(character?.currentJob))return true;
  if(def.slot==='spellbook'||def.slot==='weapon'&&def.weaponType!=='shield')return false;
  const job=character.currentJob;
