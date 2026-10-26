@@ -1,0 +1,29 @@
+name: Arena Edge Function typecheck (staging source, no deploy)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/functions/yakusoku-arena/**'
+      - 'src/core/arena-proof.js'
+      - 'src/core/arena.js'
+      - 'src/core/battle.js'
+      - '.github/workflows/arena-edge-typecheck-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deno-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck unpublished Edge Function and all local imports
+        run: deno check supabase/functions/yakusoku-arena/index.ts
