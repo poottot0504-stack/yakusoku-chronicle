@@ -169,3 +169,28 @@ test('saved arena equipment recovery fetches server wallet in ordinary adventure
  assert.match(main,/const profile=await arenaApi\.profile\(slot\);\s*if\(state!==targetState\|\|currentSlot!==slot\)return;\s*applyAuthoritativeArenaProfile\(state,profile\);/);
  assert.match(main,/showGame\(\);void recoverArenaPending\(\);/);
 });
+
+test('all four arena gear types return to their legal slots after server ownership verification',()=>{
+ const cases=[
+  {equipmentId:'arena-guardian-shield',slot:'shield',job:'greatShielder',level:90},
+  {equipmentId:'arena-arcane-spellbook',slot:'spellbook',job:'summoner',level:90},
+  {equipmentId:'arena-gold-ring',slot:'accessory1',job:'swordsman',level:90},
+  {equipmentId:'arena-guardian-charm',slot:'accessory2',job:'swordsman',level:90}
+ ];
+ for(const {equipmentId,slot,job,level} of cases){
+  const instance=arenaInventoryId(goodId),s=createDefaultState();
+  s.characters=[{
+   id:'hero',isHero:true,name:'hero',level,exp:0,hp:100,mp:40,maxHp:100,maxMp:40,
+   stats:{attack:5,defense:5,magic:5,speed:5},currentJob:job,jobLevels:{[job]:level},
+   equipment:{weapon:null,shield:null,spellbook:null,accessory1:null,accessory2:null}
+  }];
+  s.equipmentInventory=[{instanceId:instance,equipmentId,enhanceLevel:6}];
+  s.characters[0].equipment[slot]=instance;
+  suspendUnverifiedArenaAssets(s);
+  const save=migrateSave(structuredClone(s));
+  applyAuthoritativeArenaProfile(save,{coins:15,gear:[{id:goodId,equipmentId,enhanceLevel:6}]});
+  assert.equal(save.characters[0].equipment[slot],instance,equipmentId);
+  assert.equal(save.equipmentInventory.find(x=>x.instanceId===instance).enhanceLevel,6,equipmentId);
+  assert.equal(save.arena.needsServerSync,false,equipmentId);
+ }
+});
