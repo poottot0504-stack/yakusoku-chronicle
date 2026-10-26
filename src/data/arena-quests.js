@@ -18,7 +18,7 @@ export const ARENA_QUESTS=Object.freeze({
    fighter('レン','thief','bronzeDagger',[S('arena-shadow30','シャドウレイド',11,220)]),
    fighter('ソラ','healer','oakMace',[H('arena-heal30','ヒール',6,75),S('arena-holy30','ホーリー',12,160,'magic',{element:'light'})])
   ],
-  enemy:{id:'arena30-stonebeast',name:'岩甲のグリフォン',artId:'storyBoss-field',element:'earth',maxHp:600,attack:80,defense:75,magic:65,speed:44}
+  enemy:{id:'arena30-stonebeast',name:'岩甲のグリフォン',artId:'storyBoss-field',element:'earth',maxHp:1450,attack:80,defense:75,magic:65,speed:44}
  },
  'arena50':{
   id:'arena50',name:'闘技大会・白銀の試練',level:50,description:'盾士を中心とした編成で、雷獣の猛攻を攻略する。',
@@ -28,7 +28,7 @@ export const ARENA_QUESTS=Object.freeze({
    fighter('レン','shielder','smallShield',[S('arena-bash50','盾撃',9,180)]),
    fighter('ソラ','healer','gold-mace',[H('arena-heal50','ハイヒール',10,155),S('arena-holy50','ホーリー',15,210,'magic',{element:'light'})])
   ],
-  enemy:{id:'arena50-thunderbeast',name:'雷牙のガルディオン',artId:'storyBoss-mountain',element:'thunder',maxHp:1250,attack:145,defense:110,magic:125,speed:70}
+  enemy:{id:'arena50-thunderbeast',name:'雷牙のガルディオン',artId:'storyBoss-mountain',element:'thunder',maxHp:2950,attack:145,defense:110,magic:125,speed:70}
  },
  'arena70':{
   id:'arena70',name:'闘技大会・黄金の試練',level:70,description:'火力と防御を使い分けて、古代竜に挑む。',
@@ -38,7 +38,7 @@ export const ARENA_QUESTS=Object.freeze({
    fighter('レン','thief','platinum-dagger',[S('arena-shadow70','瞬影連閃',23,300)]),
    fighter('ソラ','healer','platinum-mace',[H('arena-heal70','聖光の治癒',18,220),S('arena-holy70','神聖光',24,280,'magic',{element:'light'})])
   ],
-  enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-abyss',element:'dark',maxHp:2300,attack:235,defense:165,magic:205,speed:100}
+  enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-abyss',element:'dark',maxHp:5900,attack:235,defense:165,magic:205,speed:100}
  }
 });
 // Full fixed equipment list: mainhand, offhand where applicable, five armor
