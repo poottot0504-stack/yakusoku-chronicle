@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ARENA_RANKS,ARENA_QUESTS } from '../src/data/arena-quests.js';
+import { ARENA_RANKS,ARENA_QUESTS,arenaFixedEquipment } from '../src/data/arena-quests.js';
 import { ARENA_EQUIPMENT } from '../src/data/arena-equipment.js';
 import {EQUIPMENT} from '../src/data/equipment.js';
 import {
@@ -28,6 +28,7 @@ test('quest configuration has three fixed Lv30/50/70 4-person loadouts',()=>{
  for(const q of Object.values(ARENA_QUESTS)){
   assert.equal(q.roster.length,4);
   assert.ok(q.roster.every(t=>EQUIPMENT[t.weapon]),'preset equipment ids resolve');
+  assert.ok(q.roster.every(t=>Object.values(arenaFixedEquipment(t,q.level)).every(id=>Boolean(EQUIPMENT[id]))),'all 9 preset gear slots resolve');
   assert.ok(q.roster.every(t=>t.skills?.length>0),'preset skills exist');
  }
 });
@@ -48,6 +49,7 @@ test('arena never scales from the saved hero level, equipment, HP, job mastery o
   assert.equal(actor.jobLevels[actor.currentJob],30);
   assert.ok(actor.maxHp<1000,'saved Lv500 HP is not imported');
   assert.ok(actor.arenaFixedEquipment.weapon);
+  assert.equal(Object.keys(actor.arenaFixedEquipment).length,actor.currentJob==='shielder'?9:8);
   assert.ok(actor.arenaSkills.length>0);
   assert.deepEqual(actor.masteryBonuses,{});
   assert.equal(actor.battleFlatStats.attack,0);
