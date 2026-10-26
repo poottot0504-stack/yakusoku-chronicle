@@ -30,7 +30,7 @@ test('active match checkpoint belongs to one auth user and one save slot',()=>{
 });
 test('two committed rounds deterministically reconstruct party/enemy HP and next RNG state',()=>{
  for(const questId of ['arena30','arena50','arena70']){
-  const record=cp(questId),live=createArenaSession(questId),b=live.battle;
+  const record=cp(questId),live=createArenaSession(questId,{balanceVersion:1}),b=live.battle;
   const rng=arenaSeededRandom(record.seed);
   startTurn(b,rng);
   for(let round=0;round<2;round++){

@@ -59,7 +59,7 @@ test('completed and ineligible festival claim states remain safe',()=>{
 test('title retains history but stops advertising completed event in its latest highlight',()=>{
  assert.ok(!TITLE_UPDATES[0].headline.includes('大討伐祭'));
  assert.ok(TITLE_UPDATES[0].highlights.every(x=>!x.includes('大討伐祭')));
- assert.ok(TITLE_UPDATES[0].details.some(x=>x.includes('大討伐祭')));
+ assert.ok(TITLE_UPDATES.slice(1).some(u=>u.details.some(x=>x.includes('大討伐祭'))));
 });
 
 test('menu can open archived rewards and refresh the archive without showing ended adventure event',()=>{

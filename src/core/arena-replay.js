@@ -8,7 +8,7 @@ const terminal=b=>!b.actors.some(x=>x.side==='enemy'&&x.hp>0)||
  !b.actors.some(x=>x.side==='ally'&&x.hp>0);
 export function replayArenaCheckpoint(record){
  if(!record||!Array.isArray(record.actions)||record.actions.length>400)invalid();
- const session=createArenaSession(record.questId),battle=session.battle;
+ const session=createArenaSession(record.questId,{balanceVersion:record.balanceVersion??1}),battle=session.battle;
  const rng=arenaSeededRandom(record.seed);
  let pos=0,round=0;
  startTurn(battle,rng);

@@ -1,4 +1,4 @@
-import { ARENA_QUESTS,ARENA_RANKS,arenaFixedEquipment } from '../data/arena-quests.js';
+import { ARENA_QUESTS,ARENA_RANKS,ARENA_LEGACY_BOSS_STATS,ARENA_BALANCE_VERSION,arenaFixedEquipment } from '../data/arena-quests.js';
 import { ARENA_EQUIPMENT,ARENA_CRAFT_COSTS,ARENA_ENHANCE_COSTS,ARENA_ENHANCE_LIMIT } from '../data/arena-equipment.js';
 import { EQUIPMENT,createEquipmentInstance } from '../data/equipment.js';
 import { JOBS } from '../data/jobs.js';
@@ -89,14 +89,16 @@ function fixedEnemy(quest){
   exp:0,jobExp:0,gold:0,plunderTable:[],stealTable:[]
  };
 }
-export function createArenaSession(questId){
- const quest=ARENA_QUESTS[questId];
- if(!quest)throw new Error('闘技大会のクエストが見つかりません');
+export function createArenaSession(questId,{balanceVersion=ARENA_BALANCE_VERSION}={}){
+ const base=ARENA_QUESTS[questId];
+ if(!base)throw new Error('闘技大会のクエストが見つかりません');
+ if(balanceVersion!==1&&balanceVersion!==ARENA_BALANCE_VERSION)throw new Error('闘技大会のルールが不正です');
+ const quest=balanceVersion===1?{...base,enemy:{...base.enemy,...ARENA_LEGACY_BOSS_STATS[questId]}}:base;
  const roster=quest.roster.map((x,i)=>fixedCharacter(x,quest.level,i));
  const battle=createBattle(roster,fixedEnemy(quest),{isBoss:true});
  battle.arenaQuestId=questId;
  battle.arenaFixedParty=true;
- return {questId,roster,battle,settled:false};
+ return {questId,roster,battle,balanceVersion,settled:false};
 }
 export function arenaSessionSkills(session,actorId){
  return deepCopy(session?.roster?.find(x=>x.id===actorId)?.arenaSkills??[]);

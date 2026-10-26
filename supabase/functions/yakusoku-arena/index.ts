@@ -68,8 +68,12 @@ Deno.serve(async req=>{
    if(!['arena30','arena50','arena70'].includes(quest??''))return respond(400,{ok:false,error:'INVALID_QUEST'},origin);
    const seed=new Uint32Array(1);crypto.getRandomValues(seed);
    const id=crypto.randomUUID();
-   await rpc('issue',{p_quest:quest,p_id:id,p_seed:seed[0]});
-   return respond(200,{ok:true,data:{matchId:id,questId:quest,seed:seed[0],expiresInSeconds:3600}},origin);
+   // Older open tabs start v1; updated clients opt in to the stronger v2 bosses.
+   const balanceVersion=body.balanceVersion==null?1:body.balanceVersion;
+   if(balanceVersion!==1&&balanceVersion!==2)
+    return respond(400,{ok:false,error:'INVALID_BALANCE_VERSION'},origin);
+   await rpc(balanceVersion===2?'issue_v2':'issue',{p_quest:quest,p_id:id,p_seed:seed[0]});
+   return respond(200,{ok:true,data:{matchId:id,questId:quest,seed:seed[0],balanceVersion,expiresInSeconds:3600}},origin);
   }
   if(action==='resume'){
    const matchId=safeString(body.matchId,50);
@@ -77,7 +81,7 @@ Deno.serve(async req=>{
    const match=await rpc('lookup',{p_id:matchId});
    if(!match)return respond(404,{ok:false,error:'ARENA_MATCH_NOT_FOUND'},origin);
    return respond(200,{ok:true,data:{matchId,questId:match.questId,seed:Number(match.seed),
-    status:match.status,expiresAt:match.expiresAt}},origin);
+    status:match.status,expiresAt:match.expiresAt,balanceVersion:Number(match.balanceVersion??1)}},origin);
   }
   if(action==='claim'){
    const matchId=safeString(body.matchId,50);
@@ -92,7 +96,8 @@ Deno.serve(async req=>{
    if(new Date(match.expiresAt).getTime()<Date.now())return respond(410,{ok:false,error:'ARENA_MATCH_EXPIRED'},origin);
    if(!Array.isArray(body.actions))return respond(400,{ok:false,error:'INVALID_ACTIONS'},origin);
    let verified;
-   try{verified=verifyArenaTranscript({questId:match.questId,seed:Number(match.seed),actions:body.actions});}
+   try{verified=verifyArenaTranscript({questId:match.questId,seed:Number(match.seed),actions:body.actions,
+    balanceVersion:Number(match.balanceVersion??1)});}
    catch{return respond(400,{ok:false,error:'INVALID_TRANSCRIPT'},origin);}
    const result=await rpc('claim',{p_id:matchId,p_victory:verified.victory,p_turns:verified.turns});
    return respond(200,{ok:true,data:result},origin);
