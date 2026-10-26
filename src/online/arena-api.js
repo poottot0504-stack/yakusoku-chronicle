@@ -1,5 +1,5 @@
-// Authoritative arena API, prototype-only. The server refuses requests until
-// ARENA_ENABLED=true in the staging Edge Function. No local coin minting.
+// Authoritative arena API. The ruleset is requested when the server issues
+// a match; the server records the actual version for settlement and replay.
 import { yakusokuAuthorizedFetch } from './supabase-auth.js';
 
 export const ARENA_ENDPOINT='https://nmxmrxfyriutakewqgkk.supabase.co/functions/v1/yakusoku-arena';
@@ -23,7 +23,7 @@ export function createArenaApi({storage,fetchImpl=globalThis.fetch?.bind(globalT
  };
  return Object.freeze({
   profile:saveSlot=>post('profile',saveSlot),
-  start:(saveSlot,questId)=>post('start',saveSlot,{questId}),
+  start:(saveSlot,questId,balanceVersion=2)=>post('start',saveSlot,{questId,balanceVersion}),
   resume:(saveSlot,matchId)=>post('resume',saveSlot,{matchId}),
   claim:(saveSlot,matchId,actions)=>post('claim',saveSlot,{matchId,actions}),
   craft:(saveSlot,equipmentId,requestId=crypto.randomUUID())=>post('craft',saveSlot,{equipmentId,requestId}),
