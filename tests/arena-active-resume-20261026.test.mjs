@@ -5,7 +5,7 @@ import {createArenaSession} from '../src/core/arena.js';
 import {replayArenaCheckpoint} from '../src/core/arena-replay.js';
 import {arenaSeededRandom} from '../src/core/arena-proof.js';
 import {startTurn,resolveAction,finishTurn} from '../src/core/battle.js';
-import {saveArenaActive,loadArenaActive,clearArenaActive} from '../src/online/arena-active.js';
+import {saveArenaActive,loadArenaActive,clearArenaActive,hasArenaActive,discardArenaActive,arenaActiveKey} from '../src/online/arena-active.js';
 const A='11111111-1111-4111-8111-111111111111';
 const B='22222222-2222-4222-8222-222222222222';
 const MATCH='33333333-3333-4333-8333-333333333333';
@@ -66,4 +66,28 @@ test('game resumes only against an authenticated server match and saves confirme
  assert.match(ui,/data-arena-resume/);
  assert.match(edge,/if\(action==='resume'\)/);
  assert.match(edge,/rpc\('lookup',\{p_id:matchId\}\)/);
+});
+
+test('explicitly abandoning corrupt local checkpoint leaves other accounts and pending financial receipts intact',()=>{
+ const st=storage();
+ const other=cp('arena50');
+ saveArenaActive(st,B,3,other);
+ st.setItem(arenaActiveKey(A,3),'corrupt{');
+ st.setItem('yakusoku.arena.pending.v1.'+A+'.3','UNTOUCHED_PENDING');
+ assert.equal(hasArenaActive(st,A,3),true);
+ assert.throws(()=>loadArenaActive(st,A,3),/読み込めません/);
+ discardArenaActive(st,A,3);
+ assert.equal(hasArenaActive(st,A,3),false);
+ assert.deepEqual(loadArenaActive(st,B,3),other);
+ assert.equal(st.getItem('yakusoku.arena.pending.v1.'+A+'.3'),'UNTOUCHED_PENDING');
+});
+test('expired or invalid arena UI always offers a way back without modifying server coins',()=>{
+ const ui=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+ assert.match(ui,/data-arena-abandon/);
+ assert.match(ui,/async function abandonArenaCheckpoint\(\)/);
+ assert.match(ui,/if\(loadArenaPending\(session\.storage,owner,slot\)\)/);
+ assert.match(ui,/if\(!confirm\('前回の闘技大会を棄権しますか/);
+ assert.match(ui,/discardArenaActive\(session\.storage,owner,slot\)/);
+ assert.match(ui,/if\(status\.status!=='issued'\|\|Date\.parse\(status\.expiresAt\)<=Date\.now\(\)\)/);
+ assert.match(ui,/clearArenaActive\(session\.storage,owner,slot,checkpoint\.matchId\);\s+closeModal\(\)/);
 });
