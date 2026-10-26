@@ -16,7 +16,9 @@ import { mashoCaveMarkup } from './ui/masho-cave.js';
 import { arenaMarkup } from './ui/arena.js';
 import { createArenaSession,arenaSessionSkills,normalizeArenaProgress } from './core/arena.js';
 import { arenaSeededRandom } from './core/arena-proof.js';
-import { applyAuthoritativeArenaProfile,suspendUnverifiedArenaAssets } from './core/arena-authority.js';
+import { applyAuthoritativeArenaProfile,suspendUnverifiedArenaAssets,recordArenaServerReceipt } from './core/arena-authority.js';
+import { loadArenaPending,saveArenaPending,clearArenaPending } from './online/arena-recovery.js';
+import { ensureYakusokuSession } from './online/supabase-auth.js';
 import { createArenaApi } from './online/arena-api.js';
 import { deathWarningText } from './ui/death-warning.js';
 import { frameDuration, renderMotionFrame, updateBattleView, captureNumberTails, appendNumberTails } from './ui/battle-motion.js';
@@ -326,7 +328,7 @@ async function claimHuntCountApology(){
  finally{huntCountApologyClaimBusy=false;}
 }
 function startFresh(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy||arenaOperationBusy||arenaClaimBusy)return toast('取引・闘技大会の通信中はセーブスロットを変更できません');arenaPendingMutation=null;mashoRun=null;arenaSession=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();state=ensureAdventureState(createNewGame(createDefaultRoster()));suspendUnverifiedArenaAssets(state);ensureSpecialJobProgress(state);state.rankingApologyReceived=wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId='hero';view='adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();toast('新しい物語が始まりました');}
-function continueGame(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy||arenaOperationBusy||arenaClaimBusy)return toast('取引・闘技大会の通信中はセーブスロットを変更できません');arenaPendingMutation=null;mashoRun=null;arenaSession=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();const loaded=loadFromSlot(session,currentSlot);state=ensureAdventureState(loaded??createNewGame(createDefaultRoster()));suspendUnverifiedArenaAssets(state);ensureSpecialJobProgress(state);state.rankingApologyReceived=state.rankingApologyReceived===true||wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId??=state.characters[0]?.id;view=state.story?.firstEndingSeen&&!state.story?.trueEndingSeen&&state.adventure?.completedRegions?.includes('abyss')?'ending':'adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();if(state.market?.everUsed)void syncMarketSettlement({notify:true});}
+function continueGame(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy||arenaOperationBusy||arenaClaimBusy)return toast('取引・闘技大会の通信中はセーブスロットを変更できません');arenaPendingMutation=null;mashoRun=null;arenaSession=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();const loaded=loadFromSlot(session,currentSlot);state=ensureAdventureState(loaded??createNewGame(createDefaultRoster()));suspendUnverifiedArenaAssets(state);ensureSpecialJobProgress(state);state.rankingApologyReceived=state.rankingApologyReceived===true||wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId??=state.characters[0]?.id;view=state.story?.firstEndingSeen&&!state.story?.trueEndingSeen&&state.adventure?.completedRegions?.includes('abyss')?'ending':'adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();void recoverArenaPending();if(state.market?.everUsed)void syncMarketSettlement({notify:true});}
 function outcomeOf(b){const a=b.actors.some(x=>x.side==='ally'&&x.hp>0),e=b.actors.some(x=>x.side==='enemy'&&x.hp>0);return !e?'victory':!a?'defeat':null;}
 let battlePlayback=null;
 function renderBattle(){
@@ -522,38 +524,82 @@ function act(action){if(!battle||battle.phase==='complete')return;
  if(!battle.arenaQuestId)syncBattlePartyToState(state,battle);
  renderBattle();
 }
+async function arenaOwnerId(){
+ const auth=await ensureYakusokuSession(session.storage);
+ if(!auth?.user?.id)throw new Error('闘技大会はログインが必要です');
+ return auth.user.id;
+}
+async function settleSavedArenaOperation(entry,ownerId,slot,targetState){
+ // The transaction ID and the authenticated user always come from the journal
+ // and active Supabase session. Never credit coins locally.
+ let receipt=null;
+ if(entry.kind==='claim')receipt=await arenaApi.claim(slot,entry.matchId,entry.actions);
+ else if(entry.kind==='craft')await arenaApi.craft(slot,entry.itemId,entry.requestId);
+ else if(entry.kind==='enhance')await arenaApi.enhance(slot,String(entry.itemId).replace(/^arena-/,''),entry.requestId);
+ else throw new Error('未完了の闘技大会処理が不正です');
+ const profile=await arenaApi.profile(slot);
+ if(state!==targetState||currentSlot!==slot)return false;
+ applyAuthoritativeArenaProfile(state,profile);
+ if(receipt)recordArenaServerReceipt(state,receipt);
+ saveNow(); // A crash before journal removal may retry, but server receipts are idempotent.
+ clearArenaPending(session.storage,ownerId,slot,entry);
+ return true;
+}
+async function recoverArenaPending(){
+ if(battle||arenaOperationBusy||arenaClaimBusy)return;
+ const targetState=state,slot=currentSlot;arenaOperationBusy=true;
+ try{
+  const owner=await arenaOwnerId(),entry=loadArenaPending(session.storage,owner,slot);
+  if(!entry)return;
+  const applied=await settleSavedArenaOperation(entry,owner,slot,targetState);
+  if(!applied)return;
+  if(!title.classList.contains('active'))renderGameKeepVertical();
+  toast('前回の闘技大会処理を安全に復旧しました');
+ }catch(err){toast('闘技大会の復旧待ち：'+(err?.message??'通信エラー'));}
+ finally{arenaOperationBusy=false;}
+}
 async function finishArenaBattle(){
  if(!arenaSession||!battle||arenaSession.battle!==battle||arenaClaimBusy||arenaSession.claimError)return;
- const active=arenaSession,targetState=state,slot=currentSlot;
- arenaClaimBusy=true;
+ const active=arenaSession,targetState=state,slot=currentSlot;arenaClaimBusy=true;
  try{
-  const result=await arenaApi.claim(slot,active.matchId,active.actions);
-  const profile=await arenaApi.profile(slot);
-  if(active!==arenaSession||state!==targetState||currentSlot!==slot)return;
-  applyAuthoritativeArenaProfile(state,profile);
-  const progress=normalizeArenaProgress(state);
-  const record=progress.records[active.questId];
-  record.attempts++;if(result.victory){record.wins++;const best=progress.best[active.questId];if(!best||result.turns<best)progress.best[active.questId]=result.turns;}
-  progress.lastResult={questId:active.questId,turns:result.turns,grade:result.grade,coins:result.coins,victory:result.victory};
+  const owner=await arenaOwnerId();
+  const prior=loadArenaPending(session.storage,owner,slot);
+  const entry=prior??{kind:'claim',matchId:active.matchId,questId:active.questId,
+   actions:structuredClone(active.actions),createdAt:Date.now()};
+  if(entry.kind!=='claim'||entry.matchId!==active.matchId)
+   throw new Error('別の闘技大会報酬が未処理です');
+  saveArenaPending(session.storage,owner,slot,entry);
+  const settled=await settleSavedArenaOperation(entry,owner,slot,targetState);
+  if(!settled||active!==arenaSession)return;
+  const result=normalizeArenaProgress(state).lastResult;
   clearNormalAuto();syncPlayTime();arenaSession=null;battle=null;battleMeta=null;view='arena';
-  saveNow();renderGame();
-  toast(result.victory?`闘技大会 ${result.grade}評価！ コイン＋${result.coins}枚`:'闘技大会終了。コイン獲得なし');
+  renderGame();
+  toast(result?.victory?'闘技大会 '+result.grade+'評価！ コイン＋'+result.coins+'枚':'闘技大会終了。コイン獲得なし');
  }catch(err){
   if(active===arenaSession){
    active.claimError=true;
-   openModal('<h2>🏟️ サーバー検証待ち</h2><p>戦闘結果を安全に確認できませんでした。再試行しても同じ対戦IDなので、コインが二重配布されることはありません。</p><button class="action-main" data-arena-retry>サーバー検証を再試行</button>');
+   openModal('<h2>🏟️ サーバー検証待ち</h2><p>結果は未確定です。再試行では同じ対戦IDを使用し、報酬の二重配布を防ぎます。</p><button class="action-main" data-arena-retry>サーバー検証を再試行</button>');
    toast(err.message??'戦闘結果の通信に失敗しました');
   }
  }finally{arenaClaimBusy=false;}
 }
 async function openArena(){
- if(battle||arenaOperationBusy)return;
+ if(battle||arenaOperationBusy||arenaClaimBusy)return;
  const targetState=state,slot=currentSlot;arenaOperationBusy=true;
  try{
-  const profile=await arenaApi.profile(slot);
+  const owner=await arenaOwnerId();
+  const pending=loadArenaPending(session.storage,owner,slot);
+  if(pending){
+   if(!await settleSavedArenaOperation(pending,owner,slot,targetState))return;
+  }else{
+   const profile=await arenaApi.profile(slot);
+   if(targetState!==state||slot!==currentSlot)return;
+   applyAuthoritativeArenaProfile(state,profile);
+   saveNow();
+  }
   if(targetState!==state||slot!==currentSlot)return;
-  applyAuthoritativeArenaProfile(state,profile);
-  saveNow();view='arena';closeModal();renderGame();
+  view='arena';closeModal();renderGame();
+  if(pending)toast('未完了の闘技大会処理を復旧しました');
  }catch(err){toast(err.message??'闘技大会サーバーに接続できません');}
  finally{arenaOperationBusy=false;}
 }
@@ -561,6 +607,9 @@ async function startArenaMatch(questId){
  if(battle||arenaOperationBusy||raidRoom)return;
  const targetState=state,slot=currentSlot;arenaOperationBusy=true;
  try{
+  const owner=await arenaOwnerId();
+  if(loadArenaPending(session.storage,owner,slot))
+   throw new Error('前回の報酬処理が未完了です。闘技大会を開き直してください');
   const match=await arenaApi.start(slot,questId);
   if(targetState!==state||slot!==currentSlot)return;
   const active=createArenaSession(questId);
@@ -571,20 +620,19 @@ async function startArenaMatch(questId){
  finally{arenaOperationBusy=false;}
 }
 async function arenaMutation(kind,id){
- if(battle||arenaOperationBusy)return;
+ if(battle||arenaOperationBusy||arenaClaimBusy)return;
  const targetState=state,slot=currentSlot;arenaOperationBusy=true;
- const pending=arenaPendingMutation??{kind,id,requestId:crypto.randomUUID()};
- if(pending.kind!==kind||pending.id!==id){arenaOperationBusy=false;return toast('前回の操作確認を完了してから実行してください');}
- arenaPendingMutation=pending;
  try{
-  if(kind==='craft')await arenaApi.craft(slot,id,pending.requestId);
-  else await arenaApi.enhance(slot,String(id).replace(/^arena-/,''),pending.requestId);
-  const profile=await arenaApi.profile(slot);
-  if(targetState!==state||slot!==currentSlot)return;
-  applyAuthoritativeArenaProfile(state,profile);arenaPendingMutation=null;
-  saveNow();renderGameKeepVertical();
+  const owner=await arenaOwnerId();
+  const old=loadArenaPending(session.storage,owner,slot);
+  const entry=old??{kind,itemId:id,requestId:crypto.randomUUID(),createdAt:Date.now()};
+  if(entry.kind!==kind||entry.itemId!==id)
+   throw new Error('前回の処理が未完了です。闘技大会を開き直してください');
+  saveArenaPending(session.storage,owner,slot,entry);
+  if(!await settleSavedArenaOperation(entry,owner,slot,targetState))return;
+  renderGameKeepVertical();
   toast(kind==='craft'?'闘技コインで装備を生産しました！':'闘技コインで装備を強化しました！');
- }catch(err){toast((err.message??'通信に失敗しました')+'。再試行では同じ取引IDを使用します');}
+ }catch(err){toast((err.message??'通信に失敗しました')+'。取引IDは保持されます');}
  finally{arenaOperationBusy=false;}
 }
 function openEndgameReplayPrompt(kind,id,name,message){const action=kind==='training'?`data-training-area="${esc(id)}"`:`data-oathbreaker="${esc(id)}"`;openModal(`<h2>⚔️ ${esc(name)}・勝利！</h2><p class="notice endgame-replay-message">${esc(message)}</p><div class="endgame-replay-actions"><button class="action-main" ${action}>⚔️ 同じ敵ともう一度戦う</button><button data-close-modal>星の彼方の試練へ戻る</button></div>`);}
