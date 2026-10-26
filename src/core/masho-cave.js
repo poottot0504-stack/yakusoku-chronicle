@@ -1,4 +1,5 @@
 import { MASHO_ABYSS_WEAPONS,MASHO_ABYSS_SPELLBOOK } from '../data/masho-abyss-weapons.js';
+import { MASHO_DEPTH_BOSSES,MASHO_DEPTH_REWARD_BY_FLOOR,MASHO_DEPTH_EQUIPMENT } from '../data/masho-depth-rewards.js';
 import { addMaterial } from './material-cap.js';
 import { STORY_CHAPTERS } from '../data/story.js';
 import { BOSSES } from '../data/bosses.js';
@@ -20,7 +21,7 @@ import { normalizeElement, regionElement, elementProfile } from './elements.js';
 
 export const MASHO_DROP_RATE=.05;
 export const MASHO_ABYSS_DROP_RATE=.002;
-export const MASHO_MAX_FLOOR=25;
+export const MASHO_MAX_FLOOR=28;
 // 第15〜20階層で全22職業の全部位を必ず入手可能にする。
 export const MASHO_FLOOR_DROP_FOCUS=Object.freeze({
  15:{group:'magic',parts:['weapon','ring','charm'],label:'魔法系：武器・指輪・チャーム'},
@@ -40,7 +41,7 @@ export const MASHO_ABYSS_FLOOR_REWARDS=Object.freeze({
  25:[MASHO_ABYSS_SPELLBOOK.id,'masho-abyss-dagger']
 });
 export function getMashoAbyssDropPool(floor){
- return (MASHO_ABYSS_FLOOR_REWARDS[floor]??[]).map(id=>id===MASHO_ABYSS_SPELLBOOK.id?MASHO_ABYSS_SPELLBOOK:MASHO_ABYSS_WEAPONS[id]).filter(Boolean);
+ return (MASHO_ABYSS_FLOOR_REWARDS[floor]??(MASHO_DEPTH_REWARD_BY_FLOOR[floor]?[MASHO_DEPTH_REWARD_BY_FLOOR[floor]]:[])).map(id=>id===MASHO_ABYSS_SPELLBOOK.id?MASHO_ABYSS_SPELLBOOK:(MASHO_DEPTH_EQUIPMENT[id]??MASHO_ABYSS_WEAPONS[id])).filter(Boolean);
 }
 export function getMashoEquipmentDropPool(floor){
  const f=MASHO_FLOORS[floor-1];
@@ -56,7 +57,7 @@ export function getMashoEquipmentDropPool(floor){
  });
 }
 export function getMashoFloorDropLabel(floor){
- const standard=MASHO_FLOOR_DROP_FOCUS[floor]?.label??(floor>=21&&floor<=25?getMashoAbyssDropPool(floor).map(d=>d.name).join(' ／ '):'');
+ const standard=MASHO_FLOOR_DROP_FOCUS[floor]?.label??(floor>=21&&floor<=28?getMashoAbyssDropPool(floor).map(d=>d.name).join(' ／ '):'');
  const shields=SHIELDER_CAVE_SHIELDS.filter(d=>floor>=d.mashoFloor);
  return [standard,...shields.map(d=>`${d.name}（${(d.dropRate*100).toFixed(1)}%）`)].filter(Boolean).join(' ／ ')||null;
 }
@@ -73,9 +74,11 @@ endings.forEach((b,i)=>pools[15+i].push(b));
 pools[18].push(oaths.at(-1),raids.at(-1));pools[19].push(MASHO_BOSS_POOL.at(-1));
 export const MASHO_FLOORS=pools.map((bosses,i)=>({floor:i+1,level:150+Math.round(i*150/19),tier:i>=14?3:i>=7?2:1,bosses,exp:100000+i*12000,jobExp:50000+i*8000,gold:15000+i*5000}));
 for(let i=0;i<5;i++)MASHO_FLOORS.push({floor:21+i,level:310+i*10,tier:4,bosses:[raids[i]],exp:600000+i*50000,jobExp:300000+i*25000,gold:200000+i*25000});
+// 26–28F: dedicated endgame guardians. Their stats derive exactly from floor 25.
+for(const [key,b] of Object.entries(MASHO_DEPTH_BOSSES)){const floor=Number(key);MASHO_FLOORS.push({floor,level:360+(floor-26)*10,tier:5,bosses:[{...b,kind:'depth'}],exp:900000+(floor-26)*100000,jobExp:450000+(floor-26)*50000,gold:350000+(floor-26)*50000});}
 export function normalizeMashoProgress(state){
  const old=state.mashoCave??{},highest=Math.max(0,Math.min(MASHO_MAX_FLOOR,Math.floor(Number(old.highestCleared)||0)));
- const pastAbyssClears=Array.from({length:5},(_,i)=>Math.max(0,Math.floor(Number(old.clearCounts?.[i+21])||0))).reduce((a,b)=>a+b,0);
+ const pastAbyssClears=Array.from({length:8},(_,i)=>Math.max(0,Math.floor(Number(old.clearCounts?.[i+21])||0))).reduce((a,b)=>a+b,0);
  state.mashoCave={...old,highestCleared:highest,clearCounts:{...(old.clearCounts??{})},abyssClearCount:Math.max(0,Math.floor(Number(old.abyssClearCount??pastAbyssClears)||0))};return state.mashoCave;
 }
 export function getMashoFloors(state){const highest=normalizeMashoProgress(state).highestCleared,unlocked=hasFirstClear(state);return MASHO_FLOORS.map(f=>({...f,cleared:f.floor<=highest,available:unlocked&&f.floor<=highest+1}));}
@@ -84,9 +87,22 @@ const pick=(list,rng)=>list[Math.max(0,Math.min(list.length-1,Math.floor(rng()*l
 export function createMashoEnemy(state,floor,rng=Math.random){
  if(!hasFirstClear(state))throw new Error('魔障の洞窟は一周目クリアで解放されます');
  if(!canEnterMashoFloor(state,floor))throw new Error('先に前の階層をクリアしてください');
- const f=MASHO_FLOORS[floor-1],b=pick(f.bosses,rng),level=f.level,statFloor=Math.min(floor,20),multiplier=floor>20?1+(floor-20)*.05:1,maxHp=Math.round(Math.round(18000+Math.pow(statFloor-1,1.65)*2500)*(floor<=14?5:1)*multiplier);
+ const f=MASHO_FLOORS[floor-1],b=pick(f.bosses,rng),level=f.level,statFloor=Math.min(floor,20);
+ const depth=MASHO_DEPTH_BOSSES[floor];
+ const multiplier=depth?1.25:floor>20?1+(floor-20)*.05:1;
+ const floor25BaseHp=Math.round(Math.round(18000+Math.pow(19,1.65)*2500)*1.25);
+ const maxHp=depth?Math.round(floor25BaseHp*depth.hpRatio):Math.round(Math.round(18000+Math.pow(statFloor-1,1.65)*2500)*(floor<=14?5:1)*multiplier);
+ const stats=Object.fromEntries(Object.entries({attack:200+(statFloor-1)*27,defense:120+(statFloor-1)*19,magic:190+(statFloor-1)*28,speed:90+(statFloor-1)*9}).map(([key,value])=>[key,Math.round(value*(floor>=15?10:5)*multiplier*(floor>=20&&['attack','magic'].includes(key)?.7:1))]));
+ if(depth){
+  const base25Stats={attack:Math.round((200+19*27)*10*1.25*.7),magic:Math.round((190+19*28)*10*1.25*.7)};
+  stats.attack=Math.round(base25Stats.attack*depth.attackRatio);
+  stats.magic=Math.round(base25Stats.magic*depth.attackRatio);
+  // HP and offensive strength are exactly specified; defenses escalate modestly.
+  stats.defense=Math.round(stats.defense*(1+.07*(floor-25)));
+  stats.speed=Math.round(stats.speed*(1+.05*(floor-25)));
+ }
  const element=normalizeElement(b.element)==='none'?(b.kind==='oath'?'dark':regionElement('cave')):normalizeElement(b.element);
- return {id:`masho-${floor}-${b.id}`,artId:b.id,name:b.name+'【魔障】',...elementProfile(element),mashoBoss:true,mashoFloor:floor,regionId:'cave',...(b.kind==='raid'?{raidBoss:true,bossId:b.id}:{}),level,maxHp,hp:maxHp,maxMp:Math.round(9999*multiplier),mp:Math.round(9999*multiplier),stats:Object.fromEntries(Object.entries({attack:200+(statFloor-1)*27,defense:120+(statFloor-1)*19,magic:190+(statFloor-1)*28,speed:90+(statFloor-1)*9}).map(([key,value])=>[key,Math.round(value*(floor>=15?10:5)*multiplier*(floor>=20&&['attack','magic'].includes(key)?.7:1))])),isBoss:true,enemyClass:'boss',instantDeathCycle:b.kind==='oath'||b.kind==='final'||b.id==='lich',instantDeathName:b.instantDeathName??'魔障の死刻',ai:[{type:'attack',power:110},{type:'attack',power:140},bossAreaAttack(`${b.name}・魔障波`,85+floor,{kind:element==='none'?'physical':'magic',element}),...(floor>20?[{type:'skill',skill:{id:'mashoAbyssRuin',name:'魔障・終焉の波動',kind:'magic',element:'none',allTargets:true,alwaysHit:true,canCrit:false,maxHpDamageRatio:.4,description:'全員に最大HPの40％ダメージ。防御力を無視する。防御で回避可能。'}}]:[])],exp:f.exp,jobExp:f.jobExp,gold:f.gold,stealTable:[],plunderTable:[]};
+ return {id:`masho-${floor}-${b.id}`,artId:b.id,name:b.name+'【魔障】',...elementProfile(element),mashoBoss:true,mashoFloor:floor,regionId:'cave',...(b.kind==='raid'?{raidBoss:true,bossId:b.id}:{}),level,maxHp,hp:maxHp,maxMp:Math.round(9999*multiplier),mp:Math.round(9999*multiplier),stats,isBoss:true,enemyClass:'boss',instantDeathCycle:b.kind==='oath'||b.kind==='final'||b.id==='lich',instantDeathName:b.instantDeathName??'魔障の死刻',ai:[{type:'attack',power:110},{type:'attack',power:140},bossAreaAttack(`${b.name}・魔障波`,85+floor,{kind:element==='none'?'physical':'magic',element}),...(floor>20?[{type:'skill',skill:{id:'mashoAbyssRuin',name:'魔障・終焉の波動',kind:'magic',element:'none',allTargets:true,alwaysHit:true,canCrit:false,maxHpDamageRatio:.4,description:'全員に最大HPの40％ダメージ。防御力を無視する。防御で回避可能。'}}]:[])],exp:f.exp,jobExp:f.jobExp,gold:f.gold,stealTable:[],plunderTable:[]};
 }
 export function getMashoRewardPreview(state,floor,now=Date.now()){
  const f=MASHO_FLOORS[floor-1];if(!f)return null;
