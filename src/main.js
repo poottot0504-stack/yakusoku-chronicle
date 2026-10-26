@@ -18,7 +18,7 @@ import { createArenaSession,arenaSessionSkills,normalizeArenaProgress } from './
 import { arenaSeededRandom } from './core/arena-proof.js';
 import { applyAuthoritativeArenaProfile,suspendUnverifiedArenaAssets,recordArenaServerReceipt } from './core/arena-authority.js';
 import { loadArenaPending,saveArenaPending,clearArenaPending } from './online/arena-recovery.js';
-import { loadArenaActive,saveArenaActive,clearArenaActive } from './online/arena-active.js';
+import { loadArenaActive,saveArenaActive,clearArenaActive,hasArenaActive,discardArenaActive } from './online/arena-active.js';
 import { replayArenaCheckpoint } from './core/arena-replay.js';
 import { ensureYakusokuSession } from './online/supabase-auth.js';
 import { createArenaApi } from './online/arena-api.js';
@@ -559,7 +559,13 @@ async function recoverArenaPending(){
  try{
   const owner=await arenaOwnerId(),entry=loadArenaPending(session.storage,owner,slot);
   if(!entry){
-   const saved=loadArenaActive(session.storage,owner,slot);
+   let saved;
+   try{saved=loadArenaActive(session.storage,owner,slot);}
+   catch(err){
+    if(hasArenaActive(session.storage,owner,slot)&&!title.classList.contains('active'))
+     openModal('<h2>🏟️ 闘技大会の保存データを読み込めません</h2><p>記録が破損しています。サーバーのコインは変更せず、端末内の挑戦記録だけ棄権できます。</p><button data-arena-abandon>破損した挑戦記録を棄権する</button>');
+    return;
+   }
    if(saved&&!title.classList.contains('active'))
     openModal('<h2>🏟️ 闘技大会を再開</h2><p>前回の挑戦が残っています。最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>闘技大会を再開する</button><button data-arena-abandon>前回の挑戦を棄権する</button>');
    return;
@@ -602,7 +608,15 @@ async function openArena(){
  try{
   const owner=await arenaOwnerId();
   const pending=loadArenaPending(session.storage,owner,slot);
-  const savedBattle=loadArenaActive(session.storage,owner,slot);
+  let savedBattle=null;
+  try{savedBattle=loadArenaActive(session.storage,owner,slot);}
+  catch(err){
+   if(!pending&&hasArenaActive(session.storage,owner,slot)){
+    openModal('<h2>🏟️ 挑戦記録の復旧に失敗しました</h2><p>端末内の記録が破損しています。未受領のコインは付与せず、記録を棄権して次の挑戦へ進めます。</p><button data-arena-abandon>破損した記録を棄権する</button>');
+    return;
+   }
+   throw err;
+  }
   if(savedBattle&&!pending){
    openModal('<h2>🏟️ 未完了の闘技大会</h2><p>前回の挑戦を最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>前回の挑戦を再開</button><button data-arena-abandon>前回の挑戦を棄権する</button>');
    return;
@@ -661,12 +675,12 @@ async function abandonArenaCheckpoint(){
   const owner=await arenaOwnerId();
   if(loadArenaPending(session.storage,owner,slot))
    throw new Error('未確定の報酬・取引があるため棄権できません。先に精算してください');
-  const active=loadArenaActive(session.storage,owner,slot);
-  if(!active)throw new Error('棄権する闘技大会が見つかりません');
+  if(!hasArenaActive(session.storage,owner,slot))
+   throw new Error('棄権する闘技大会が見つかりません');
   if(!confirm('前回の闘技大会を棄権しますか？ 未受領の報酬は獲得できません。'))return;
   // Only forget the local battle. Do not mutate the server wallet, save data
   // or any other user's pending transaction.
-  clearArenaActive(session.storage,owner,slot,active.matchId);
+  discardArenaActive(session.storage,owner,slot);
   closeModal();
   toast('前回の挑戦を棄権しました。新しい挑戦を始められます');
  }catch(err){toast(err?.message??'闘技大会の棄権に失敗しました');}
