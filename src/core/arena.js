@@ -23,7 +23,19 @@ export function normalizeArenaProgress(state){
  for(const id of Object.keys(ARENA_QUESTS)){
   records[id]={wins:safe(raw.records?.[id]?.wins,999999),attempts:safe(raw.records?.[id]?.attempts,999999)};
  }
- state.arena={coins:safe(raw.coins,999999),best,records,
+ const equippedRestore={};
+ const slots=new Set(['weapon','spellbook','shield','accessory1','accessory2']);
+ if(raw.equippedRestore&&typeof raw.equippedRestore==='object'&&!Array.isArray(raw.equippedRestore)){
+  for(const [characterId,placements] of Object.entries(raw.equippedRestore).slice(0,8)){
+   if(typeof characterId!=='string'||characterId.length<1||characterId.length>100||
+      !placements||typeof placements!=='object'||Array.isArray(placements))continue;
+   const allowed=Object.fromEntries(Object.entries(placements).filter(([slot,id])=>
+     slots.has(slot)&&typeof id==='string'&&/^arena-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)));
+   if(Object.keys(allowed).length)equippedRestore[characterId]=allowed;
+  }
+ }
+ state.arena={coins:safe(raw.coins,999999),best,records,equippedRestore,
+  needsServerSync:raw.needsServerSync===true,
   // Local battle-history de-duplication only. Coins and ownership always come from the server.
   settledMatchIds:[...new Set((Array.isArray(raw.settledMatchIds)?raw.settledMatchIds:[])
     .filter(x=>typeof x==='string'&&/^[0-9a-f-]{36}$/i.test(x)))].slice(-100),
