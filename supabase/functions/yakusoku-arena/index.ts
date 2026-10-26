@@ -1,7 +1,7 @@
-// PREVIEW SOURCE ONLY. DO NOT DEPLOY TO PRODUCTION.
-// Requires the private SQL ledger installed in a disposable staging database.
-// Even if accidentally deployed, the function stays disabled unless the server
-// operator explicitly sets ARENA_ENABLED=true and a restrictive origin allowlist.
+// Arena production endpoint. Uses the private SQL ledger and verified JWT user.
+// The owner's existing Cloudflare Workers origin is the sole default allowed origin.
+// Set ARENA_ENABLED=false to disable future calls immediately, or explicitly
+// override ARENA_ALLOWED_ORIGINS to change permitted browser hosts.
 import { createClient } from 'npm:@supabase/supabase-js@2.95.0';
 import { verifyArenaTranscript } from '../../../src/core/arena-proof.js';
 
@@ -27,12 +27,12 @@ function errorMessage(err:unknown){
 }
 Deno.serve(async req=>{
  const requestOrigin=req.headers.get('origin')??'';
- const allowedOrigins=(Deno.env.get('ARENA_ALLOWED_ORIGINS')??'').split(',').map(x=>x.trim()).filter(Boolean);
+ const allowedOrigins=(Deno.env.get('ARENA_ALLOWED_ORIGINS')??'https://muddy-credit-f5af.starload.workers.dev').split(',').map(x=>x.trim()).filter(Boolean);
  const origin=requestOrigin&&allowedOrigins.includes(requestOrigin)?requestOrigin:'';
  if(req.method==='OPTIONS')return origin?new Response(null,{status:204,headers:corsHeaders(origin)}):respond(403,{ok:false,error:'ORIGIN_FORBIDDEN'},'');
  if(req.method!=='POST')return respond(405,{ok:false,error:'METHOD_NOT_ALLOWED'},origin);
  if(!origin)return respond(403,{ok:false,error:'ORIGIN_FORBIDDEN'},'');
- if(Deno.env.get('ARENA_ENABLED')!=='true')return respond(503,{ok:false,error:'ARENA_NOT_RELEASED'},origin);
+ if(Deno.env.get('ARENA_ENABLED')==='false')return respond(503,{ok:false,error:'ARENA_NOT_RELEASED'},origin);
  const bearer=req.headers.get('authorization')??'';
  const token=/^Bearer\s+(\S+)$/i.exec(bearer)?.[1];
  if(!token)return respond(401,{ok:false,error:'LOGIN_REQUIRED'},origin);
