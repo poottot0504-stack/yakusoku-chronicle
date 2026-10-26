@@ -14,7 +14,10 @@ import { createMashoEnemy, settleMashoVictory, canEnterMashoFloor } from './core
 import { createMashoRun, recordMashoRunVictory, mashoRunCanContinue, mashoRunSummary, setMashoResultVisibility, toggleMashoNextTen } from './core/masho-chain.js';
 import { mashoCaveMarkup } from './ui/masho-cave.js';
 import { arenaMarkup } from './ui/arena.js';
-import { createArenaSession,arenaSessionSkills,settleArenaSession,craftArenaEquipment,enhanceArenaEquipment } from './core/arena.js';
+import { createArenaSession,arenaSessionSkills,normalizeArenaProgress } from './core/arena.js';
+import { arenaSeededRandom } from './core/arena-proof.js';
+import { applyAuthoritativeArenaProfile,suspendUnverifiedArenaAssets } from './core/arena-authority.js';
+import { createArenaApi } from './online/arena-api.js';
 import { deathWarningText } from './ui/death-warning.js';
 import { frameDuration, renderMotionFrame, updateBattleView, captureNumberTails, appendNumberTails } from './ui/battle-motion.js';
 import { adventureGuideMarkup, eidelEndingMarkup } from './ui/adventure-guide.js';
@@ -156,6 +159,7 @@ const marketOperationGuard=createMarketOperationGuard({
 let equipmentSearch=''; // Browser-only query. Never update inventory or save data.
 const getMarketApi=()=>marketApiPromise??=createBrowserMarketApi({storage:session.storage});
 const feedbackApi=createFeedbackApi({storage:session.storage});
+const arenaApi=createArenaApi({storage:session.storage});
 const collectionRankingApi=createCollectionRankingApi({storage:session.storage});
 const collectionScoreApi=createCollectionScoreApi({storage:session.storage});
 const collectionRewardApi=createCollectionRewardApi({storage:session.storage});
@@ -168,7 +172,7 @@ let raidRoom=null,raidStartedAt=0,raidPendingBossAction=null,raidRewardClaimBusy
 const raidPoller=createRaidPoller({api:raidApi,getPayload:()=>({playerId:getRaidPlayerId(session.storage)}),intervalMs:1000,onSnapshot:r=>{if(!raidRoom||(r.sessionId&&r.sessionId!==raidRoom.sessionId)||(r.roomId&&r.roomId!==raidRoom.roomId))return;if(isRaidTimedOutSnapshot(r)){raidExecutionId++;raidPoller.stop();raidEndedReason='timeout';raidTurnExecuting=false;raidTurnState=null;raidPendingBossAction=null;addRaidBattleLog(`${raidRoom.boss?.name??'レイドボス'}は逃げ出した…`);renderRaidBattleScreen();return;}const motion={visualAction:raidRoom.visualAction,visualEvents:raidRoom.visualEvents};raidRoom={...raidRoomView(r),...motion};rememberRaidSnapshot(r);if(raidTurnExecuting)return;updateRaidBattleModal(raidRoom,raidHero(),raidPendingBossAction,raidPartyMembers());void tryClaimRaidReward(r,{silent:true});if(r.currentHp===0){raidPoller.stop();raidTurnState=null;raidPendingBossAction=null;saveNow();renderRaidBattleScreen();}},onError:()=>{}});
 const raidLobbyPoller=createRaidPoller({api:raidApi,getPayload:()=>({playerId:getRaidPlayerId(session.storage)}),intervalMs:3000,onSnapshot:r=>{rememberRaidSnapshot(r);if(!r?.active&&r.currentHp!==0){raidLobbyPoller.stop();return;}updateRaidAdventureCard(r);void tryClaimRaidReward(r,{silent:false});},onError:()=>{}});
 const $=s=>document.querySelector(s);const title=$('#title-screen'),game=$('#game-screen'),battleScreen=$('#battle-screen'),modal=$('#modal-root'),toastRoot=$('#toast-root');
-let currentSlot=1;let state=ensureAdventureState(createNewGame(createDefaultRoster()));let view='adventure',battle=null,battleMeta=null,mashoRun=null,arenaSession=null;let playStartedAt=null,boostClockLastAt=null,lastPlayerInputAt=Date.now();
+let currentSlot=1;let state=ensureAdventureState(createNewGame(createDefaultRoster()));let view='adventure',battle=null,battleMeta=null,mashoRun=null,arenaSession=null,arenaClaimBusy=false,arenaOperationBusy=false,arenaPendingMutation=null;let playStartedAt=null,boostClockLastAt=null,lastPlayerInputAt=Date.now();
 const selectedId=()=>state.selectedCharacterId??state.characters?.[0]?.id;
 const autoSettings=()=>normalizeAutoSettings(state.ui?.autoPlay);
 function saveAutoSettings(patch){
@@ -321,8 +325,8 @@ async function claimHuntCountApology(){
  }catch(err){updateRankingApologyModalContent(`<section class="npc-dialogue"><h2>🎁 お詫びの案内人</h2><p>${esc(err?.message??'通信エラーが発生しました')}</p><button data-hunt-count-apology-npc>受取状況を確認する</button></section>`);}
  finally{huntCountApologyClaimBusy=false;}
 }
-function startFresh(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy)return toast('取引処理中はセーブスロットを変更できません');mashoRun=null;arenaSession=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();state=ensureAdventureState(createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId='hero';view='adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();toast('新しい物語が始まりました');}
-function continueGame(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy)return toast('取引処理中はセーブスロットを変更できません');mashoRun=null;arenaSession=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();const loaded=loadFromSlot(session,currentSlot);state=ensureAdventureState(loaded??createNewGame(createDefaultRoster()));ensureSpecialJobProgress(state);state.rankingApologyReceived=state.rankingApologyReceived===true||wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId??=state.characters[0]?.id;view=state.story?.firstEndingSeen&&!state.story?.trueEndingSeen&&state.adventure?.completedRegions?.includes('abyss')?'ending':'adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();if(state.market?.everUsed)void syncMarketSettlement({notify:true});}
+function startFresh(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy)return toast('取引処理中はセーブスロットを変更できません');mashoRun=null;arenaSession=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();state=ensureAdventureState(createNewGame(createDefaultRoster()));suspendUnverifiedArenaAssets(state);ensureSpecialJobProgress(state);state.rankingApologyReceived=wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId='hero';view='adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();toast('新しい物語が始まりました');}
+function continueGame(slot=currentSlot){if(marketOperationGuard.busy||marketSyncBusy)return toast('取引処理中はセーブスロットを変更できません');mashoRun=null;arenaSession=null;clearNormalAuto();cancelRaidSession();raidClaimExecutionId++;raidRewardClaimBusy=false;currentSlot=Number(slot)||1;marketUi=newMarketUi();const loaded=loadFromSlot(session,currentSlot);state=ensureAdventureState(loaded??createNewGame(createDefaultRoster()));suspendUnverifiedArenaAssets(state);ensureSpecialJobProgress(state);state.rankingApologyReceived=state.rankingApologyReceived===true||wasRankingApologyDelivered(session.storage,playerStatsHeartbeat.playerId);state.selectedCharacterId??=state.characters[0]?.id;view=state.story?.firstEndingSeen&&!state.story?.trueEndingSeen&&state.adventure?.completedRegions?.includes('abyss')?'ending':'adventure';playStartedAt=Date.now();boostClockLastAt=playStartedAt;lastPlayerInputAt=playStartedAt;document.body.dataset.battleSpeed=String(autoSettings().speed);showGame();if(state.market?.everUsed)void syncMarketSettlement({notify:true});}
 function outcomeOf(b){const a=b.actors.some(x=>x.side==='ally'&&x.hp>0),e=b.actors.some(x=>x.side==='enemy'&&x.hp>0);return !e?'victory':!a?'defeat':null;}
 let battlePlayback=null;
 function renderBattle(){
@@ -399,7 +403,7 @@ function startEclipseWave(wave=1){
  renderBattle();
 }
 function startHalloweenWave(wave=1){if(wave===1&&!isHalloweenActive())return toast('イベント開催期間外です');if(wave===1){state.adventure??={};state.adventure.halloweenLevelUps=[];state.adventure.halloweenDrops=[];}const enemies=makeHalloweenWave(state,wave);recordHalloweenWaveEncounters(state,enemies);battleMeta={regionId:'event:halloween-2026',boss:wave===3,rematch:false,eventId:'halloween-2026',eventWave:wave,enemy:enemies[0],enemies,auditBefore:captureProgressionSnapshot(state)};battle=createAdventureBattle(enemies,{isBoss:wave===3});battle.gold=enemies.reduce((n,e)=>n+(e.gold??0),0);battle.exp=enemies.reduce((n,e)=>n+(e.exp??0),0);battle.jobExp=enemies.reduce((n,e)=>n+(e.jobExp??0),0);startTurn(battle);renderBattle();}
-function checkBattleState(){if(!battle||battlePlayback===battle)return;const out=outcomeOf(battle);if(out==='victory')return finishBattleVictory();if(out==='defeat')return finishBattleDefeat();if(battle.phase==='complete'){finishTurn(battle);if(battle.arenaQuestId&&battle.turnNumber>=100)return finishArenaBattle();startTurn(battle);const next=outcomeOf(battle);if(next==='defeat')return finishBattleDefeat();renderBattle();}}
+function checkBattleState(){if(!battle||battlePlayback===battle)return;const out=outcomeOf(battle);if(out==='victory')return finishBattleVictory();if(out==='defeat')return finishBattleDefeat();if(battle.phase==='complete'){finishTurn(battle);if(battle.arenaQuestId&&battle.turnNumber>=100)return void finishArenaBattle();startTurn(battle,battle.arenaQuestId?arenaSession?.rng:Math.random);const next=outcomeOf(battle);if(next==='defeat')return finishBattleDefeat();renderBattle();}}
 function auditVictory(meta,expAwarded=0){
  try{
   const after=captureProgressionSnapshot(state);
@@ -503,15 +507,85 @@ const dropLines=formatDropLines(drops);
 if(ticketDrop?.count)dropLines.push(`🏆 討伐の証 ×${ticketDrop.count}（サーバーで確認後、ランキングに反映）`);const msg=state.adventure.message?.split('\n')??[];state.adventure.message=[msg[0],...dropLines,...msg.slice(1)].filter(Boolean).join('\n');for(const defeated of (battleMeta.enemies??[e]))updateQuestProgress(state,{type:'defeat',id:defeated.bestiaryId??defeated.id,amount:1});if(battleMeta.guildQuestId){const q=QUESTS[battleMeta.guildQuestId],rec=state.quests?.[battleMeta.guildQuestId];state.adventure.message=[`🎯 ${q?.name??'ギルド依頼'}：${e.name}を討伐！`,...dropLines,rec?.status==='ready'?'✅ 目標達成！ 街のギルドマスターに報告しよう。':`依頼進捗 ${rec?.progress??0}/${q?.goal?.amount??1}。ギルドマスターから続けて挑戦できます。`].join('\n');}if(battleMeta.boss){const idx=getUnlockedRegions(state).findIndex(x=>x.id===battleMeta.regionId);if(battleMeta.regionId==='field')recordSpecialProgress(state,'emblem');const specialKey=grantSpecialBossKeyItem(state,battleMeta.regionId);if(specialKey)state.adventure.message+=`\n🎁 ${getItemDef(specialKey.id).name} ×1 を手に入れた！`;recordSpecialProgress(state,'treasure');if(['volcano','ruins','abyss'].includes(battleMeta.regionId))recordSpecialProgress(state,'strongEnemy');}if(getActiveParty(state).some(c=>c.hp>0&&c.hp<=c.maxHp*.25))recordSpecialProgress(state,'lowHpWin');}
  recordAchievementEvent(state,{type:'firstWin'});saveNow();battle=null;battleScreen.classList.remove('active');if(battleMeta.boss&&battleMeta.regionId==='abyss'){view=state.cycle>=2?'endgame':'ending';}else if(battleMeta.trainingArea)view='endgame';else if(battleMeta.guildQuestId)view='town';else view=battleMeta.exploration?'exploreResult':'adventure';renderGame();if(battleMeta.trainingArea){const area=TRAINING_AREAS.find(x=>x.id===battleMeta.trainingArea);openEndgameReplayPrompt('training',battleMeta.trainingArea,area?.name??'修練',state.adventure.message);}else if(battleMeta.guildQuestId)openModal(`<h2>🎯 ギルド指定討伐・勝利！</h2><p class="notice endgame-replay-message">${esc(state.adventure.message)}</p><div class="endgame-replay-actions"><button class="action-main" data-npc="guildMaster">ギルドマスターに報告・続けて挑戦</button><button data-close-modal>街に戻る</button></div>`);if(!battleMeta.exploration)toast(`勝利！ ${battleMeta.enemies?.length??1}体撃破`);}
 function finishBattleDefeat(){if(battle?.arenaQuestId)return finishArenaBattle();clearNormalAuto();syncBattlePartyToState(state,battle);if(mashoRun){state.mashoCave.lastRunSummary=mashoRunSummary(mashoRun,'defeat');setMashoResultVisibility(state,false);mashoRun=null;}const {loss}=handlePartyWipe(state);battle=null;view='town';saveNow();renderGame();toast(`全滅… ${loss}Gを失い宿屋へ戻った`);}
-function act(action){if(!battle||battle.phase==='complete')return;const result=resolveAction(battle,action);if(result?.ok===false){toast(result.message);return;}if(!battle.arenaQuestId)syncBattlePartyToState(state,battle);renderBattle();}
-function finishArenaBattle(){
- if(!arenaSession||!battle||arenaSession.battle!==battle)return;
+function act(action){if(!battle||battle.phase==='complete')return;
+ const result=resolveAction(battle,action,battle.arenaQuestId?arenaSession?.rng:Math.random);
+ if(result?.ok===false){toast(result.message);return;}
+ if(battle.arenaQuestId&&battle.phase==='complete'){
+  // Only FINAL committed planning actions, so undo never produces fake actions.
+  for(const actorId of battle.planningIds){
+   const planned=battle.plannedActions[actorId]??{type:'wait'};
+   arenaSession.actions.push({actorId,type:planned.type,
+    ...(planned.skill?.id?{skillId:planned.skill.id}:{}),
+    ...(planned.targetId?{targetId:planned.targetId}:{})});
+  }
+ }
+ if(!battle.arenaQuestId)syncBattlePartyToState(state,battle);
+ renderBattle();
+}
+async function finishArenaBattle(){
+ if(!arenaSession||!battle||arenaSession.battle!==battle||arenaClaimBusy||arenaSession.claimError)return;
+ const active=arenaSession,targetState=state,slot=currentSlot;
+ arenaClaimBusy=true;
  try{
-  const result=settleArenaSession(state,arenaSession);
-  clearNormalAuto();syncPlayTime();
-  arenaSession=null;battle=null;battleMeta=null;view='arena';saveNow();renderGame();
+  const result=await arenaApi.claim(slot,active.matchId,active.actions);
+  const profile=await arenaApi.profile(slot);
+  if(active!==arenaSession||state!==targetState||currentSlot!==slot)return;
+  applyAuthoritativeArenaProfile(state,profile);
+  const progress=normalizeArenaProgress(state);
+  const record=progress.records[active.questId];
+  record.attempts++;if(result.victory){record.wins++;const best=progress.best[active.questId];if(!best||result.turns<best)progress.best[active.questId]=result.turns;}
+  progress.lastResult={questId:active.questId,turns:result.turns,grade:result.grade,coins:result.coins,victory:result.victory};
+  clearNormalAuto();syncPlayTime();arenaSession=null;battle=null;battleMeta=null;view='arena';
+  saveNow();renderGame();
   toast(result.victory?`闘技大会 ${result.grade}評価！ コイン＋${result.coins}枚`:'闘技大会終了。コイン獲得なし');
- }catch(err){toast(err.message??'闘技大会の結果を保存できませんでした');}
+ }catch(err){
+  if(active===arenaSession){
+   active.claimError=true;
+   openModal('<h2>🏟️ サーバー検証待ち</h2><p>戦闘結果を安全に確認できませんでした。再試行しても同じ対戦IDなので、コインが二重配布されることはありません。</p><button class="action-main" data-arena-retry>サーバー検証を再試行</button>');
+   toast(err.message??'戦闘結果の通信に失敗しました');
+  }
+ }finally{arenaClaimBusy=false;}
+}
+async function openArena(){
+ if(battle||arenaOperationBusy)return;
+ const targetState=state,slot=currentSlot;arenaOperationBusy=true;
+ try{
+  const profile=await arenaApi.profile(slot);
+  if(targetState!==state||slot!==currentSlot)return;
+  applyAuthoritativeArenaProfile(state,profile);
+  saveNow();view='arena';closeModal();renderGame();
+ }catch(err){toast(err.message??'闘技大会サーバーに接続できません');}
+ finally{arenaOperationBusy=false;}
+}
+async function startArenaMatch(questId){
+ if(battle||arenaOperationBusy||raidRoom)return;
+ const targetState=state,slot=currentSlot;arenaOperationBusy=true;
+ try{
+  const match=await arenaApi.start(slot,questId);
+  if(targetState!==state||slot!==currentSlot)return;
+  const active=createArenaSession(questId);
+  active.matchId=match.matchId;active.actions=[];active.rng=arenaSeededRandom(match.seed);
+  arenaSession=active;battle=active.battle;battleMeta={arena:true,arenaQuestId:questId};
+  startTurn(battle,active.rng);closeModal();renderBattle();
+ }catch(err){arenaSession=null;toast(err.message??'闘技大会を開始できません');}
+ finally{arenaOperationBusy=false;}
+}
+async function arenaMutation(kind,id){
+ if(battle||arenaOperationBusy)return;
+ const targetState=state,slot=currentSlot;arenaOperationBusy=true;
+ const pending=arenaPendingMutation??{kind,id,requestId:crypto.randomUUID()};
+ if(pending.kind!==kind||pending.id!==id){arenaOperationBusy=false;return toast('前回の操作確認を完了してから実行してください');}
+ arenaPendingMutation=pending;
+ try{
+  if(kind==='craft')await arenaApi.craft(slot,id,pending.requestId);
+  else await arenaApi.enhance(slot,String(id).replace(/^arena-/,''),pending.requestId);
+  const profile=await arenaApi.profile(slot);
+  if(targetState!==state||slot!==currentSlot)return;
+  applyAuthoritativeArenaProfile(state,profile);arenaPendingMutation=null;
+  saveNow();renderGameKeepVertical();
+  toast(kind==='craft'?'闘技コインで装備を生産しました！':'闘技コインで装備を強化しました！');
+ }catch(err){toast((err.message??'通信に失敗しました')+'。再試行では同じ取引IDを使用します');}
+ finally{arenaOperationBusy=false;}
 }
 function openEndgameReplayPrompt(kind,id,name,message){const action=kind==='training'?`data-training-area="${esc(id)}"`:`data-oathbreaker="${esc(id)}"`;openModal(`<h2>⚔️ ${esc(name)}・勝利！</h2><p class="notice endgame-replay-message">${esc(message)}</p><div class="endgame-replay-actions"><button class="action-main" ${action}>⚔️ 同じ敵ともう一度戦う</button><button data-close-modal>星の彼方の試練へ戻る</button></div>`);}
 function openEnemyTargets(mode,skill=null){const enemies=battle.actors.filter(x=>x.side==='enemy'&&x.hp>0);openModal(`<h2>🎯 攻撃する敵</h2><div class="choice-list">${enemies.map(x=>`<button data-enemy-target="${x.id}" data-target-mode="${mode}" ${skill?`data-target-skill="${skill.id}"`:''}><span><b>${esc(x.name)}</b><small>HP ${x.hp} / ${x.maxHp}</small></span><em>攻撃</em></button>`).join('')}</div>`);}
@@ -1363,10 +1437,11 @@ document.addEventListener('click',e=>{
  if(el.dataset.equipSellConfirm){try{const r=sellEquipmentInstance(state,el.dataset.equipSellConfirm);saveNow();closeModal();renderGameKeepVertical();toast(`装備1個を売却して ${r.total.toLocaleString('ja-JP')}G獲得！`);}catch(err){toast(err.message);}return;}
  if(el.dataset.equip){try{equipItem(state,selectedId(),el.dataset.equip,el.dataset.slot);saveNow();renderGameKeepVertical();toast('装備しました');}catch(err){toast(err.message);}return;}
  if(el.hasAttribute('data-recommend-equipment')){try{const r=equipRecommendedEquipment(state,selectedId());saveNow();renderGameKeepVertical();toast(r.changedSlots.length?`おすすめ装備に変更しました（${r.changedSlots.length}部位）`:'現在の装備がおすすめです');}catch(err){toast(err.message);}return;}
- if(el.dataset.arenaStart){if(battle||raidRoom)return;try{clearNormalAuto();arenaSession=createArenaSession(el.dataset.arenaStart);battle=arenaSession.battle;battleMeta={arena:true,arenaQuestId:arenaSession.questId};startTurn(battle);closeModal();return renderBattle();}catch(err){arenaSession=null;toast(err.message);return;}}
+ if(el.dataset.arenaStart)return void startArenaMatch(el.dataset.arenaStart);
  if(el.hasAttribute('data-arena-back')){view='adventure';return renderGame();}
- if(el.dataset.arenaCraft){try{const item=craftArenaEquipment(state,el.dataset.arenaCraft);saveNow();renderGameKeepVertical();toast(`闘技大会装備を生産！ ${EQUIPMENT[item.equipmentId].name}`);}catch(err){toast(err.message);}return;}
- if(el.dataset.arenaEnhance){try{const r=enhanceArenaEquipment(state,el.dataset.arenaEnhance);saveNow();renderGameKeepVertical();toast(`闘技大会装備を＋${r.level}に強化！`);}catch(err){toast(err.message);}return;}
+ if(el.hasAttribute('data-arena-retry')){if(arenaSession){arenaSession.claimError=false;closeModal();void finishArenaBattle();}return;}
+ if(el.dataset.arenaCraft)return void arenaMutation('craft',el.dataset.arenaCraft);
+ if(el.dataset.arenaEnhance)return void arenaMutation('enhance',el.dataset.arenaEnhance);
  if(el.dataset.forgePage){state.forgeCategory=el.dataset.forgePage;saveNow();return renderGame();}
  if(el.dataset.forgeCategory){state.forgeCategory=el.dataset.forgeCategory;saveNow();return renderGame();}
  if(el.dataset.forgeAvailability){state.ui??={};state.ui.forgeAvailability=el.dataset.forgeAvailability;return renderGameKeepVertical();}
@@ -1454,7 +1529,7 @@ document.addEventListener('click',e=>{
  if(el.dataset.specialTrial){try{const enemy=createSpecialTrialEnemy(state,el.dataset.specialTrial);battleMeta={regionId:state.adventure.regionId,boss:true,rematch:false,enemy,specialJob:el.dataset.specialTrial};battle=createAdventureBattle(enemy,{isBoss:true});startTurn(battle);closeModal();return renderBattle();}catch(err){toast(err.message);return;}}
  if(el.dataset.jobId){try{changeJob(state,selectedId(),el.dataset.jobId);const removed=state.lastJobChangeUnequipped?.length??0;saveNow();renderGame();toast(`転職：${JOBS[el.dataset.jobId]?.name}${removed?` / 装備${removed}個を自動解除`:''}`);}catch(err){toast(err.message);}return;}
  if(el.dataset.nav){if(el.dataset.nav==='more')return openMore();view=el.dataset.nav;return renderGame();}
- if(el.dataset.more){if(el.dataset.more==='save'){saveNow();closeModal();return toast('セーブしました');}if(el.dataset.more==='account')return openAccountHome();if(el.dataset.more==='title'){clearNormalAuto();clearRaidAuto();saveNow();playStartedAt=null;boostClockLastAt=null;closeModal();game.classList.remove('active');battleScreen.classList.remove('active');title.classList.add('active');renderTitle();return;}view=el.dataset.more;closeModal();renderGame();return;}
+ if(el.dataset.more){if(el.dataset.more==='arena')return void openArena();if(el.dataset.more==='save'){saveNow();closeModal();return toast('セーブしました');}if(el.dataset.more==='account')return openAccountHome();if(el.dataset.more==='title'){clearNormalAuto();clearRaidAuto();saveNow();playStartedAt=null;boostClockLastAt=null;closeModal();game.classList.remove('active');battleScreen.classList.remove('active');title.classList.add('active');renderTitle();return;}view=el.dataset.more;closeModal();renderGame();return;}
  if(el.dataset.ending==='ngplus'){startAdventureNewGamePlus(state);view='adventure';saveNow();return renderGame();}
  if(el.dataset.ending==='continue'){view='adventure';return renderGame();}
 });
