@@ -561,7 +561,7 @@ async function recoverArenaPending(){
   if(!entry){
    const saved=loadArenaActive(session.storage,owner,slot);
    if(saved&&!title.classList.contains('active'))
-    openModal('<h2>🏟️ 闘技大会を再開</h2><p>前回の挑戦が残っています。最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>闘技大会を再開する</button>');
+    openModal('<h2>🏟️ 闘技大会を再開</h2><p>前回の挑戦が残っています。最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>闘技大会を再開する</button><button data-arena-abandon>前回の挑戦を棄権する</button>');
    return;
   }
   const applied=await settleSavedArenaOperation(entry,owner,slot,targetState);
@@ -604,7 +604,7 @@ async function openArena(){
   const pending=loadArenaPending(session.storage,owner,slot);
   const savedBattle=loadArenaActive(session.storage,owner,slot);
   if(savedBattle&&!pending){
-   openModal('<h2>🏟️ 未完了の闘技大会</h2><p>前回の挑戦を最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>前回の挑戦を再開</button>');
+   openModal('<h2>🏟️ 未完了の闘技大会</h2><p>前回の挑戦を最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>前回の挑戦を再開</button><button data-arena-abandon>前回の挑戦を棄権する</button>');
    return;
   }
   if(pending){
@@ -644,7 +644,8 @@ async function resumeArenaMatch(){
   }
   if(status.status!=='issued'||Date.parse(status.expiresAt)<=Date.now()){
    clearArenaActive(session.storage,owner,slot,checkpoint.matchId);
-   return toast('闘技大会の有効期限が過ぎています。もう一度挑戦してください');
+   closeModal();
+   return toast('闘技大会は期限切れです。もう一度、その他から闘技大会を開いてください');
   }
   const restored=replayArenaCheckpoint(checkpoint);
   restored.ownerId=owner;
@@ -652,6 +653,23 @@ async function resumeArenaMatch(){
   closeModal();renderBattle();toast('最後の確定ターンから闘技大会を再開しました');
  }catch(err){toast(err?.message??'闘技大会を再開できません');}
  finally{arenaOperationBusy=false;}
+}
+async function abandonArenaCheckpoint(){
+ if(battle||arenaOperationBusy||arenaClaimBusy)return;
+ const slot=currentSlot;
+ try{
+  const owner=await arenaOwnerId();
+  if(loadArenaPending(session.storage,owner,slot))
+   throw new Error('未確定の報酬・取引があるため棄権できません。先に精算してください');
+  const active=loadArenaActive(session.storage,owner,slot);
+  if(!active)throw new Error('棄権する闘技大会が見つかりません');
+  if(!confirm('前回の闘技大会を棄権しますか？ 未受領の報酬は獲得できません。'))return;
+  // Only forget the local battle. Do not mutate the server wallet, save data
+  // or any other user's pending transaction.
+  clearArenaActive(session.storage,owner,slot,active.matchId);
+  closeModal();
+  toast('前回の挑戦を棄権しました。新しい挑戦を始められます');
+ }catch(err){toast(err?.message??'闘技大会の棄権に失敗しました');}
 }
 async function startArenaMatch(questId){
  if(battle||arenaOperationBusy||raidRoom)return;
@@ -1540,6 +1558,7 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-arena-back')){view='adventure';return renderGame();}
  if(el.hasAttribute('data-arena-retry')){if(arenaSession){arenaSession.claimError=false;closeModal();void finishArenaBattle();}return;}
  if(el.hasAttribute('data-arena-resume'))return void resumeArenaMatch();
+ if(el.hasAttribute('data-arena-abandon'))return void abandonArenaCheckpoint();
  if(el.dataset.arenaCraft)return void arenaMutation('craft',el.dataset.arenaCraft);
  if(el.dataset.arenaEnhance)return void arenaMutation('enhance',el.dataset.arenaEnhance);
  if(el.dataset.forgePage){state.forgeCategory=el.dataset.forgePage;saveNow();return renderGame();}
