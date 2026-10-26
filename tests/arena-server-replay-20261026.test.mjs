@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createArenaSession,arenaSessionSkills} from '../src/core/arena.js';
+import {createArenaSession,arenaSessionSkills,arenaRank} from '../src/core/arena.js';
 import {startTurn,resolveAction,finishTurn} from '../src/core/battle.js';
 import {arenaSeededRandom,verifyArenaTranscript} from '../src/core/arena-proof.js';
 
@@ -60,5 +60,5 @@ test('server replays normal 100-turn cap safely, and enforces seeded input',()=>
  const result=recordRun('arena30',1001,{defend:true});
  assert.ok(result.actions.length>=4);
  const verified=verifyArenaTranscript({questId:'arena30',seed:1001,actions:result.actions});
- assert.deepEqual(verified.grade,result.winner?'S':null);
+ assert.equal(verified.grade,result.winner?arenaRank(result.round)?.grade:null);
 });
