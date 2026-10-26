@@ -666,7 +666,8 @@ async function resumeArenaMatch(){
   if(!checkpoint)throw new Error('再開できる闘技大会はありません');
   const status=await arenaApi.resume(slot,checkpoint.matchId);
   if(targetState!==state||currentSlot!==slot)return;
-  if(status.questId!==checkpoint.questId||Number(status.seed)!==checkpoint.seed)
+  if(status.questId!==checkpoint.questId||Number(status.seed)!==checkpoint.seed||
+      Number(status.balanceVersion??1)!==Number(checkpoint.balanceVersion??1))
    throw new Error('サーバーの対戦情報が保存データと一致しません');
   if(status.status==='settled'){
    const profile=await arenaApi.profile(slot);
@@ -715,9 +716,9 @@ async function startArenaMatch(questId){
    throw new Error('前回の闘技大会が未完了です。先に再開してください');
   const match=await arenaApi.start(slot,questId);
   if(targetState!==state||slot!==currentSlot)return;
-  const active=createArenaSession(questId);
+  const active=createArenaSession(questId,{balanceVersion:match.balanceVersion??1});
   active.matchId=match.matchId;active.actions=[];active.rng=arenaSeededRandom(match.seed);active.ownerId=owner;
-  saveArenaActive(session.storage,owner,slot,{matchId:match.matchId,questId,seed:Number(match.seed),actions:[],createdAt:Date.now()});
+  saveArenaActive(session.storage,owner,slot,{matchId:match.matchId,questId,seed:Number(match.seed),balanceVersion:active.balanceVersion,actions:[],createdAt:Date.now()});
   arenaSession=active;battle=active.battle;battleMeta={arena:true,arenaQuestId:questId};
   startTurn(battle,active.rng);closeModal();renderBattle();
  }catch(err){arenaSession=null;toast(err.message??'闘技大会を開始できません');}
@@ -1481,7 +1482,7 @@ function confirmSkillPresetRename(slot,characterId){
   toast(`「${result.name}」に変更しました`);
  }catch(error){toast(error.message);}
 }
-function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-game-update>🔄<b>更新</b><i class="game-update-dot" data-game-update-dot aria-label="更新あり" ${gameUpdateAvailable?'':'hidden'}></i><small>最新版を読み込む</small></button><button data-more="save">💾<b>セーブ</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=COLLECTION_EVENT_202611.startsAt?'<button data-collection-ranking-open>🏆<b>討伐の証ランキング</b></button>':''}${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="arena">🏟️<b>闘技大会（試作）</b></button><button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
+function openMore(){openModal(`<h2>📚 メニュー</h2><div class="menu-grid"><button data-open-auto-settings><b>オートプレイ設定</b></button><button data-game-update>🔄<b>更新</b><i class="game-update-dot" data-game-update-dot aria-label="更新あり" ${gameUpdateAvailable?'':'hidden'}></i><small>最新版を読み込む</small></button><button data-more="save">💾<b>セーブ</b></button><button data-feedback-open>📮<b>ご意見BOX</b></button>${Date.now()>=COLLECTION_EVENT_202611.startsAt?'<button data-collection-ranking-open>🏆<b>討伐の証ランキング</b></button>':''}${Date.now()>=HUNT_FESTIVAL.end?'<button data-hunt-archive>🎁<b>過去イベント報酬</b></button>':''}<button data-more="arena">🏟️<b>闘技大会</b></button><button data-more="guide">📖<b>冒険の達成状況</b></button><button data-more="bestiary">👹<b>魔物図鑑</b></button><button data-more="quests">📜<b>クエスト</b></button><button data-more="achievements">🏆<b>実績</b></button>${state.cycle>=2?'<button data-more="endgame">🌌<b>最終試練</b></button>':''}${hasFirstClear(state)?'<button data-masho-open>🌑<b>魔障の洞窟</b></button>':''}<button data-more="account">🔐<b>アカウント</b></button><button data-more="title">🏠<b>タイトルへ</b></button></div>`);}
 function toggleParty(id){const ids=[...(state.activePartyIds??[])],has=ids.includes(id);if(has){if(ids.length===1)return toast('戦闘メンバーは1人以上必要です');setActiveParty(state,ids.filter(x=>x!==id));}else{if(ids.length>=4)return toast('戦闘メンバーは4人までです');setActiveParty(state,[...ids,id]);}saveNow();renderGame();}
 
 wirePartyDockDrag({root:game,onReorder(fromId,toId){
