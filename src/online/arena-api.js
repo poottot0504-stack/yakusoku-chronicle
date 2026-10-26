@@ -24,6 +24,7 @@ export function createArenaApi({storage,fetchImpl=globalThis.fetch?.bind(globalT
  return Object.freeze({
   profile:saveSlot=>post('profile',saveSlot),
   start:(saveSlot,questId)=>post('start',saveSlot,{questId}),
+  resume:(saveSlot,matchId)=>post('resume',saveSlot,{matchId}),
   claim:(saveSlot,matchId,actions)=>post('claim',saveSlot,{matchId,actions}),
   craft:(saveSlot,equipmentId,requestId=crypto.randomUUID())=>post('craft',saveSlot,{equipmentId,requestId}),
   enhance:(saveSlot,gearId,requestId=crypto.randomUUID())=>post('enhance',saveSlot,{gearId,requestId})
