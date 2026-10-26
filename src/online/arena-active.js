@@ -39,3 +39,12 @@ export function clearArenaActive(storage,owner,slot,matchId){
  const saved=loadArenaActive(storage,owner,slot);
  if(saved&&saved.matchId===matchId)storage.removeItem(arenaActiveKey(owner,slot));
 }
+
+/** Confirm existence without trusting potentially corrupted content. */
+export function hasArenaActive(storage,owner,slot){
+ return storage.getItem(arenaActiveKey(owner,slot))!==null;
+}
+/** Explicit user-confirmed forfeiture. Never edits balances or pending settlements. */
+export function discardArenaActive(storage,owner,slot){
+ storage.removeItem(arenaActiveKey(owner,slot));
+}
