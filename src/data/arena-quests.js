@@ -41,4 +41,17 @@ export const ARENA_QUESTS=Object.freeze({
   enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-abyss',element:'dark',maxHp:2300,attack:235,defense:165,magic:205,speed:100}
  }
 });
+// Full fixed equipment list: mainhand, offhand where applicable, five armor
+// pieces, ring and charm. All equipment is simulated; none is borrowed.
+export function arenaFixedEquipment(template,level){
+ const tier=level===30?'iron':level===50?'gold':level===70?'platinum':null;
+ if(!tier)throw new Error('闘技大会の固定レベルが不正です');
+ const group=['mage','healer'].includes(template.job)?'magic':template.job==='thief'?'thief':null;
+ const gear={weapon:template.weapon};
+ if(template.job==='shielder'||template.job==='greatShielder')gear.shield='towerShield';
+ for(const slot of ['head','body','arms','waist','legs'])gear[slot]=tier+'-'+(group?group+'-':'')+slot;
+ gear.accessory1=tier+'-attack-ring';
+ gear.accessory2=tier+'-guard-bracelet';
+ return gear;
+}
 export const ARENA_QUEST_IDS=Object.freeze(Object.keys(ARENA_QUESTS));
