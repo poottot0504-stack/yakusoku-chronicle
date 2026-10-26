@@ -1,4 +1,5 @@
 import { MASHO_ABYSS_WEAPONS,MASHO_ABYSS_SPELLBOOK } from './masho-abyss-weapons.js';
+import { ARENA_EQUIPMENT } from './arena-equipment.js';
 import { MASHO_DEPTH_EQUIPMENT } from './masho-depth-rewards.js';
 import { FESTIVAL_EQUIPMENT } from './hunt-festival.js';
 import { MASHO_EQUIPMENT } from './masho-equipment.js';
@@ -400,6 +401,7 @@ Object.assign(EQUIPMENT,FESTIVAL_EQUIPMENT);
 Object.assign(EQUIPMENT,MASHO_ABYSS_WEAPONS);
 for(const def of Object.values(SHIELDER_SHIELDS))EQUIPMENT[def.id]=E(def.id,def.name,def.slot,def);
 EQUIPMENT[MASHO_ABYSS_SPELLBOOK.id]=MASHO_ABYSS_SPELLBOOK;
+Object.assign(EQUIPMENT,ARENA_EQUIPMENT);
 Object.assign(EQUIPMENT,MASHO_DEPTH_EQUIPMENT);
 
 // Limited 2026 eclipse gear follows normal equip, resistance, upgrade and save rules.
