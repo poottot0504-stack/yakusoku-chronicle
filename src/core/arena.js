@@ -88,7 +88,7 @@ export function settleArenaSession(state,session){
  const win=actors.some(a=>a.side==='ally'&&a.hp>0)&&!actors.some(a=>a.side==='enemy'&&a.hp>0);
  const lost=!actors.some(a=>a.side==='ally'&&a.hp>0);
  const currentRound=cap(Math.max(1,(battle.turnNumber??0)+1),1,100);
- if(!win&&!lost&&currentRound<=100)throw new Error('戦闘が終了していません');
+ if(!win&&!lost&&!(battle.turnNumber>=100&&battle.phase==='complete'))throw new Error('戦闘が終了していません');
  const rank=win?arenaRank(currentRound):null;
  const progress=normalizeArenaProgress(state);
  const record=progress.records[session.questId];
