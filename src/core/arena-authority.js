@@ -1,15 +1,33 @@
 // Reconcile an untrusted browser save with an AUTHENTICATED server profile.
 // Local arena wallet/items can never be used as the authoritative source.
 import {ARENA_EQUIPMENT} from '../data/arena-equipment.js';
+import {EQUIPMENT} from '../data/equipment.js';
+import {canEquip} from './equipment.js';
 import {normalizeArenaProgress} from './arena.js';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const arenaInventoryId=id=>'arena-'+id;
 
+const ARENA_UUID=/^arena-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function validEquipSlot(character,slot,def){
+ if(!def)return false;
+ if(def.slot==='accessory')return slot===(def.accessoryType==='charm'?'accessory2':'accessory1');
+ if(def.slot==='shield'&&slot==='weapon')
+  return character.currentJob==='shielder'||character.currentJob==='greatShielder';
+ return def.slot===slot;
+}
+function equipRefId(ref){return typeof ref==='object'&&ref!==null?ref.instanceId:ref;}
+function mayWear(state,character,slot,inst){
+ const def=EQUIPMENT[inst.equipmentId];
+ return validEquipSlot(character,slot,def)&&canEquip(character,def,state,inst);
+}
+
 export function applyAuthoritativeArenaProfile(state,profile){
- if(!profile||!Number.isSafeInteger(profile.coins)||profile.coins<0||profile.coins>999999||!Array.isArray(profile.gear)||profile.gear.length>1000){
+ if(!profile||!Number.isSafeInteger(profile.coins)||profile.coins<0||profile.coins>999999||
+    !Array.isArray(profile.gear)||profile.gear.length>1000){
   throw new Error('闘技大会のサーバーデータが不正です');
  }
+ // Validate the entire profile *before* touching the user's existing save.
  const newGear=new Map();
  for(const row of profile.gear){
   if(!uuid.test(String(row?.id??''))||!Object.hasOwn(ARENA_EQUIPMENT,row?.equipmentId)||
@@ -20,31 +38,72 @@ export function applyAuthoritativeArenaProfile(state,profile){
   newGear.set(instanceId,{instanceId,equipmentId:row.equipmentId,enhanceLevel:row.enhanceLevel,
     arenaServerOwned:true,trueEvolved:false});
  }
+ const progress=normalizeArenaProgress(state);
+ const placements=progress.equippedRestore;
  state.equipmentInventory??=[];
  const originalArenaIds=new Set(state.equipmentInventory.filter(x=>ARENA_EQUIPMENT[x.equipmentId]).map(x=>x.instanceId));
  const originalOther=state.equipmentInventory.filter(x=>!ARENA_EQUIPMENT[x.equipmentId]);
  state.equipmentInventory=[...originalOther,...newGear.values()];
- // Remove stale or forged equipped arena gear when no longer in server ledger.
+ const used=new Set();
+ // Keep valid already-equipped instances. Invalid, duplicated, incompatible or
+ // no-longer-owned references are removed instead of silently granting stats.
  for(const c of state.characters??[]){
   for(const [slot,ref] of Object.entries(c.equipment??{})){
-   const refId=typeof ref==='object'?ref?.instanceId:ref;
-   if(originalArenaIds.has(refId)&&!newGear.has(refId))c.equipment[slot]=null;
+   const id=equipRefId(ref);
+   if(!id)continue;
+   if(!originalArenaIds.has(id)&&!ARENA_UUID.test(String(id)))continue;
+   const instance=newGear.get(id);
+   if(!instance||used.has(id)||!mayWear(state,c,slot,instance)){
+    c.equipment[slot]=null;
+   }else{
+    c.equipment[slot]=id;
+    used.add(id);
+   }
   }
  }
- const arena=normalizeArenaProgress(state);
- arena.coins=profile.coins;
- return {coins:arena.coins,gearCount:newGear.size};
+ // The recorded slot is only a *request* to re-equip. The server's inventory
+ // and the current character job/level/slot still must authorize the item.
+ for(const c of state.characters??[]){
+  for(const [slot,id] of Object.entries(placements[c.id]??{})){
+   if(c.equipment?.[slot]||used.has(id))continue;
+   const instance=newGear.get(id);
+   if(instance&&mayWear(state,c,slot,instance)){
+    c.equipment??={};
+    c.equipment[slot]=id;
+    used.add(id);
+   }
+  }
+ }
+ progress.equippedRestore={};
+ progress.needsServerSync=false;
+ progress.coins=profile.coins;
+ return {coins:progress.coins,gearCount:newGear.size};
 }
 
 export function suspendUnverifiedArenaAssets(state){
  if(!state||typeof state!=='object')return;
- const oldIds=new Set((state.equipmentInventory??[]).filter(x=>ARENA_EQUIPMENT[x.equipmentId]).map(x=>x.instanceId));
- state.equipmentInventory=(state.equipmentInventory??[]).filter(x=>!ARENA_EQUIPMENT[x.equipmentId]);
- for(const c of state.characters??[])for(const [slot,ref] of Object.entries(c.equipment??{})){
-  const id=typeof ref==='object'?ref?.instanceId:ref;
-  if(oldIds.has(id))c.equipment[slot]=null;
+ const progress=normalizeArenaProgress(state);
+ const all=state.equipmentInventory??[];
+ const arenaItems=all.filter(x=>ARENA_EQUIPMENT[x.equipmentId]);
+ const oldIds=new Set(arenaItems.map(x=>x.instanceId));
+ const placements=progress.equippedRestore;
+ state.equipmentInventory=all.filter(x=>!ARENA_EQUIPMENT[x.equipmentId]);
+ for(const c of state.characters??[]){
+  for(const [slot,ref] of Object.entries(c.equipment??{})){
+   const id=equipRefId(ref);
+   if(!oldIds.has(id)&&!ARENA_UUID.test(String(id??'')))continue;
+   if(ARENA_UUID.test(String(id))&&oldIds.has(id)){
+    placements[c.id]??={};
+    placements[c.id][slot]=id;
+   }
+   c.equipment[slot]=null;
+  }
  }
- normalizeArenaProgress(state).coins=0;
+ // The local copy is untrusted until revalidated. Mark the save for an
+ // asynchronous profile fetch so owned gear can reappear in normal adventure.
+ progress.needsServerSync ||= arenaItems.length>0||progress.coins>0||
+  Object.keys(placements).length>0;
+ progress.coins=0;
 }
 
 /** Cache a validated server receipt once. Never award coins from this local record. */
