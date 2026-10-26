@@ -1,0 +1,60 @@
+name: Arena ledger SQL QA (disposable PostgreSQL, no deploy)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'maintenance/arena-*staging-only.sql'
+      - 'maintenance/arena-ledger-sql-test-fixture.sql'
+      - '.github/workflows/arena-ledger-staging-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ledger-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare disposable Supabase role/auth and marketplace stubs
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon;
+          create role authenticated;
+          create role service_role bypassrls;
+          create schema auth;
+          create table auth.users(id uuid primary key);
+          create table public.market_listings(id uuid primary key,item_id text,item_kind text,item_payload jsonb);
+          create table public.market_sales(id uuid primary key,item_payload jsonb);
+          create table public.market_trade_audit(id uuid primary key,item_id text);
+          SQL
+      - name: Apply unpublished wallet and marketplace rules to disposable DB only
+        run: |
+          psql -v ON_ERROR_STOP=1 -f maintenance/arena-ledger-staging-only.sql
+          psql -v ON_ERROR_STOP=1 -f maintenance/arena-market-block-staging-only.sql
+      - name: Assert permissions, no double rewards, wallet ownership, and coin-trade ban
+        run: psql -v ON_ERROR_STOP=1 -f maintenance/arena-ledger-sql-test-fixture.sql
