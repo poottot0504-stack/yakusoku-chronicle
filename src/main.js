@@ -550,7 +550,12 @@ async function settleSavedArenaOperation(entry,ownerId,slot,targetState){
  if(receipt)recordArenaServerReceipt(state,receipt);
  saveNow(); // A crash before journal removal may retry, but server receipts are idempotent.
  clearArenaPending(session.storage,ownerId,slot,entry);
- if(entry.kind==='claim')clearArenaActive(session.storage,ownerId,slot,entry.matchId);
+ if(entry.kind==='claim'){
+  // A damaged *local* checkpoint must not undo a successfully verified
+  // server receipt. Leave it for the explicit user-confirmed discard UI.
+  try{clearArenaActive(session.storage,ownerId,slot,entry.matchId);}
+  catch{/* The server wallet remains authoritative and is already saved. */}
+ }
  return true;
 }
 async function recoverArenaPending(){
@@ -609,13 +614,17 @@ async function openArena(){
   const owner=await arenaOwnerId();
   const pending=loadArenaPending(session.storage,owner,slot);
   let savedBattle=null;
-  try{savedBattle=loadArenaActive(session.storage,owner,slot);}
-  catch(err){
-   if(!pending&&hasArenaActive(session.storage,owner,slot)){
-    openModal('<h2>🏟️ 挑戦記録の復旧に失敗しました</h2><p>端末内の記録が破損しています。未受領のコインは付与せず、記録を棄権して次の挑戦へ進めます。</p><button data-arena-abandon>破損した記録を棄権する</button>');
-    return;
+  // Settle a pending financial receipt first, even if the optional battle
+  // checkpoint is damaged. Never let unrelated local data block the server.
+  if(!pending){
+   try{savedBattle=loadArenaActive(session.storage,owner,slot);}
+   catch(err){
+    if(hasArenaActive(session.storage,owner,slot)){
+     openModal('<h2>🏟️ 挑戦記録の復旧に失敗しました</h2><p>端末内の記録が破損しています。未受領のコインは付与せず、記録を棄権して次の挑戦へ進めます。</p><button data-arena-abandon>破損した記録を棄権する</button>');
+     return;
+    }
+    throw err;
    }
-   throw err;
   }
   if(savedBattle&&!pending){
    openModal('<h2>🏟️ 未完了の闘技大会</h2><p>前回の挑戦を最後に確定したターンから再開できます。</p><button class="action-main" data-arena-resume>前回の挑戦を再開</button><button data-arena-abandon>前回の挑戦を棄権する</button>');
