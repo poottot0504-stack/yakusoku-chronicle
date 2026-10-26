@@ -94,6 +94,7 @@ test('failure at 100 turns gives zero coins, preserves the normal adventure',()=
  const s=fresh(),original=structuredClone(s.characters);
  const session=createArenaSession('arena70');
  session.battle.turnNumber=100;
+ session.battle.phase='complete';
  const result=settleArenaSession(s,session);
  assert.equal(result.victory,false);
  assert.equal(result.coins,0);
