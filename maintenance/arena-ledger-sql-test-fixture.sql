@@ -28,6 +28,36 @@ select public.arena_server_issue(
 select public.arena_server_issue(
  '10000000-0000-4000-8000-000000000001',1::smallint,'arena70',
  '30000000-0000-4000-8000-000000000003',103::bigint);
+-- Cross-user and cross-slot attempts cannot read, claim or settle a match.
+-- Errors are caught only when the expected ownership protection fires.
+do $
+begin
+ if public.arena_server_lookup(
+  '10000000-0000-4000-8000-000000000002',1::smallint,
+  '30000000-0000-4000-8000-000000000001') is not null
+ then raise exception 'CROSS_USER_MATCH_LOOKUP_LEAK';end if;
+ if public.arena_server_lookup(
+  '10000000-0000-4000-8000-000000000001',2::smallint,
+  '30000000-0000-4000-8000-000000000001') is not null
+ then raise exception 'CROSS_SLOT_MATCH_LOOKUP_LEAK';end if;
+ begin
+  perform public.arena_server_claim(
+   '10000000-0000-4000-8000-000000000002',1::smallint,
+   '30000000-0000-4000-8000-000000000001',true,3::smallint);
+  raise exception 'UNEXPECTED_CROSS_USER_CLAIM_SUCCESS';
+ exception when others then
+  if SQLERRM <> 'ARENA_MATCH_NOT_FOUND' then raise;end if;
+ end;
+ begin
+  perform public.arena_server_claim(
+   '10000000-0000-4000-8000-000000000001',2::smallint,
+   '30000000-0000-4000-8000-000000000001',true,3::smallint);
+  raise exception 'UNEXPECTED_CROSS_SLOT_CLAIM_SUCCESS';
+ exception when others then
+  if SQLERRM <> 'ARENA_MATCH_NOT_FOUND' then raise;end if;
+ end;
+end $;
+
 -- Three S results earn exactly 15 coins. A duplicate claim earns nothing.
 select public.arena_server_claim('10000000-0000-4000-8000-000000000001',1::smallint,
  '30000000-0000-4000-8000-000000000001',true,3::smallint);
