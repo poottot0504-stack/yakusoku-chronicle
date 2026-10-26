@@ -76,14 +76,16 @@ test('network disabled response cannot credit offline wallet',async()=>{
 test('main game arena integration no longer calls local coin settlement or local craft/upgrade',()=>{
  const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
  assert.ok(main.includes('await arenaApi.start(slot,questId)'));
- assert.ok(main.includes('await arenaApi.claim(slot,active.matchId,active.actions)'));
+ assert.ok(main.includes('await arenaApi.claim(slot,entry.matchId,entry.actions)'));
  assert.ok(main.includes('await arenaApi.profile(slot)'));
- assert.ok(main.includes("arenaApi.craft(slot,id,pending.requestId)"));
- assert.ok(main.includes("arenaApi.enhance(slot,String(id).replace(/^arena-/,''),pending.requestId)"));
+ assert.ok(main.includes("arenaApi.craft(slot,entry.itemId,entry.requestId)"));
+ assert.ok(main.includes("arenaApi.enhance(slot,String(entry.itemId).replace(/^arena-/,''),entry.requestId)"));
  assert.ok(main.includes("suspendUnverifiedArenaAssets(state)"));
  assert.ok(!main.includes('settleArenaSession(state,arenaSession)'));
  assert.ok(!main.includes('craftArenaEquipment(state,'));
  assert.ok(!main.includes('enhanceArenaEquipment(state,'));
  assert.ok(main.includes('arenaSession.actions.push('));
  assert.ok(main.includes('arenaSeededRandom(match.seed)'));
+ assert.ok(main.includes('saveArenaPending(session.storage,owner,slot,entry)'));
+ assert.ok(main.includes('clearArenaPending(session.storage,ownerId,slot,entry)'));
 });
