@@ -30,7 +30,7 @@ select public.arena_server_issue(
  '30000000-0000-4000-8000-000000000003',103::bigint);
 -- Cross-user and cross-slot attempts cannot read, claim or settle a match.
 -- Errors are caught only when the expected ownership protection fires.
-do $
+do $arena_owner_guard$
 begin
  if public.arena_server_lookup(
   '10000000-0000-4000-8000-000000000002',1::smallint,
@@ -56,7 +56,7 @@ begin
  exception when others then
   if SQLERRM <> 'ARENA_MATCH_NOT_FOUND' then raise;end if;
  end;
-end $;
+end $arena_owner_guard$;
 
 -- Three S results earn exactly 15 coins. A duplicate claim earns nothing.
 select public.arena_server_claim('10000000-0000-4000-8000-000000000001',1::smallint,
