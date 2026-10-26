@@ -38,7 +38,7 @@ export const ARENA_QUESTS=Object.freeze({
    fighter('レン','thief','platinum-dagger',[S('arena-shadow70','瞬影連閃',23,300)]),
    fighter('ソラ','healer','platinum-mace',[H('arena-heal70','聖光の治癒',18,220),S('arena-holy70','神聖光',24,280,'magic',{element:'light'})])
   ],
-  enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-abyss',element:'dark',maxHp:6200,attack:235,defense:165,magic:205,speed:100}
+  enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-abyss',element:'dark',maxHp:6400,attack:235,defense:165,magic:205,speed:100}
  }
 });
 // Full fixed equipment list: mainhand, offhand where applicable, five armor
