@@ -35,3 +35,14 @@ export function applyAuthoritativeArenaProfile(state,profile){
  arena.coins=profile.coins;
  return {coins:arena.coins,gearCount:newGear.size};
 }
+
+export function suspendUnverifiedArenaAssets(state){
+ if(!state||typeof state!=='object')return;
+ const oldIds=new Set((state.equipmentInventory??[]).filter(x=>ARENA_EQUIPMENT[x.equipmentId]).map(x=>x.instanceId));
+ state.equipmentInventory=(state.equipmentInventory??[]).filter(x=>!ARENA_EQUIPMENT[x.equipmentId]);
+ for(const c of state.characters??[])for(const [slot,ref] of Object.entries(c.equipment??{})){
+  const id=typeof ref==='object'?ref?.instanceId:ref;
+  if(oldIds.has(id))c.equipment[slot]=null;
+ }
+ normalizeArenaProgress(state).coins=0;
+}
