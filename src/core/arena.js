@@ -1,4 +1,4 @@
-import { ARENA_QUESTS,ARENA_RANKS } from '../data/arena-quests.js';
+import { ARENA_QUESTS,ARENA_RANKS,arenaFixedEquipment } from '../data/arena-quests.js';
 import { ARENA_EQUIPMENT,ARENA_CRAFT_COSTS,ARENA_ENHANCE_COSTS,ARENA_ENHANCE_LIMIT } from '../data/arena-equipment.js';
 import { EQUIPMENT,createEquipmentInstance } from '../data/equipment.js';
 import { JOBS } from '../data/jobs.js';
@@ -34,9 +34,13 @@ export function normalizeArenaProgress(state){
 function fixedCharacter(template,level,i){
  const job=JOBS[template.job];
  if(!job)throw new Error('闘技大会のジョブ設定に誤りがあります');
- const gear=EQUIPMENT[template.weapon];
- if(!gear)throw new Error('闘技大会の固定装備が見つかりません');
- const statBonus=getEnhancedStats({equipmentId:template.weapon,enhanceLevel:0});
+ const equipment=arenaFixedEquipment(template,level);
+ const statBonus={attack:0,defense:0,magic:0,speed:0,maxHp:0,maxMp:0};
+ for(const id of Object.values(equipment)){
+  if(!EQUIPMENT[id])throw new Error('闘技大会の固定装備が見つかりません: '+id);
+  const bonus=getEnhancedStats({equipmentId:id,enhanceLevel:0});
+  for(const key of Object.keys(statBonus))statBonus[key]+=bonus[key]??0;
+ }
  // Nothing comes from the player's level, inventory, passives or account.
  const stats={
   attack:Math.round(12+job.stats.attack*level*.52)+statBonus.attack,
@@ -51,7 +55,7 @@ function fixedCharacter(template,level,i){
   level,jobLevels:{[template.job]:level},stats,maxHp,hp:maxHp,maxMp,mp:maxMp,
   exp:0,jobExp:{},masteryBonuses:{},inheritedSkills:[],learnedSkills:[],
   battleFlatStats:{attack:0,magic:0,defense:0,speed:0},
-  equipment:{weapon:template.weapon},arenaFixedEquipment:{weapon:gear.name},
+  equipment:{...equipment},arenaFixedEquipment:Object.fromEntries(Object.entries(equipment).map(([slot,id])=>[slot,EQUIPMENT[id].name])),
   arenaSkills:deepCopy(template.skills),arenaParticipant:true,isHero:i===0
  };
 }
