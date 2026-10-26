@@ -33,6 +33,14 @@ test('quest configuration has three fixed Lv30/50/70 4-person loadouts',()=>{
  }
 });
 
+test('only shield, spellbook, ring and charm can be crafted',()=>{
+ assert.deepEqual(Object.values(ARENA_EQUIPMENT).map(x=>x.slot),['shield','spellbook','accessory','accessory']);
+ assert.deepEqual(Object.values(ARENA_EQUIPMENT).filter(x=>x.slot==='accessory').map(x=>x.accessoryType),['ring','charm']);
+ assert.equal(ARENA_EQUIPMENT['arena-guardian-shield'].shieldSize,'large');
+ assert.equal(ARENA_EQUIPMENT['arena-arcane-spellbook'].weaponType,'spellbook');
+ assert.equal(ARENA_EQUIPMENT['arena-bronze-saber'],undefined);
+ assert.equal(ARENA_EQUIPMENT['arena-silver-mail'],undefined);
+});
 test('rank boundaries are exact at 3,6,10,100',()=>{
  for(const [turns,grade,coins] of [[1,'S',5],[3,'S',5],[4,'A',3],[6,'A',3],[7,'B',2],[10,'B',2],[11,'C',1],[100,'C',1]]){
   assert.deepEqual([arenaRank(turns)?.grade,arenaRank(turns)?.coins],[grade,coins]);
@@ -132,18 +140,18 @@ test('battle engine accepts supplied arena skills and uses turn ordering',()=>{
 
 test('coin crafting is atomic, isolated from G/materials, and uses registered gear',()=>{
  const s=fresh();
- assert.equal(arenaCraftQuote(s,'arena-bronze-saber').canCraft,false);
- assert.throws(()=>craftArenaEquipment(s,'arena-bronze-saber'),/コイン/);
+ assert.equal(arenaCraftQuote(s,'arena-guardian-shield').canCraft,false);
+ assert.throws(()=>craftArenaEquipment(s,'arena-guardian-shield'),/コイン/);
  const beforeGold=s.gold,beforeMaterials=structuredClone(s.materials);
  s.arena.coins=16;
- const inst=craftArenaEquipment(s,'arena-bronze-saber');
- assert.equal(inst.equipmentId,'arena-bronze-saber');
+ const inst=craftArenaEquipment(s,'arena-guardian-shield');
+ assert.equal(inst.equipmentId,'arena-guardian-shield');
  assert.equal(EQUIPMENT[inst.equipmentId],ARENA_EQUIPMENT[inst.equipmentId]);
- assert.equal(s.arena.coins,1);
+ assert.equal(s.arena.coins,4);
  assert.deepEqual(s.materials,beforeMaterials);
  assert.equal(s.gold,beforeGold);
  assert.throws(()=>getEnhanceQuote(s,inst.instanceId),/闘技大会装備/);
- assert.throws(()=>craftArenaEquipment(s,'arena-bronze-saber'),/コイン/);
+ assert.throws(()=>craftArenaEquipment(s,'arena-guardian-shield'),/コイン/);
 });
 
 test('arena upgrade spends coins only and is capped at +10',()=>{
@@ -183,7 +191,7 @@ test('arena screen renders grades, fixed builds and workshop for mobile or PC',(
  for(const lv of [30,50,70])assert.match(html,new RegExp('Lv'+lv));
  for(const value of ['3枚','5枚','2枚','1枚'])assert.match(html,new RegExp(value));
  assert.match(html,/data-arena-start="arena30"/);
- assert.match(html,/data-arena-craft="arena-bronze-saber"/);
+ assert.match(html,/data-arena-craft="arena-guardian-shield"/);
  assert.match(html,/data-arena-back/);
  const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
  assert.match(source,/if\(battle\?\.arenaQuestId\)return finishArenaBattle\(\)/);
