@@ -46,3 +46,28 @@ export function suspendUnverifiedArenaAssets(state){
  }
  normalizeArenaProgress(state).coins=0;
 }
+
+/** Cache a validated server receipt once. Never award coins from this local record. */
+export function recordArenaServerReceipt(state,result){
+ if(!result||!uuid.test(String(result.matchId??''))||!['arena30','arena50','arena70'].includes(result.questId)||
+    !Number.isInteger(result.turns)||result.turns<1||result.turns>100||
+    typeof result.victory!=='boolean'||!Number.isInteger(result.coins)||
+    result.coins<0||result.coins>5)throw new Error('闘技大会のサーバー結果が不正です');
+ const grade=result.victory?result.turns<=3?'S':result.turns<=6?'A':result.turns<=10?'B':'C':null;
+ const coinByGrade={S:5,A:3,B:2,C:1};
+ if(result.grade!==grade||result.coins!==(grade?coinByGrade[grade]:0))
+  throw new Error('闘技大会の報酬結果が不一致です');
+ const arena=normalizeArenaProgress(state);
+ if(arena.settledMatchIds.includes(result.matchId))return false;
+ const record=arena.records[result.questId];
+ record.attempts=Math.min(999999,record.attempts+1);
+ if(result.victory){
+  record.wins=Math.min(999999,record.wins+1);
+  const best=arena.best[result.questId];
+  if(!best||result.turns<best)arena.best[result.questId]=result.turns;
+ }
+ arena.lastResult={questId:result.questId,turns:result.turns,grade:result.grade,
+  coins:result.coins,victory:result.victory};
+ arena.settledMatchIds=[...arena.settledMatchIds,result.matchId].slice(-100);
+ return true;
+}
