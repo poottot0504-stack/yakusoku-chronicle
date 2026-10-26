@@ -1007,3 +1007,26 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .party-order-buttons{display:flex;gap:8px;margin-top:8px}
 .party-order-buttons button{flex:1;min-height:38px;border:1px solid #647b9a;background:#17263e;border-radius:8px}
 .party-order-buttons button:disabled{opacity:.35}
+
+
+/* Pilot-only arena UI. Confined to the arena page; no other layouts are affected. */
+.arena-view{display:grid;gap:12px;padding-bottom:24px}
+.arena-hero{display:grid;gap:7px;background:linear-gradient(140deg,#19253b,#2c234a);border:1px solid #777099}
+.arena-hero h2,.arena-hero p{margin:0}
+.arena-hero strong{font-size:1.25rem;color:#ffe2a0}
+.arena-quest-grid,.arena-shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px}
+.arena-quest{display:flex;flex-direction:column;gap:10px;min-width:0}
+.arena-quest .section-title{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;align-items:center}
+.arena-quest .section-title h3,.arena-quest p{margin:0}
+.arena-quest details{padding:8px;background:rgba(0,0,0,.2);border-radius:8px}
+.arena-quest details summary{cursor:pointer;font-weight:700}
+.arena-quest details li{margin-bottom:6px}
+.arena-quest details ul{margin:10px 0;padding-left:24px}
+.arena-quest .action-main{margin-top:auto}
+.arena-rank-table{border-collapse:collapse;width:100%;font-size:.92rem;text-align:center}
+.arena-rank-table th,.arena-rank-table td{padding:8px;border-bottom:1px solid rgba(255,255,255,.14)}
+.arena-shop-item{display:grid;align-content:start;gap:7px;padding:12px;border:1px solid rgba(255,255,255,.16);border-radius:10px;background:rgba(0,0,0,.17)}
+.arena-shop-item small{overflow-wrap:anywhere;line-height:1.6}
+.arena-shop-item button:disabled{opacity:.55}
+.arena-last-result{border-color:#d2b368}
+@media(max-width:520px){.arena-view{gap:9px}.arena-quest-grid,.arena-shop-grid{grid-template-columns:1fr}.arena-rank-table th,.arena-rank-table td{padding:7px 3px}}
