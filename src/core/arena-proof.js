@@ -42,12 +42,12 @@ function validatedAction(session,b,entry,actorId){
  if(!alliesAction&&target.hp<=0)invalid('討伐済み敵を攻撃');
  return type==='skill'?{type,skill,targetId}:{type,targetId};
 }
-export function verifyArenaTranscript({questId,seed,actions}={}){
+export function verifyArenaTranscript({questId,seed,actions,balanceVersion=2}={}){
  // No user IDs, victory booleans, turn counts or coin totals from the client
  // are ever accepted as authoritative verification inputs.
  if(!finiteSeed(seed))invalid('乱数シード');
  if(!Array.isArray(actions)||actions.length>400||JSON.stringify(actions).length>100000)invalid('行動数上限');
- const session=createArenaSession(questId),b=session.battle,rng=arenaSeededRandom(seed);
+ const session=createArenaSession(questId,{balanceVersion}),b=session.battle,rng=arenaSeededRandom(seed);
  let consumed=0;
  for(let round=1;round<=100;round++){
   startTurn(b,rng);
