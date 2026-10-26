@@ -1,4 +1,5 @@
 import {EQUIPMENT} from '../data/equipment.js';
+import {ARENA_COIN_ID} from '../data/arena-equipment.js';
 import {getItemDef,getItemCategory} from '../core/items.js';
 import {SHOPS} from '../data/shops.js';
 
@@ -60,12 +61,19 @@ function protectedEquipment(def,id){
  return !def||def.dedicatedLegendary===true||Boolean(def.ownerCharacterId)||id==='promise-memory';
 }
 
+export function isArenaCoinCandidate(candidate={}){
+ const id=String(candidate?.id??candidate?.equipmentId??candidate?.itemId??'');
+ return candidate?.kind==='arenaCoin'||candidate?.kind==='arena-coin'||
+  [ARENA_COIN_ID,'arenaCoin','arena_coins','arenaCoins'].includes(id);
+}
+
 function protectedItem(id){
  const def=getItemDef(id);
  return Boolean(def.keyItem)||getItemCategory(id)==='key';
 }
 
 export function isMarketSellable(state,candidate={}){
+ if(isArenaCoinCandidate(candidate))return {ok:false,reason:'闘技コインはフリーマーケットで売買できません'};
  const quantity=Number(candidate.quantity??1);
  if(!Number.isInteger(quantity)||quantity<1)return {ok:false,reason:'数量が不正です'};
  if(candidate.kind==='equipment'){
@@ -111,6 +119,7 @@ function ensureMarketState(state){
 }
 function remember(list,id){if(list.includes(id))return false;list.push(id);if(list.length>500)list.splice(0,list.length-500);return true;}
 function addPayload(state,payload,quantity=1){
+ if(isArenaCoinCandidate(payload))throw new Error('闘技コインはフリーマーケットで売買できません');
  if(payload.kind==='equipment'){
   state.equipmentInventory??=[];
   const source={...(payload.instance??{}),equipmentId:payload.equipmentId??payload.instance?.equipmentId};
@@ -128,12 +137,14 @@ function addPayload(state,payload,quantity=1){
 }
 
 export function applyMarketPurchase(state,receipt={}){
+ if(isArenaCoinCandidate(receipt.itemPayload))throw new Error('闘技コインはフリーマーケットで売買できません');
  const market=ensureMarketState(state);if(!remember(market.processedPurchaseIds,receipt.id))return false;
  const total=Math.max(0,Number(receipt.totalPrice??0));
  if((state.gold??0)<total){market.processedPurchaseIds.pop();throw new Error('ゴールドが足りません');}
  state.gold=(state.gold??0)-total;addPayload(state,receipt.itemPayload,Math.max(1,Number(receipt.quantity??1)));market.everUsed=true;return true;
 }
 export function applyMarketReturn(state,ret={}){
+ if(isArenaCoinCandidate(ret.itemPayload))throw new Error('闘技コインはフリーマーケットで売買できません');
  const market=ensureMarketState(state);if(!remember(market.processedReturnIds,ret.id))return false;
  addPayload(state,ret.itemPayload,Math.max(1,Number(ret.quantity??1)));market.everUsed=true;return true;
 }

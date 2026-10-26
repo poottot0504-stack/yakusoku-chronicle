@@ -43,6 +43,7 @@ export function getEnhancedStats(instance){
 function findInst(state,id){const x=state.equipmentInventory?.find(i=>i.instanceId===id);if(!x)throw new Error('装備が見つかりません');return x;}
 export function getEnhanceQuote(state,instanceId,now=Date.now()){
  const inst=findInst(state,instanceId),def=EQUIPMENT[inst.equipmentId]??{};
+ if(def.arenaExclusive)throw new Error('闘技大会装備は闘技大会のコインで強化してください');
  const maxLevel=getEnhanceMaxLevel(def),current=Math.min(maxLevel,Math.max(0,Math.floor(Number(inst.enhanceLevel)||0))),next=Math.min(maxLevel,current+1);
  if(current>=maxLevel)return {targetLevel:maxLevel,maxLevel,successRate:1,baseSuccessRate:1,cost:0,maxed:true,requiredMaterial:null};
  const advanced=ENHANCE_ADVANCED_STAGES[next];

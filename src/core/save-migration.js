@@ -1,6 +1,7 @@
 import { normalizeBattleSkillLoadouts } from './skillbook.js';
 import { normalizeSkillPresets,normalizeSkillPresetNames } from './skill-presets.js';
 import { normalizeMashoProgress } from './masho-cave.js';
+import { normalizeArenaProgress } from './arena.js';
 import { normalizeBoostScrolls } from './boost-scrolls.js';
 import { applyProgressionCaps } from './progression-caps.js';
 import { CURRENT_SAVE_VERSION, createDefaultState, normalizeCharacter } from './save-schema.js';
@@ -89,6 +90,7 @@ export function migrateSave(raw = {}) {
   const legacyPromise=(migrated.inventory??[]).some(x=>x.id==='promise-memory'&&(x.qty??0)>0);if(legacyPromise){migrated.inventory=(migrated.inventory??[]).filter(x=>x.id!=='promise-memory');migrated.equipmentInventory??=[];if(!migrated.equipmentInventory.some(x=>x.equipmentId==='promise-memory'))migrated.equipmentInventory.push({instanceId:'promise-memory-ring',equipmentId:'promise-memory',enhanceLevel:0,trueEvolved:false});}
   applyProgressionCaps(migrated);
   normalizeMashoProgress(migrated);
+  normalizeArenaProgress(migrated);
   for(const character of migrated.characters)normalizeBattleSkillLoadouts(character);
   normalizeEquipmentOwnership(migrated);
   for(const character of migrated.characters)normalizeEquipmentForJob(migrated,character);
