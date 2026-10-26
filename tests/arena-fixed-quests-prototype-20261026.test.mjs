@@ -126,7 +126,8 @@ test('battle engine accepts supplied arena skills and uses turn ordering',()=>{
  for(let i=0;i<4;i++){
   const current=b.actorMap[b.awaitingActorId];
   const skills=arenaSessionSkills(a,current.id);
-  const skill=skills.at(-1);
+  // Job skillbooks now include healing and buffs; choose a genuine attack.
+  const skill=skills.findLast(s=>s.type==='attack'||s.type==='magic');
   assert.ok(skill);
   const result=resolveAction(b,{type:'skill',skill,targetId:'arena30-stonebeast'},()=>.85);
   assert.equal(result.ok,true);
