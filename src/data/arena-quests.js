@@ -33,7 +33,7 @@ export const ARENA_QUESTS=Object.freeze({
    fighter('ソラ','bishop','oakMace',30)
   ],
   // Existing first-story boss pixel atlas, actual griffin silhouette.
-  enemy:{id:'arena30-stonebeast',name:'岩甲のグリフォン',artId:'storyBoss-field',element:'earth',maxHp:1450,attack:80,defense:75,magic:65,speed:44}
+  enemy:{id:'arena30-stonebeast',name:'岩甲のグリフォン',artId:'storyBoss-field',element:'earth',maxHp:1700,attack:94,defense:84,magic:75,speed:47}
  },
  arena50:{
   id:'arena50',name:'闘技大会・白銀の試練',level:50,
@@ -45,7 +45,7 @@ export const ARENA_QUESTS=Object.freeze({
    fighter('ソラ','bishop','gold-mace',50)
   ],
   // Existing fifth-story boss pixel atlas, wolf silhouette.
-  enemy:{id:'arena50-thunderbeast',name:'雷牙のガルディオン',artId:'storyBoss-snow',element:'thunder',maxHp:2950,attack:145,defense:110,magic:125,speed:70}
+  enemy:{id:'arena50-thunderbeast',name:'雷牙のガルディオン',artId:'storyBoss-snow',element:'thunder',maxHp:3500,attack:170,defense:124,magic:142,speed:75}
  },
  arena70:{
   id:'arena70',name:'闘技大会・黄金の試練',level:70,
@@ -57,9 +57,17 @@ export const ARENA_QUESTS=Object.freeze({
    fighter('ソラ','astrologian','platinum-staff',70)
   ],
   // Existing eighth-story boss pixel atlas, dragon silhouette.
-  enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-volcano',element:'dark',maxHp:6400,attack:235,defense:165,magic:205,speed:100}
+  enemy:{id:'arena70-old-dragon',name:'黄金の古竜ゼルディア',artId:'storyBoss-volcano',element:'dark',maxHp:7800,attack:265,defense:185,magic:240,speed:108}
  }
 });
+// Ruleset 1 is kept for matches already issued before the balance patch and
+// for browsers still running the previous assets. The server owns the ruleset.
+export const ARENA_LEGACY_BOSS_STATS=Object.freeze({
+ arena30:Object.freeze({maxHp:1450,attack:80,defense:75,magic:65,speed:44}),
+ arena50:Object.freeze({maxHp:2950,attack:145,defense:110,magic:125,speed:70}),
+ arena70:Object.freeze({maxHp:6400,attack:235,defense:165,magic:205,speed:100})
+});
+export const ARENA_BALANCE_VERSION=2;
 export function arenaFixedEquipment(template,level){
  const tier=level===30?'iron':level===50?'gold':level===70?'platinum':null;
  if(!tier)throw new Error('闘技大会の固定レベルが不正です');
