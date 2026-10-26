@@ -1,4 +1,4 @@
-import { ARENA_QUESTS,ARENA_RANKS } from '../data/arena-quests.js';
+import { ARENA_QUESTS,ARENA_RANKS,arenaFixedEquipment } from '../data/arena-quests.js';
 import { ARENA_EQUIPMENT,ARENA_CRAFT_COSTS } from '../data/arena-equipment.js';
 import { normalizeArenaProgress,arenaRank,arenaCraftQuote,arenaEnhanceQuote } from '../core/arena.js';
 import { EQUIPMENT } from '../data/equipment.js';
@@ -19,7 +19,7 @@ export function arenaMarkup(state){
     <p>${esc(q.description)}</p>
     <p>🏅 自己ベスト：${best?`${best}ターン / ${r.grade}`:'記録なし'}</p>
     <details><summary>固定パーティ・ジョブ・装備・特技</summary>
-      <ul>${q.roster.map(c=>`<li><b>${esc(c.slot)} / ${esc(JOBS[c.job]?.name??c.job)}</b>　${esc(EQUIPMENT[c.weapon]?.name??c.weapon)}<br><small>特技：${esc(c.skills.map(s=>s.name).join('・'))}</small></li>`).join('')}</ul>
+      <ul>${q.roster.map(c=>`<li><b>${esc(c.slot)} / ${esc(JOBS[c.job]?.name??c.job)}</b>　${esc(Object.values(arenaFixedEquipment(c,q.level)).map(id=>EQUIPMENT[id]?.name??id).join('・'))}<br><small>特技：${esc(c.skills.map(s=>s.name).join('・'))}</small></li>`).join('')}</ul>
       <p>プレイヤーのレベル・装備・固有スキル・永久強化は一切持ち込めません。</p>
     </details>
     <button class="wide-button action-main" data-arena-start="${q.id}">Lv${q.level}に挑戦する</button>
