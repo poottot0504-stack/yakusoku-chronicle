@@ -24,6 +24,9 @@ export function normalizeArenaProgress(state){
   records[id]={wins:safe(raw.records?.[id]?.wins,999999),attempts:safe(raw.records?.[id]?.attempts,999999)};
  }
  state.arena={coins:safe(raw.coins,999999),best,records,
+  // Local battle-history de-duplication only. Coins and ownership always come from the server.
+  settledMatchIds:[...new Set((Array.isArray(raw.settledMatchIds)?raw.settledMatchIds:[])
+    .filter(x=>typeof x==='string'&&/^[0-9a-f-]{36}$/i.test(x)))].slice(-100),
   lastResult:raw.lastResult&&ARENA_QUESTS[raw.lastResult.questId]?{
    questId:raw.lastResult.questId,turns:Number.isInteger(raw.lastResult.turns)?cap(raw.lastResult.turns,0,101):null,
    grade:['S','A','B','C'].includes(raw.lastResult.grade)?raw.lastResult.grade:null,
