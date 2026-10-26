@@ -65,6 +65,12 @@ export function verifyArenaTranscript({questId,seed,actions}={}){
    return {questId,victory:!!rank,turns:round,grade:rank?.grade??null,coins:rank?.coins??0};
   }
   finishTurn(b);
+  // Damage-over-time or other end-of-round effects can finish the battle.
+  if(winner(b)||loser(b)){
+   if(consumed!==actions.length)invalid('戦闘終了後に余分な行動がある');
+   const rank=winner(b)?arenaRank(round):null;
+   return {questId,victory:!!rank,turns:round,grade:rank?.grade??null,coins:rank?.coins??0};
+  }
  }
  if(consumed!==actions.length)invalid('行動数と終了位置が一致しません');
  return {questId,victory:false,turns:100,grade:null,coins:0};
