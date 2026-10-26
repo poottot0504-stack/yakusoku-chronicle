@@ -12,6 +12,7 @@ const EXTRA_CROPS=[
 ];
 const SPECIAL_CROPS=[[0,45,555,625],[555,45,531,625],[0,700,560,710],[565,700,521,710]];
 const descriptor=(sheet,index)=>{const crop=sheet==='specialJobs'?SPECIAL_CROPS[index]:sheet==='extra'?EXTRA_CROPS[index]:sheet==='oaths'&&index===12?[646,643,531,328]:null;return {sheet,index,aspect:sheet==='specialJobs'?.75:crop?crop[2]/crop[3]:ASPECTS[sheet],cols:SHEETS[sheet][0],rows:SHEETS[sheet][1],crop};};
+import { MASHO_DEPTH_BOSS_ART } from './masho-depth-sprites.js';
 export const BOSS_ART={};
 REGIONS.forEach((region,i)=>{BOSS_ART[`storyBoss-${region}`]=descriptor('story',i);BOSS_ART[`storyBoss-ngp-${region}`]=descriptor('story',i);BOSS_ART[`${region}Boss`]=descriptor('story',i);});
 for(let i=0;i<13;i++)BOSS_ART[`oath-${13-i}`]=descriptor('oaths',i);
@@ -23,6 +24,7 @@ BOSS_ART['trial-gunbreaker']=descriptor('specialJobs',2);
 BOSS_ART['trial-astrologian']=descriptor('specialJobs',3);
 // Nox reuses a dark boss pixel sprite from the existing oath atlas.
 BOSS_ART['event-eclipse-nox']=descriptor('oaths',4);
+Object.assign(BOSS_ART,MASHO_DEPTH_BOSS_ART);
 const jobArt=job=>['shielder','greatShielder'].includes(job)?{sheet:'shieldJobs',index:job==='shielder'?0:1,cols:2,rows:1,aspect:.75,src:'./assets/battle/shield-jobs.png?v=20261024-opaque'}:['dragoon','summoner'].includes(job)?{sheet:job,index:0,cols:1,rows:1,aspect:.75,src:`./assets/battle/${job}.png?v=approved-height-20261020`}:['gunbreaker','astrologian'].includes(job)?descriptor('specialJobs',job==='gunbreaker'?0:1):job==='highWizard'?descriptor('highWizardFemale',0):descriptor('jobs',Math.max(0,JOB_ART_IDS.indexOf(job)));
 export function actorArt(actor={}){
  if(actor.side==='ally')return jobArt(actor.currentJob);
