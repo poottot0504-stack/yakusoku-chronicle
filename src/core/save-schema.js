@@ -47,6 +47,7 @@ export function createDefaultState() {
     activePartyIds: [],
     skillPresets: Array.from({length:10},()=>null),
     skillPresetNames: Array.from({length:10},()=>''),
+    arena: {coins:0,best:{},records:{},lastResult:null},
     gold: 0,
     bankGold: 0,
     inventory: [],
