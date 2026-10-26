@@ -132,7 +132,7 @@ test('stopping ten-run prevents next fight, and wrong floors cannot steal reward
  assert.equal(summary.earnedGold,500);
  assert.deepEqual(summary.equipment,['ironSword']);
  assert.equal(summary.completed,1);
- assert.throws(()=>createMashoRun(26),/階層/);
+ assert.throws(()=>createMashoRun(29),/階層/);
  assert.throws(()=>createMashoRun(1,100),/10連戦/);
 });
 
