@@ -42,6 +42,8 @@ function candidateStats(inst){
 }
 function resistanceText(def={}){return RESIST_KEYS.filter(k=>Number(def.elementResist?.[k]??0)>0).map(k=>`${elementLabel(k)}耐性 +${Math.round(Number(def.elementResist[k])*100)}%`).join(' / ');}
 function resistanceMarkup(def={}){const text=resistanceText(def);return text?`<small class="equipment-resistance">🛡️ ${esc(text)}</small>`:'';}
+// Make deep-cave special abilities visible without changing their battle effects or save data.
+function depthEquipmentDescription(def={}){return def.mashoDepthFloor&&def.description?`<small class="equipment-special-effect">✨ 固有効果：${esc(def.description)}</small>`:'';}
 function currentForSlot(state,c,def){return defFor(state,c.equipment?.[targetSlot(def)]);}
 function comparisonMarkup(state,c,inst,def){
   const current=currentForSlot(state,c,def),next=enhancedStats(inst),prev=current?enhancedStats(current.inst):{attack:0,defense:0,magic:0,speed:0,maxHp:0,maxMp:0};
@@ -95,6 +97,7 @@ function candidateGroupMarkup(state,c,g,wearers,selected,query=''){
   return `<article class="equipment-group-card ${cond.ok?'can-equip':'cannot-equip'}" data-equipment-category-value="${cat}" data-equipment-unequipped="${hasUnequipped?'1':'0'}" data-equipment-search-name="${esc(def.name)}" ${hidden?'hidden':''}>
     <div class="equipment-group-head"><div><b>${esc(def.name)} +${Number(representative.enhanceLevel??0)}</b>${g.instances.length>1?`<strong class="equipment-stack-count">×${g.instances.length}</strong>`:''}</div><span class="equipment-condition ${cond.ok?'ok':'ng'}">${esc(cond.reason)}</span></div>
     <div class="equipment-primary-stats">${esc(candidateStats(representative))}</div>
+    ${depthEquipmentDescription(def)}
     <div class="equipment-owner-line"><span>${ownerText}</span>${freeText?`<span>🧳 ${esc(freeText)}</span>`:''}</div>
     ${comparisonMarkup(state,c,representative,def)}
     <div class="equipment-group-actions">
@@ -126,7 +129,7 @@ export function equipmentMarkup(state,characterId,searchQuery=''){
   const tabs=`<div class="equipment-category-tabs">${CATEGORIES.map(([id,label])=>`<button class="equipment-category-tab ${selected===id?'active':''}" data-equipment-category="${id}">${label}<em>${counts[id]}</em></button>`).join('')}</div>`;
   const current=slots.map(slot=>{
     const cat=slotCategory(slot),x=defFor(state,c.equipment?.[slot]),hidden=selected==='unequipped'||selected!=='all'&&selected!==cat;
-    return `<div class="equipment-slot" data-equipment-current-category="${cat}" ${hidden?'hidden':''}><span class="equipment-slot-icon" title="${LABEL[slot]}">${slot==='spellbook'?'<span class="equipment-spellbook-icon" aria-hidden="true">📖</span>':`<span class="equipment-pixel-crop equipment-pixel-${slot}"><img src="./assets/equipment-slots/pixel-equipment-sheet.png" alt="${LABEL[slot]}" width="1254" height="1254"></span>`}</span><span class="equipment-slot-label">${LABEL[slot]}</span><strong>${esc(x?.def?.name??'なし')}${x?.inst?` +${Number(x.inst.enhanceLevel??0)}`:''}</strong>${x?.inst?`<small>${esc(candidateStats(x.inst))} / 必要職業Lv ${getRequiredJobLevel(x.def,x.inst)}</small>`:''}</div>`;
+    return `<div class="equipment-slot" data-equipment-current-category="${cat}" ${hidden?'hidden':''}><span class="equipment-slot-icon" title="${LABEL[slot]}">${slot==='spellbook'?'<span class="equipment-spellbook-icon" aria-hidden="true">📖</span>':`<span class="equipment-pixel-crop equipment-pixel-${slot}"><img src="./assets/equipment-slots/pixel-equipment-sheet.png" alt="${LABEL[slot]}" width="1254" height="1254"></span>`}</span><span class="equipment-slot-label">${LABEL[slot]}</span><strong>${esc(x?.def?.name??'なし')}${x?.inst?` +${Number(x.inst.enhanceLevel??0)}`:''}</strong>${x?.inst?`<small>${esc(candidateStats(x.inst))} / 必要職業Lv ${getRequiredJobLevel(x.def,x.inst)}</small>${depthEquipmentDescription(x.def)}`:''}</div>`;
   }).join('');
   const candidateCards=groups.map(g=>candidateGroupMarkup(state,c,g,wearers,selected,searchQuery)).join('');
   const totalResist=getEquipmentElementResist(state,c),totalResistText=RESIST_KEYS.map(k=>`${elementLabel(k)} ${Math.round(totalResist[k]*100)}%`).join(' / ');
