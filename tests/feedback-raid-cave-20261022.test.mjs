@@ -27,7 +27,7 @@ test('floor-specific rare loot keeps legacy 5 weapons and offers new summoner bo
  for(let i=0;i<4;i++)assert.deepEqual(getMashoAbyssDropPool(21+i).map(x=>x.id),[expected[i]]);
  assert.deepEqual(getMashoAbyssDropPool(25).map(x=>x.id),[MASHO_ABYSS_SPELLBOOK.id,'masho-abyss-dagger']);
  assert.equal(Object.keys(MASHO_ABYSS_WEAPONS).length,5);
- assert.equal(MASHO_ABYSS_DROP_RATE,.002);
+ assert.equal(MASHO_ABYSS_DROP_RATE,.005);
  assert.equal(getMashoAbyssDropPool(20).length,0);
 });
 test('summoner special book can be worn alongside a weapon without changing old inventory ids',()=>{
@@ -41,13 +41,13 @@ test('summoner special book can be worn alongside a weapon without changing old 
  assert.ok(isMarketSellable(state,{kind:'equipment',instanceId:inst.instanceId,quantity:1}).ok);
  assert.ok(EQUIPMENT['masho-abyss-dagger']);
 });
-test('new drop rate is a 0.2 percent total roll, including special book on floor 25',()=>{
+test('0.5% total roll includes the summoner spellbook on floor 25',()=>{
  const run=(floor,values)=>{const state={cycle:2,characters:[],activePartyIds:[],mashoCave:{highestCleared:25},gold:0};
   let i=0;const battle={mashoFloor:floor,actors:[{side:'enemy',mashoBoss:true,mashoFloor:floor,hp:0},{side:'ally',hp:100}]};
   return settleMashoVictory(state,battle,()=>values[i++]??0.5,0).equipment?.equipmentId??null;};
  assert.equal(run(25,[.001,0]),MASHO_ABYSS_SPELLBOOK.id);
  assert.equal(run(25,[.001,.999]),'masho-abyss-dagger');
- assert.equal(run(25,[.002,0]),null);
+ assert.equal(run(25,[.005,0]),null);
  assert.equal(run(22,[.001,0]),'masho-abyss-instrument');
  const html=mashoCaveMarkup({cycle:2,story:{firstEndingSeen:true},mashoCave:{highestCleared:25}});
  assert.match(html,/星淵の幻獣魔典/);

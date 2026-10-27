@@ -19,10 +19,10 @@ test('new raid enemies have progressively 5 to 25 percent higher floor20 stats a
  const s=state(),base=createMashoEnemy(s,20,()=>0);
  for(let f=21;f<=25;f++){const e=createMashoEnemy(s,f,()=>0);assert.equal(e.maxHp,Math.round(base.maxHp*(1+(f-20)*.05)));assert.equal(e.maxMp,Math.round(base.maxMp*(1+(f-20)*.05)));for(const k of Object.keys(base.stats))assert.equal(e.stats[k],Math.round(base.stats[k]*(1+(f-20)*.05)));assert.ok(e.raidBoss);assert.deepEqual(actorArt(e),actorArt({raidBoss:true,bossId:e.bossId}));const skill=e.ai.find(x=>x.skill?.maxHpDamageRatio)?.skill;assert.ok(skill.allTargets);const target={maxHp:1000,stats:{defense:999999,magic:999999},damageCap:1};assert.equal(calculateDamage(e,target,skill),400);assert.equal(calculateDamage(e,{...target,guarding:true},skill),0);}
 });
-test('0.2 percent boundary, only five weapons, no ore and once-only rewards',()=>{
+test('0.5 percent boundary, original abyss weapons, no ore and once-only rewards',()=>{
  const ids=Object.keys(MASHO_ABYSS_WEAPONS);
- for(let i=0;i<5;i++){const s=state(),r=win(s,21+i,(()=>{let n=0;return()=>n++===0?.001999:(i+.1)/5;})());assert.ok(getMashoAbyssDropPool(21+i).some(x=>x.id===r.equipment.equipmentId));assert.equal(r.promiseOre,0);assert.equal(s.materials?.promiseOre,undefined);}
- for(const f of [21,22,23,24,25])assert.equal(win(state(),f,()=>.002).equipment,null);
+ for(let i=0;i<5;i++){const s=state(),r=win(s,21+i,(()=>{let n=0;return()=>n++===0?.004999:(i+.1)/5;})());assert.ok(getMashoAbyssDropPool(21+i).some(x=>x.id===r.equipment.equipmentId));assert.equal(r.promiseOre,0);assert.equal(s.materials?.promiseOre,undefined);}
+ for(const f of [21,22,23,24,25])assert.equal(win(state(),f,()=>.005).equipment,null);
  const s=state(),b={mashoFloor:25,actors:[{side:'enemy',mashoBoss:true,mashoFloor:25,hp:0},{side:'ally',hp:1}]};const a=settleMashoVictory(s,b,()=>0,0);assert.equal(settleMashoVictory(s,b,()=>0,0),a);assert.equal(s.equipmentInventory.length,1);
  assert.equal(win(state(),20,()=>1).promiseOre,2);
 });

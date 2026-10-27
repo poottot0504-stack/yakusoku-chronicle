@@ -87,9 +87,9 @@ test('focused tier-3 drops are job-group and part specific; floors 19/20 retain 
  assert.match(cave,/狙える装備：魔法系：武器/);
  assert.match(cave,/狙える装備：物理系：盾/);
 });
-test('drop probability and the five abyss weapons are untouched',()=>{
+test('normal drop probability and abyss weapon IDs are preserved with 0.5% rare rate',()=>{
  assert.equal(MASHO_DROP_RATE,.05);
- assert.equal(MASHO_ABYSS_DROP_RATE,.002);
+ assert.equal(MASHO_ABYSS_DROP_RATE,.005);
  const run=(floor,rand)=>settleMashoVictory({cycle:2,story:{firstEndingSeen:true},characters:[],activePartyIds:[],mashoCave:{highestCleared:25},gold:0}, {
    mashoFloor:floor,actors:[{side:'enemy',mashoBoss:true,mashoFloor:floor,hp:0},{side:'ally',hp:1}]
  },rand,0);

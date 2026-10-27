@@ -58,8 +58,8 @@ test('inn always replenishes at least one mining charge even on a zero roll and 
 const caveState=()=>({cycle:2,characters:[],activePartyIds:[],gold:0,inventory:[],equipmentInventory:[],materials:{},story:{firstEndingSeen:true},mashoCave:{highestCleared:25,clearCounts:{}}});
 const caveWin=(s,f=21,rng=()=>1)=>settleMashoVictory(s,{mashoFloor:f,actors:[{side:'enemy',hp:0,mashoBoss:true,mashoFloor:f},{side:'ally',hp:1}]},rng,0);
 
-test('abyss 21-25 maintains rare weapon rate but guarantees one ultimate crystal every 5 wins',()=>{
- assert.equal(MASHO_ABYSS_DROP_RATE,.002);
+test('abyss 21-25 rare equipment is 0.5% while every five wins awards a crystal',()=>{
+ assert.equal(MASHO_ABYSS_DROP_RATE,.005);
  const s=caveState();
  for(let n=1;n<=10;n++){
   const reward=caveWin(s,20+n%5+1,()=>1);
