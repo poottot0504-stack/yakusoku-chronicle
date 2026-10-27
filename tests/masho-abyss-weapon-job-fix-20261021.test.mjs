@@ -8,9 +8,9 @@ import {MASHO_ABYSS_DROP_RATE,settleMashoVictory} from '../src/core/masho-cave.j
 
 const elgancio=EQUIPMENT['masho-abyss-instrument'];
 const character=(job,level=150)=>({id:'hero',currentJob:job,jobLevels:{[job]:level}});
-test('abyss weapon catalog has five unchanged item identifiers and no adjustment to the original drop rate',()=>{
+test('abyss weapon catalog retains five original identifiers with uniform 0.5% rare drop rate',()=>{
  assert.deepEqual(Object.keys(MASHO_ABYSS_WEAPONS),['masho-abyss-sword','masho-abyss-staff','masho-abyss-dagger','masho-abyss-bow','masho-abyss-instrument']);
- assert.equal(MASHO_ABYSS_DROP_RATE,.002);
+ assert.equal(MASHO_ABYSS_DROP_RATE,.005);
  assert.equal(elgancio.name,'斬罪のエルガンシオ');
  assert.equal(elgancio.weaponType,'fist');
  assert.deepEqual(elgancio.alternateWeaponTypes,['instrument']);
