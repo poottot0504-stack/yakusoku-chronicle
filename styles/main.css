@@ -891,7 +891,7 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 
 /* 2026 星蝕の異界門 title announcement: readable 3:1 event banner. */
 #title-screen .title-event-notice.eclipse-event-notice{background:linear-gradient(145deg,#1e133d,#431c62 65%,#372036);border-color:#b685ed;box-shadow:0 0 0 2px #493060,0 0 0 3px #dcb3ff,0 8px 28px rgba(82,21,136,.45)}
-#title-screen .title-event-notice.eclipse-event-notice>.event-notice-banner{display:block;width:100%;aspect-ratio:3/1;object-fit:contain;background:#170e2e}
+#title-screen .title-event-notice.eclipse-event-notice>.event-notice-banner{display:block;width:100%;aspect-ratio:8/3;object-fit:contain;background:#170e2e}
 #title-screen .title-event-notice.eclipse-event-notice>span{background:linear-gradient(90deg,#221037,#402058,#221037)}
 #title-screen .title-event-notice.eclipse-event-notice b{color:#f9ddae}
 #title-screen .title-event-notice.eclipse-event-notice small{color:#f2dfff}
@@ -1038,3 +1038,6 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .exploration-result .hunt-actions{display:flex;flex-wrap:wrap}
 .exploration-result [data-explore-run10]{border:1px solid #c8a957;background:#233a46;color:#ffe5a0;font-weight:800}
 @media(max-width:600px){.exploration-result .hunt-actions button{flex:1 1 40%}.exploration-result .hunt-actions [data-explore-run10]{flex-basis:100%}}
+
+/* Keep the supplied 1536×576 Halloween Eclipse artwork uncropped wherever it appears. */
+.eclipse-event-details>.event-detail-banner,.eclipse-event-panel .event-banner-button img{aspect-ratio:8/3;object-fit:contain;background:#170e2e}
