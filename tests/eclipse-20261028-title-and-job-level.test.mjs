@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {ECLIPSE_EVENT,ECLIPSE_EQUIPMENT,ECLIPSE_TIERS} from '../src/data/eclipse-2026.js';
 import {EQUIPMENT} from '../src/data/equipment.js';
 import {getRequiredJobLevel} from '../src/core/equipment-requirements.js';
@@ -97,14 +98,20 @@ test('tapping the banner opens a detailed modal with accurate items, event time 
  assert.match(main,/getNextEventBoundary\(\)/);
 });
 
-test('banner is a committed 3:1 themed asset with no external network dependencies or cut-off',()=>{
+test('user-provided 1536x576 JPEG is embedded byte-for-byte and shown uncropped at 8:3 in all event views',()=>{
  const asset=readFileSync(new URL('../assets/events/eclipse-gate-2026.svg',import.meta.url),'utf8');
  assert.match(asset,/<svg\s/);
- assert.match(asset,/viewBox="0 0 1200 400"/);
+ assert.match(asset,/viewBox="0 0 1536 576"/);
  assert.match(asset,/星蝕の異界門/);
  assert.match(asset,/10\/31 0:00/);
  assert.match(asset,/11\/1 23:59/);
- assert.doesNotMatch(asset,/<script|<image[^>]+(?:href|src)=[\"']https?:/i);
+ const encoded=asset.match(/href="data:image\/jpeg;base64,([^"]+)"/)?.[1];
+ assert.ok(encoded,'original uploaded JPEG is embedded directly in SVG');
+ const source=Buffer.from(encoded,'base64');
+ assert.equal(source.length,677276,'preserve original file bytes');
+ assert.equal(createHash('sha256').update(source).digest('hex'),'d294ef822fc1e9f18f60932035045af0c36898d2e323db5550f08b35c89f4249');
+ assert.doesNotMatch(asset,/<script|<image[^>]+(?:href|src)=["']https?:/i);
  const css=readFileSync(new URL('../styles/main.css',import.meta.url),'utf8');
- assert.match(css,/\.eclipse-event-notice>\.event-notice-banner\{[^}]*aspect-ratio:3\/1;object-fit:contain/);
+ assert.match(css,/\.eclipse-event-notice>\.event-notice-banner\{[^}]*aspect-ratio:8\/3;object-fit:contain/);
+ assert.match(css,/\.eclipse-event-details>\.event-detail-banner,\.eclipse-event-panel \.event-banner-button img\{aspect-ratio:8\/3;object-fit:contain/);
 });
