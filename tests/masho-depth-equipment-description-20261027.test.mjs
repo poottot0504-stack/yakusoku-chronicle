@@ -50,7 +50,7 @@ test('equipped 26F charm itself shows the recovery description in the equipped s
  const {s,hero}=makeState();
  hero.equipment.accessory2='depth-26';
  const html=equipmentMarkup(s,hero.id);
- const slot=html.match(/<div class="equipment-slot" data-equipment-current-category="charm"[^]*?<\\/div>/)?.[0];
+ const slot=html.split('data-equipment-current-category="charm"')[1]?.split('</div>')[0];
  assert.ok(slot);
  assert.match(slot,/悠久樹の祝福/);
  assert.match(slot,/固有効果：/);
