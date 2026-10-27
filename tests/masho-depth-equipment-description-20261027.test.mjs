@@ -59,7 +59,7 @@ test('equipped 26F charm itself shows the recovery description in the equipped s
 
 test('forge enhancement list also explains 26-28F unique equipment abilities',()=>{
  const {s}=makeState();
- s.ui.forgeEnhanceJob='all';
+ s.ui??={};s.ui.forgeEnhanceJob='all';
  const html=forgeMarkup(s,'enhance');
  for(const [,name,needle] of REWARDS){
   assert.ok(html.includes(name),name+' is visible in forge');
