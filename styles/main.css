@@ -1030,3 +1030,11 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 .arena-shop-item button:disabled{opacity:.55}
 .arena-last-result{border-color:#d2b368}
 @media(max-width:520px){.arena-view{gap:9px}.arena-quest-grid,.arena-shop-grid{grid-template-columns:1fr}.arena-rank-table th,.arena-rank-table td{padding:7px 3px}}
+
+/* Normal world-map exploration chain; separate from Masho's queue controls. */
+.battle-header:has(.world-run-stop){display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+.battle-header .world-run-stop{min-height:33px;padding:.35rem .48rem;font-size:.67rem;white-space:normal;flex:0 1 auto;touch-action:manipulation}
+.battle-header .world-run-stop:disabled{opacity:.65}
+.exploration-result .hunt-actions{display:flex;flex-wrap:wrap}
+.exploration-result [data-explore-run10]{border:1px solid #c8a957;background:#233a46;color:#ffe5a0;font-weight:800}
+@media(max-width:600px){.exploration-result .hunt-actions button{flex:1 1 40%}.exploration-result .hunt-actions [data-explore-run10]{flex-basis:100%}}
