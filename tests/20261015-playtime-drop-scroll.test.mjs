@@ -89,13 +89,15 @@ test('daily monster-material 2x and the scroll do not become a 4x bonus',()=>{
  assert.ok(awardBattleDrops(s,[enemy],()=>.2,daily).some(x=>x.id==='testRareMaterial'));
 });
 
-test('cave drop book changes 5% to 10%, and floors 21-25 from 0.2% to 0.4%',()=>{
- assert.equal(MASHO_DROP_RATE,.05);assert.equal(MASHO_ABYSS_DROP_RATE,.002);
+test('cave drop book changes 5% to 10%, and floors 21-28 from 0.5% to 1%',()=>{
+ assert.equal(MASHO_DROP_RATE,.05);assert.equal(MASHO_ABYSS_DROP_RATE,.005);
  assert.equal(caveWin(makeState(),1,.08).equipment,null);
  assert.ok(caveWin(withBook(),1,.08).equipment);
- assert.equal(caveWin(makeState(),21,.003).equipment,null);
- assert.ok(caveWin(withBook(),21,.003).equipment);
- assert.equal(caveWin(withBook(),21,.004).equipment,null);
+ for(const floor of [21,26]){
+  assert.equal(caveWin(makeState(),floor,.007).equipment,null);
+  assert.ok(caveWin(withBook(),floor,.007).equipment);
+  assert.equal(caveWin(withBook(),floor,.01).equipment,null);
+ }
 });
 
 test('drop chance book does not enhance rematches or event quest loot',()=>{
