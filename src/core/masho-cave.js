@@ -20,7 +20,8 @@ import { bossAreaAttack } from './boss-skills.js';
 import { normalizeElement, regionElement, elementProfile } from './elements.js';
 
 export const MASHO_DROP_RATE=.05;
-export const MASHO_ABYSS_DROP_RATE=.002;
+// 21F–28F share the same rare equipment chance: 0.5% per cleared battle.
+export const MASHO_ABYSS_DROP_RATE=.005;
 export const MASHO_MAX_FLOOR=28;
 // 第15〜20階層で全22職業の全部位を必ず入手可能にする。
 export const MASHO_FLOOR_DROP_FOCUS=Object.freeze({
@@ -126,7 +127,7 @@ export function settleMashoVictory(state,battle,rng=Math.random,now=Date.now()){
  const enhanceCrystalBaseRate=floor<=10?.25:floor<=20?.20:.12;
  const enhanceCrystalChance=Math.min(1,enhanceCrystalBaseRate*getBattleBoostMultiplier(state,'drop',{now,includeDaily:false}));
  // A material safety net every five completed abyss runs (across floors 21-25).
- // The five unique abyss weapons keep their deliberately rare 0.2% chance.
+ // Abyss weapons and depth-exclusive equipment share the 0.5% base chance (21–28F).
  const abyssMaterialGuaranteed=floor>20&&progress.abyssClearCount%5===0;
  const enhanceMaterial=abyssMaterialGuaranteed||rng()<enhanceCrystalChance?{id:enhanceCrystalId,name:floor<=10?'強化結晶':floor<=20?'上級強化結晶':'究極強化結晶',qty:1}:null;
  if(enhanceMaterial){state.materials??={};addMaterial(state,enhanceCrystalId,1);}
