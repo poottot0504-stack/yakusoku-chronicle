@@ -9,9 +9,9 @@ const shieldPerk=(level,id,name,description)=>S(level,id,name,0,0,'buff',{
 });
 const guardianBook=(id,great=false)=>[
  shieldPerk(1,`${id}Cover`,'不動の守り',great?'左右の仲間の通常・範囲ダメージを半分肩代わり。攻撃も選択可能。':'右隣の仲間の通常・範囲ダメージを半分肩代わり。攻撃も選択可能。'),
- ...[10,20,30,45,60].map((level,i)=>shieldPerk(level,`${id}Hp${level}`,'守護の生命力',`HP＋${(i+1)*3}％（他の同系列段階とは重複しない）`)),
- shieldPerk(70,`${id}Shout`,great?'防御の掛け声':'攻撃の掛け声',great?'戦闘開始時に自動発動。3ターン、全員の防御＋20％。':'戦闘開始時に自動発動。3ターン、全員の攻撃・魔法＋20％。'),
- ...[80,95,100,120,150].map((level,i)=>shieldPerk(level,`${id}Def${level}`,'守護の防壁',`防御＋${(i+1)*3}％（他の同系列段階とは重複しない）`)),
+ ...[10,20,30,45,60].map((level,i)=>shieldPerk(level,`${id}Hp${level}`,'守護の生命力',`HP＋${(i+1)*3}％（習得済みの同系列段階と重複する）`)),
+ shieldPerk(70,`${id}Shout`,great?'防御の掛け声':'攻撃の掛け声',great?'戦闘開始時に自動発動。戦闘終了まで全員の防御＋20％。':'戦闘開始時に自動発動。戦闘終了まで全員の攻撃・魔法＋20％。'),
+ ...[80,95,100,120,150].map((level,i)=>shieldPerk(level,`${id}Def${level}`,'守護の防壁',`防御＋${(i+1)*3}％（習得済みの同系列段階と重複する）`)),
  shieldPerk(200,`${id}PierceGuard`,'穿盾防御','自分への防御貫通効果を半減。'),
  shieldPerk(250,`${id}StatusGuard`,'守護の精神','呪いと混乱を無効化。'),
  shieldPerk(300,`${id}PerfectCover`,'完全肩代わり',great?'左右の味方への通常・範囲攻撃ダメージを100％肩代わり。':'右隣の味方への通常・範囲攻撃ダメージを100％肩代わり。')
