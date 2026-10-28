@@ -5,6 +5,18 @@ import {SHOPS} from '../data/shops.js';
 
 export const MARKET_MIN_PRICE=1;
 export const MARKET_MAX_PRICE=30_000_000;
+export const MARKET_RARE_EQUIPMENT_MAX_PRICE=3_000_000_000;
+export const MARKET_RARE_EQUIPMENT_IDS=Object.freeze([
+ 'masho-26-eternal-tree-blessing',
+ 'masho-27-infernal-eclipse-ring',
+ 'masho-28-final-claussolas'
+]);
+// High-value listings are allowed only for real 26–28F equipment, not materials or items.
+export function marketPriceLimitForItem(item={}){
+ const kind=item.kind??item.itemKind??item.itemPayload?.kind;
+ const id=item.equipmentId??item.itemId??item.itemPayload?.equipmentId;
+ return kind==='equipment'&&MARKET_RARE_EQUIPMENT_IDS.includes(id)?MARKET_RARE_EQUIPMENT_MAX_PRICE:MARKET_MAX_PRICE;
+}
 export const MARKET_MAX_ACTIVE_LISTINGS=10;
 
 
@@ -24,9 +36,9 @@ function isShopSoldCandidate(candidate={}){
  return SHOP_ITEM_IDS.has(id)||SHOP_EQUIPMENT_IDS.has(id);
 }
 
-export function isValidMarketPrice(value){
+export function isValidMarketPrice(value,item={}){
  const n=Number(value);
- return Number.isInteger(n)&&n>=MARKET_MIN_PRICE&&n<=MARKET_MAX_PRICE;
+ return Number.isSafeInteger(n)&&n>=MARKET_MIN_PRICE&&n<=marketPriceLimitForItem(item);
 }
 
 function equipmentDef(candidate){
