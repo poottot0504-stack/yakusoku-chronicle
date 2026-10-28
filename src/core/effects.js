@@ -23,7 +23,7 @@ export function applyTimedEffect(target,effect,rng=Math.random,source={}){
  return true;
 }
 export function tickEffects(actor,phase='turnEnd'){
- const tickList=list=>{for(const e of list)e.turns=Math.max(0,e.turns-1);for(let i=list.length-1;i>=0;i--){if(list[i].turns===0){const e=list[i];list.splice(i,1);if(['paralysis','sleep','freeze'].includes(e.id)){actor.statusResistTurns??={};actor.statusResistTurns[e.id]=2;}}}};
+ const tickList=list=>{for(const e of list){if(!e.permanent)e.turns=Math.max(0,e.turns-1);}for(let i=list.length-1;i>=0;i--){if(!list[i].permanent&&list[i].turns===0){const e=list[i];list.splice(i,1);if(['paralysis','sleep','freeze'].includes(e.id)){actor.statusResistTurns??={};actor.statusResistTurns[e.id]=2;}}}};
  if(phase==='action'||phase==='statusEnd')tickList(actor.statusAilments??[]);else {tickList(actor.buffs??[]);tickList(actor.debuffs??[]);for(const k of Object.keys(actor.statusResistTurns??{}))actor.statusResistTurns[k]=Math.max(0,actor.statusResistTurns[k]-1);}
  return actor;
 }
