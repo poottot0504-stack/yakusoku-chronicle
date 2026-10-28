@@ -97,9 +97,9 @@ test('progression bonuses and rare status immunity apply at requested levels',()
  const c=unit('s','盾士','shielder',10);
  assert.ok(Math.abs(shieldProgressBonus(c,'hp')-.03)<1e-9);
  c.jobLevels.shielder=60;
- assert.ok(Math.abs(shieldProgressBonus(c,'hp')-.15)<1e-9);
+ assert.ok(Math.abs(shieldProgressBonus(c,'hp')-.45)<1e-9);
  c.jobLevels.shielder=150;
- assert.ok(Math.abs(shieldProgressBonus(c,'defense')-.15)<1e-9);
+ assert.ok(Math.abs(shieldProgressBonus(c,'defense')-.45)<1e-9);
  c.jobLevels.shielder=250;
  assert.equal(shieldStatusImmunity(c,'curse'),true);
  assert.equal(shieldStatusImmunity(c,'confusion'),true);
