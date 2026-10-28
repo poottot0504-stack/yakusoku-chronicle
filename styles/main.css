@@ -1041,3 +1041,20 @@ button .pixel-icon,.top-resources .pixel-icon,.scene-meta .pixel-icon{vertical-a
 
 /* Keep the supplied 1536×576 Halloween Eclipse artwork uncropped wherever it appears. */
 .eclipse-event-details>.event-detail-banner,.eclipse-event-panel .event-banner-button img{aspect-ratio:8/3;object-fit:contain;background:#170e2e}
+
+/* World-map ten-run receipt: scroll just the drop entries, not buttons or EXP totals. */
+.exploration-result .exploration-drop-scroll{
+ max-height:min(40vh,300px);
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ -webkit-overflow-scrolling:touch;
+ padding:10px 12px;
+ margin:9px 0 14px;
+ border:1px solid rgba(240,201,111,.38);
+ border-radius:10px;
+ background:rgba(7,13,26,.66);
+ scrollbar-width:thin;
+}
+.exploration-result .exploration-drop-scroll p{margin:0;white-space:normal;overflow-wrap:anywhere;line-height:1.75}
+.exploration-result .exploration-drop-scroll:focus-visible{outline:2px solid #f0c96f;outline-offset:2px}
+@media(max-width:600px){.exploration-result .exploration-drop-scroll{max-height:min(36vh,230px)}}
