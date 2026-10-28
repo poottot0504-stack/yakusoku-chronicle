@@ -27,7 +27,7 @@ export const MASHO_DEPTH_EQUIPMENT=Object.freeze({
  'masho-28-final-claussolas':{
   id:'masho-28-final-claussolas',name:'終極のクラウソラス',slot:'weapon',weaponType:'oneHandSword',
   requiredLevel:150,rarity:'legendary',attack:450,magic:450,maxHp:220,
-  elementResist:{ice:.1},mashoDepthFloor:28,heroOnly:true,
-  description:'第28階層の希少報酬。主人公本人（名前変更後も可）だけが全職業で装備可能。攻撃力と魔法力が同じだけ上昇する。'
+  elementResist:{ice:.1},mashoDepthFloor:28,heroOnly:true,turnMpRegenRatio:.01,
+  description:'第28階層の希少報酬。主人公本人（名前変更後も可）だけが全職業で装備可能。攻撃力と魔法力が同じだけ上昇する。毎ターン終了時に最大MPを1％回復。悠久樹の祝福のMP回復とも重複する。'
  }
 });
