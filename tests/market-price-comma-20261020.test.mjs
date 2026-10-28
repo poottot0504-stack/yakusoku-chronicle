@@ -32,7 +32,7 @@ test('creating and repricing own listings use comma-capable text fields',()=>{
  const form=marketListingFormMarkup([{id:'x',kind:'material',name:'素材',available:1,category:'material'}]);
  assert.match(form,/data-market-listing-price type="text" inputmode="numeric"/);
  const shop=marketStoreMarkup({profileName:'店',store:{},listings:[{id:'listing-1',itemName:'素材',unitPrice:1234567,status:'active',quantityRemaining:1}]});
- assert.match(shop,/data-market-price="listing-1" type="text" inputmode="numeric"/);
+ assert.match(shop,/data-market-price="listing-1"[^>]*type="text" inputmode="numeric"/);
  assert.match(shop,/value="1,234,567"/);
  assert.doesNotMatch(shop,/data-market-price="listing-1" type="number"/);
 });
