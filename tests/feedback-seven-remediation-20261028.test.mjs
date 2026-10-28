@@ -16,7 +16,6 @@ import {createWorldRun,recordWorldRunVictory,worldRunSummary} from '../src/core/
 import {createNewGame} from '../src/state/game-state.js';
 import {createDefaultRoster} from '../src/data/characters.js';
 import {ensureAdventureState,recordAdventureVictory} from '../src/core/adventure.js';
-import {SKILL_BOOK} from '../src/core/skillbook.js';
 
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 
