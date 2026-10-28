@@ -13,7 +13,10 @@ export function calculateDamage(actor,target,skill={},rng=Math.random){
  if(Number.isFinite(skill.maxHpDamageRatio))return Math.max(0,Math.floor(target.maxHp*Math.max(0,Math.min(1,skill.maxHpDamageRatio))));
  const hitChance=calculateHitChance(actor,target,skill);if(hitChance<1&&rng()>=hitChance)return 0;
  const offensive=getEffectiveCombatStat(actor,skill.kind==='magic'?'magic':'attack');
- const baseDefense=skill.kind==='magic'?(target.side==='enemy'?getEffectiveCombatStat(target,'magic'):0):getEffectiveCombatStat(target,'defense');const originalPierce=Math.max(0,Math.min(.8,skill.defensePierce??0));
+ // The 27F ring also reduces the defensive component of magic damage.
+ // Without this, spells used the target's magic stat and never benefited from armor erosion.
+ const armorErosion=Math.min(.01,Math.max(0,Number(target.mashoArmorShredStacks??0))*.001);
+ const baseDefense=skill.kind==='magic'?(target.side==='enemy'?getEffectiveCombatStat(target,'magic')*(1-armorErosion):0):getEffectiveCombatStat(target,'defense');const originalPierce=Math.max(0,Math.min(.8,skill.defensePierce??0));
  const effectivePierce=isShieldGuardJob(target.currentJob)&&shieldJobLevel(target)>=200?originalPierce*.5:originalPierce;
  const defense=baseDefense*(1-effectivePierce);
  const raw=(offensive*(skill.power??100)/100)-defense*.28;
