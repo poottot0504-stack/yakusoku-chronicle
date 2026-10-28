@@ -39,7 +39,7 @@ test('equipment candidate cards show the original 26-28F effects without user op
  const html=equipmentMarkup(s,hero.id);
  for(const [id,name,needle] of REWARDS){
   assert.equal(EQUIPMENT[id].description.includes(needle),true,id+' source definition');
-  const row=html.match(new RegExp('<article class="equipment-group-card[^]*?'+name+'[^]*?<\\/article>'))?.[0];
+  const row=html.split('data-equipment-search-name="'+name+'"')[1]?.split('</article>')[0];
   assert.ok(row,name+' equipment candidate exists');
   assert.ok(row.includes('equipment-special-effect'),name+' has visible special-effect text');
   assert.ok(row.includes(needle),name+' shows its actual effect');

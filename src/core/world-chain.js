@@ -10,10 +10,12 @@ export function createWorldRun(regionId,total=WORLD_RUN_LENGTH){
  return {regionId,total,completed:0,stopAfterCurrent:false,earnedGold:0};
 }
 
-export function recordWorldRunVictory(run,{regionId,earnedGold=0}={}){
+export function recordWorldRunVictory(run,{regionId,earnedGold=0,rewardsByCharacter=null,drops=null}={}){
  if(!run||regionId!==run.regionId||run.completed>=run.total)throw new Error('連戦の勝利記録が不正です');
  run.completed++;
  run.earnedGold+=Math.max(0,Number(earnedGold)||0);
+ if(rewardsByCharacter){run.expByCharacter??={};run.jobExpByCharacter??={};for(const [id,reward] of Object.entries(rewardsByCharacter)){run.expByCharacter[id]=(run.expByCharacter[id]??0)+Math.max(0,Number(reward.characterExp??0));run.jobExpByCharacter[id]=(run.jobExpByCharacter[id]??0)+Math.max(0,Number(reward.jobExp??0));}}
+ if(drops){run.drops??=[];const merged=new Map(run.drops.map(d=>[d.id,{...d}]));for(const d of drops){if(!d?.id)continue;const prev=merged.get(d.id);if(prev)prev.qty+=Number(d.qty)||0;else merged.set(d.id,{id:d.id,name:d.name,qty:Math.max(0,Number(d.qty)||0)});}run.drops=[...merged.values()].filter(d=>d.qty>0);}
  return run;
 }
 
@@ -31,5 +33,5 @@ export function worldRunCanContinue(run,{regionId=run?.regionId,partyReady=true}
 export function worldRunSummary(run,status='completed'){
  if(!run)throw new Error('連戦の記録がありません');
  return {regionId:run.regionId,total:run.total,completed:run.completed,
-  status,earnedGold:run.earnedGold};
+  status,earnedGold:run.earnedGold,...(run.expByCharacter?{expByCharacter:{...run.expByCharacter},jobExpByCharacter:{...run.jobExpByCharacter}}:{}),...(run.drops?{drops:run.drops.map(d=>({...d}))}:{})};
 }

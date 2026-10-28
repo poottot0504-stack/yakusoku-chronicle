@@ -70,9 +70,11 @@ function resolveOffensiveSkill(b,a,action,skill,rng){
     const beforeHp=victim.hp;
     if(a.side==='enemy')applyShieldCoverDamage(b,victim,amount,{allTargets:!!skill.allTargets});
     else victim.hp=Math.max(0,victim.hp-amount);
-    damage+=beforeHp-victim.hp;
+    const landed=beforeHp-victim.hp;
+    damage+=landed;
+    // Each landed hit of a multi-hit attack must apply a separate ring stack.
+    if(landed>0)applyDepthArmorShred(a,victim,landed);
    }
-  if(damage>0)applyDepthArmorShred(a,victim,damage);
   const elementMult=getElementMultiplier(hitSkill.element,victim);damageByTarget[victim.id]=damage;weaknessByTarget[victim.id]=hitSkill.element!=='none'&&elementMult>1;resistByTarget[victim.id]=hitSkill.element!=='none'&&elementMult<1?Math.round((1-elementMult)*100):0;
   if(victim.eidel)updateEidelPhase(victim);
   const secondary=[];
@@ -92,7 +94,7 @@ function resolveActionInternal(b,a,action,rng){
   const originalHp=target.hp;
   if(a.side==='enemy')applyShieldCoverDamage(b,target,rawDamage);
   else target.hp=Math.max(0,target.hp-rawDamage);
-  const damage=originalHp-target.hp;if(damage>0)applyDepthArmorShred(a,target,damage);if(target.eidel)updateEidelPhase(target);b.log.push(`${a.name}の攻撃！ ${target.name}は攻撃を受けた　${damage}ダメージ`);return {ok:true,type:'attack',damage,targetId:target.id,outcome:battleOutcome(b)};
+  const damage=originalHp-target.hp;const armorShredded=damage>0&&applyDepthArmorShred(a,target,damage);if(armorShredded)b.log.push(`${target.name}の防御低下：${(target.mashoArmorShredStacks*.1).toFixed(1)}%（最大1%）`);if(target.eidel)updateEidelPhase(target);b.log.push(`${a.name}の攻撃！ ${target.name}は攻撃を受けた　${damage}ダメージ`);return {ok:true,type:'attack',damage,targetId:target.id,outcome:battleOutcome(b)};
  }
  if(action.type==='skill'){
   const skill=action.skill??{};const cost=Math.max(0,Number(skill.mp??0));if((a.mp??0)<cost)return {ok:false,message:'MPが足りない！'};if(skill.type==='revive'&&(!b.actorMap[action.targetId]||b.actorMap[action.targetId].hp>0))return {ok:false,message:'戦闘不能の仲間がいません'};a.mp-=cost;
