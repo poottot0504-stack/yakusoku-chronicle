@@ -6,7 +6,8 @@ const HP_LEVELS=[10,20,30,45,60];
 const DEF_LEVELS=[80,95,100,120,150];
 export const isShieldGuardJob=(jobId)=>SHIELD_GUARD_JOBS.includes(jobId);
 export const shieldJobLevel=a=>Math.max(1,Number(a?.jobLevels?.[a?.currentJob]??1)||1);
-export const shieldProgressRate=(level,thresholds)=>thresholds.filter(min=>level>=min).length*.03;
+// Each learned 3/6/9/12/15% passive stacks with earlier tiers (45% by tier five).
+export const shieldProgressRate=(level,thresholds)=>thresholds.reduce((sum,min,i)=>sum+(level>=min?(i+1)*.03:0),0);
 export function shieldProgressBonus(character,kind){
  if(!isShieldGuardJob(character?.currentJob))return 0;
  const lv=shieldJobLevel(character);
@@ -27,8 +28,8 @@ export function applyShieldOpeningShouts(battle){
   if(active.has(id))continue;
   active.add(id);
   const values=isGreat?{defensePct:.20}:{attackPct:.20,magicPct:.20};
-  for(const target of allies)applyTimedEffect(target,{kind:'buff',id,turns:3,...values});
-  logs.push(`🛡️ ${protector.name}の${isGreat?'防御':'攻撃'}の掛け声！ 味方全体の${isGreat?'防御':'攻撃・魔法'}が20%上昇（3ターン）`);
+  for(const target of allies)applyTimedEffect(target,{kind:'buff',id,permanent:true,...values});
+  logs.push(`🛡️ ${protector.name}の${isGreat?'防御':'攻撃'}の掛け声！ 味方全体の${isGreat?'防御':'攻撃・魔法'}が20%上昇（戦闘中常時）`);
  }
  battle.log?.push(...logs);
  return logs;
