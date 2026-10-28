@@ -1696,7 +1696,7 @@ document.addEventListener('click',e=>{
  }
  if(el.dataset.toggleParty)return toggleParty(el.dataset.toggleParty);
  if(el.hasAttribute('data-masho-open')){if(!hasFirstClear(state))return toast('一周目クリアで解放されます');setMashoResultVisibility(state,false);view='masho';closeModal();return renderGame();}
- if(el.hasAttribute('data-masho-back')){setMashoResultVisibility(state,false);view='adventure';return renderGame();}
+ if(el.hasAttribute('data-masho-back')){if(battle)return;setMashoResultVisibility(state,false);view='town';saveNow();return renderGame();}
  if(el.hasAttribute('data-masho-dismiss-result')){setMashoResultVisibility(state,false);saveNow();return renderGameKeepVertical();}
  if(el.dataset.mashoJob){state.ui??={};state.ui.mashoJob=el.dataset.mashoJob;return renderGameKeepVertical();}
  if(el.dataset.mashoRun10||el.dataset.mashoRunConfirm){if(battle)return;try{const floor=Number(el.dataset.mashoRun10??el.dataset.mashoRunConfirm);if(!Number.isInteger(floor)||!canEnterMashoFloor(state,floor)||state.mashoCave?.highestCleared<floor)throw new Error('クリア済みの階層のみ10連戦できます');mashoRun=createMashoRun(floor);state.mashoCave.lastRunSummary=null;setMashoResultVisibility(state,false);return startMashoFloorBattle(floor);}catch(err){mashoRun=null;toast(err.message);return;}}
