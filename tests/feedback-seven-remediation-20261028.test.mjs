@@ -25,7 +25,7 @@ test('world map 10 wins keep full XP and sum every material receipt rather than 
  const initial=(hero.exp??0);
  const r=createWorldRun('field');
  for(let i=0;i<10;i++){
-  const win=recordAdventureVictory(s,{regionId:'field',enemyIds:['slime'],exp:10,jobExp:8,gold:10});
+  const win=recordAdventureVictory(s,{regionId:'field',enemyIds:['slime'],exp:10,jobExp:8,gold:10,now:Date.UTC(2026,8,1)});
   recordWorldRunVictory(r,{regionId:'field',earnedGold:10,rewardsByCharacter:win.rewardsByCharacter,
    drops:[{id:'copperOre',name:'銅鉱石',qty:1},...(i===3?[{id:'mythrilOre',name:'ミスリル鉱石',qty:2}]:[])]});
  }
