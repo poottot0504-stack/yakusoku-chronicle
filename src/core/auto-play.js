@@ -45,12 +45,23 @@ export function chooseAutoAction({actor,allies=[],enemies=[],skills=[],strategy=
   const heal=appropriate[0]??healers[0];
   if(heal)return {type:'skill',skill:heal,skillId:heal.id,targetId:heal.target==='all'?actor.id:critical.id};
  }
- // Do not spam buffs, especially not when an attack will finish the fight.
- const buffs=usable.filter(s=>s.type==='buff');
- const alreadyBuffed=raid?Number(actor.raidBuff?.turns??0)>1:(actor.buffs??[]).some(x=>Number(x.turns??0)>1);
- if(!alreadyBuffed&&buffs.length&&(turn<=2||turn%3===1)&&alive.some(x=>Number(x.hp??0)>Math.max(150,(actor.stats?.attack??1)*2))){
-  const pick=buffs.sort((a,b)=>Number(b.selfBuff?.attackPct??0)+Number(b.selfBuff?.magicPct??0)+Number(b.selfBuff?.defensePct??0)-(Number(a.selfBuff?.attackPct??0)+Number(a.selfBuff?.magicPct??0)+Number(a.selfBuff?.defensePct??0)))[0];
-  return {type:'skill',skill:pick,skillId:pick.id,targetId:actor.id};
+ // A passive shield shout is a DIFFERENT effect from a mage's active buff.
+ // Check the effect ID of each usable skill on its actual targets, rather
+ // than blocking every active buff whenever one shield shout is present.
+ // For raids keep the separate raidBuff state, which is not a normal buff list.
+ const buffIsActive=(target,id)=>(target.buffs??[]).some(e=>e.id===id&&(e.permanent===true||Number(e.turns??0)>1));
+ const needsBuff=skill=>{
+  if(raid)return Number(actor.raidBuff?.turns??0)<=1;
+  const targets=skill.target==='all'?friends:[actor];
+  const id=skill.id??'focus';
+  return targets.some(target=>!buffIsActive(target,id));
+ };
+ if((turn<=2||turn%3===1)&&alive.some(x=>Number(x.hp??0)>Math.max(150,(actor.stats?.attack??1)*2))){
+  const buffs=usable.filter(s=>s.type==='buff'&&!s.autoPassive&&needsBuff(s));
+  if(buffs.length){
+   const pick=buffs.sort((a,b)=>Number(b.selfBuff?.attackPct??0)+Number(b.selfBuff?.magicPct??0)+Number(b.selfBuff?.defensePct??0)-(Number(a.selfBuff?.attackPct??0)+Number(a.selfBuff?.magicPct??0)+Number(a.selfBuff?.defensePct??0)))[0];
+   return {type:'skill',skill:pick,skillId:pick.id,targetId:actor.id};
+  }
  }
  // Apply real utility-only debuffs early, but never recast every turn.
  const strongEnemy=alive.some(x=>Number(x.hp??0)>Math.max(220,(actor.stats?.attack??1)*4));

@@ -2,6 +2,7 @@ import {EQUIPMENT} from '../data/equipment.js';
 import {ARENA_COIN_ID} from '../data/arena-equipment.js';
 import {getItemDef,getItemCategory} from '../core/items.js';
 import {SHOPS} from '../data/shops.js';
+import {MARKET_MASHO_20_25_EQUIPMENT_IDS,MARKET_MASHO_20_25_MAX_PRICE} from './masho-mid-price-items.js';
 
 export const MARKET_MIN_PRICE=1;
 export const MARKET_MAX_PRICE=30_000_000;
@@ -15,7 +16,10 @@ export const MARKET_RARE_EQUIPMENT_IDS=Object.freeze([
 export function marketPriceLimitForItem(item={}){
  const kind=item.kind??item.itemKind??item.itemPayload?.kind;
  const id=item.equipmentId??item.itemId??item.itemPayload?.equipmentId;
- return kind==='equipment'&&MARKET_RARE_EQUIPMENT_IDS.includes(id)?MARKET_RARE_EQUIPMENT_MAX_PRICE:MARKET_MAX_PRICE;
+ if(kind!=='equipment')return MARKET_MAX_PRICE;
+ if(MARKET_RARE_EQUIPMENT_IDS.includes(id))return MARKET_RARE_EQUIPMENT_MAX_PRICE;
+ if(MARKET_MASHO_20_25_EQUIPMENT_IDS.includes(id))return MARKET_MASHO_20_25_MAX_PRICE;
+ return MARKET_MAX_PRICE;
 }
 export const MARKET_MAX_ACTIVE_LISTINGS=10;
 
