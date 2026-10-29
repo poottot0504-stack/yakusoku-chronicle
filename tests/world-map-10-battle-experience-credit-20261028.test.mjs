@@ -26,7 +26,7 @@ function realSettlementHarness(){
   TRAINING_FESTIVAL:{id:'training-festival'},TWIN_STAR_FESTIVAL:{id:'twin-star-festival'},
   view:'adventure',
   clearNormalAuto:()=>{},syncPlayTime:()=>{},syncBattlePartyToState:()=>{},
-  recordAdventureVictory,recordWorldRunVictory,worldRunCanContinue,worldRunSummary,
+  recordAdventureVictory:(current,options)=>recordAdventureVictory(current,{...options,now:Date.UTC(2026,8,1)}),recordWorldRunVictory,worldRunCanContinue,worldRunSummary,
   awardBattleDrops:()=>[],formatDropLines:()=>[],auditVictory:()=>{},recordAchievementEvent:()=>{},
   updateQuestProgress:()=>{},getActiveParty,getCharacterResourceCaps,
   getActivePartyMock:()=>getActiveParty(state),
