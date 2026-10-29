@@ -1,5 +1,6 @@
 /** Deterministic UI-side decision making; never awards XP or bypasses battle/raid rules. */
 import { getElementMultiplier, getSkillElement } from './elements.js';
+import { chooseAutoItemAction } from './auto-items.js';
 
 export const AUTO_DEFAULTS=Object.freeze({enabled:false,speed:1,strategy:'balanced'});
 const SPEEDS=[1,2,4];
@@ -28,10 +29,12 @@ function offensiveScore(skill,enemies,actor,strategy){
  const threshold=actor.mp/Math.max(1,actor.maxMp??actor.mp);
  return offensive+utility-mpPenalty-(threshold<.2?.40:0);
 }
-export function chooseAutoAction({actor,allies=[],enemies=[],skills=[],strategy='balanced',warning=false,turn=1,raid=false}){
+export function chooseAutoAction({actor,allies=[],enemies=[],skills=[],items=[],plannedActions=[],strategy='balanced',warning=false,turn=1,raid=false}){
  const alive=enemies.filter(e=>Number(e.hp??0)>0),friends=allies.filter(a=>Number(a.hp??0)>0);
  if(!actor||!alive.length)return {type:raid?'guard':'defend'};
  if(warning)return {type:raid?'guard':'defend'};
+ const recovery=chooseAutoItemAction({actor,allies,items,strategy,plannedActions});
+ if(recovery)return recovery;
  const usable=skills.filter(s=>readySkill(s,actor));
  const dead=allies.filter(x=>Number(x.hp??0)<=0);
  const revive=usable.filter(s=>s.type==='revive').sort((a,b)=>(a.mp??0)-(b.mp??0))[0];
