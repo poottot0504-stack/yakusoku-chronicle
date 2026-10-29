@@ -44,8 +44,15 @@ function reservations(plannedActions=[],allies=[]){
 export function chooseAutoItemAction({actor,allies=[],items=[],strategy='balanced',plannedActions=[]}={}){
  if(!actor||!allies.length||!items.length)return null;
  const {used,covered}=reservations(plannedActions,allies);
- const stock=items.filter(item=>item?.target==='ally'&&item.consumable!==false&&item.id&&
-  finite(item.qty)-(used.get(item.id)??0)>0);
+ // Inventory can contain several stacks of the same item. Sum them before
+ // subtracting earlier party members' reservations for this turn.
+ const pooled=new Map();
+ for(const item of items){
+  if(item?.target!=='ally'||item.consumable===false||!item.id||finite(item.qty)<=0)continue;
+  const previous=pooled.get(item.id);
+  pooled.set(item.id,{...item,qty:finite(item.qty)+(previous?.qty??0)});
+ }
+ const stock=[...pooled.values()].filter(item=>item.qty-(used.get(item.id)??0)>0);
  if(!stock.length)return null;
  const candidates=allies.filter(a=>a?.id&&!covered.has(a.id));
  const pickBest=options=>options.sort((a,b)=>b.score-a.score||a.item.id.localeCompare(b.item.id))[0]??null;
