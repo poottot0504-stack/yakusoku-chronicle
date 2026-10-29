@@ -63,6 +63,18 @@ test('autoplay protects against planned over-consumption and double-target recov
  assert.notEqual(plannedHeal.type,'item','do not spend an item over an already planned healing spell');
 });
 
+test('duplicated item stacks are pooled and never overspent during party action planning',()=>{
+ const hero=make('hero',1000,200),a=make('a',30,100),b=make('b',40,100),c=make('c',50,100);
+ const items=[{...ITEMS.megaPotion,qty:1},{...ITEMS.megaPotion,qty:1}];
+ const first=auto(hero,[hero,a,b,c],items);
+ assert.equal(first.type,'item');
+ const second=auto(hero,[hero,a,b,c],items,{plannedActions:[first]});
+ assert.equal(second.type,'item','one of two stacks remains after the first reservation');
+ assert.notEqual(second.targetId,first.targetId);
+ const third=auto(hero,[hero,a,b,c],items,{plannedActions:[first,second]});
+ assert.notEqual(third.type,'item','two reserved copies fully exhaust inventory');
+});
+
 test('normal battle auto-item goes through the real battle resolver and consumes exactly one item',()=>{
  const actor=make('actor',1000,200),hurt=make('hurt',50,200);
  const state={inventory:[{id:'megaPotion',qty:1},{id:'highPotion',qty:1}]};
