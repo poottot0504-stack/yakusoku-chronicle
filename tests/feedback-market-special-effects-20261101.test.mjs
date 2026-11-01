@@ -38,9 +38,8 @@ test('buyer browse listings show unique abilities, stats and real store informat
  const items=special.map(([id],i)=>listing(id,i+1));
  const html=marketBrowseMarkup({items});
  for(const [,name,needle] of special){
-  const row=html.split('<article class="market-listing ')[1]?.includes(name);
-  assert.equal(row,true);
-  const section=html.slice(html.indexOf('<b>'+name+'</b>'));
+  const section=html.split('<b>'+name+'</b>')[1]?.split('</article>')[0];
+  assert.ok(section,name+' has its own product card');
   assert.ok(section.includes('market-special-effect'),name);
   assert.ok(section.includes('✨ 固有効果：'),name);
   assert.ok(section.includes(needle),name);
