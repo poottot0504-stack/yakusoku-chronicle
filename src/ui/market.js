@@ -25,6 +25,30 @@ function equipmentDefinition(item={}){
  const id=payload.equipmentId??payload.equipment_id??inst.equipmentId??inst.equipment_id??item.itemId??item.item_id;
  return EQUIPMENT[id]??null;
 }
+// The marketplace reads special effects from canonical equipment definitions,
+// never from player-supplied listing text. Keep the labels tied to battle stats.
+const effectPercent=value=>`${(Number(value)*100).toLocaleString('ja-JP',{maximumFractionDigits:2})}％`;
+export function marketDepthSpecialEffectText(equipmentId){
+ const def=EQUIPMENT[equipmentId];
+ if(!def)return '';
+ switch(equipmentId){
+  case 'masho-26-eternal-tree-blessing':
+   return Number(def.turnRegenRatio)>0
+    ?`毎ターン終了時、最大HP・最大MPをそれぞれ${effectPercent(def.turnRegenRatio)}回復`:'';
+  case 'masho-27-infernal-eclipse-ring':
+   return Number(def.armorShredPerHit)>0&&Number(def.armorShredMaxStacks)>0
+    ?`通常攻撃・特技・攻撃魔法が命中するたび敵の防御力を${effectPercent(def.armorShredPerHit)}減少（最大${def.armorShredMaxStacks}回・計${effectPercent(def.armorShredPerHit*def.armorShredMaxStacks)}）`:'';
+  case 'masho-28-final-claussolas':
+   return Number(def.turnMpRegenRatio)>0
+    ?`毎ターン終了時、最大MPを${effectPercent(def.turnMpRegenRatio)}回復（悠久樹の祝福と重複）${def.heroOnly?'／主人公専用':''}`:'';
+  default:return '';
+ }
+}
+function marketSpecialEffectMarkup(item={}){
+ const def=equipmentDefinition(item);
+ const text=marketDepthSpecialEffectText(def?.id);
+ return text?`<small class="market-special-effect">✨ 固有効果：${esc(text)}</small>`:'';
+}
 function canJobUseEquipment(job,item){
  if(!job||!item)return false;
  if(item.allowedJobs&&!item.allowedJobs.includes(job.id))return false;
@@ -54,7 +78,7 @@ function equipmentListingMeta(item={}){
  const statText=labels.filter(([key])=>Number(stats[key]??0)>0).map(([key,label])=>`${label}+${Number(stats[key])}`).join(' / ');
  const def=equipmentDefinition(item),resistText=Object.entries(def?.elementResist??{}).filter(([,v])=>Number(v)>0).map(([k,v])=>`${elementLabel(k)}耐性+${Math.round(Number(v)*100)}%`).join(' / ');
  const jobText=equipmentJobText(item);
- return `<small>${level>0?`強化＋${level}`:'未強化'}${statText?` ・ ${statText}`:''}</small>${resistText?`<small>🛡️ ${esc(resistText)}</small>`:''}${jobText?`<small class="market-job-label">${esc(jobText)}</small>`:''}`;
+ return `<small>${level>0?`強化＋${level}`:'未強化'}${statText?` ・ ${statText}`:''}</small>${resistText?`<small>🛡️ ${esc(resistText)}</small>`:''}${marketSpecialEffectMarkup(item)}${jobText?`<small class="market-job-label">${esc(jobText)}</small>`:''}`;
 }
 
 export function marketBrowseMarkup(browse={},now=Date.now()){
@@ -124,5 +148,5 @@ export function marketListingFormMarkup(candidates=[]){
   if(Object.hasOwn(counts,cat))counts[cat]++;
  }
  const defaultCategory=LISTING_CATEGORIES.find(([id])=>counts[id]>0)?.[0]??'all';
- return `<section class="market-listing-form" data-no-pixel-icon data-market-default-category="${defaultCategory}"><h2>商品を出品</h2><p class="notice">通常商品は1個あたり1G〜30,000,000G。魔障20〜25階層の対象装備は最大1,000,000,000G（10億G）、26〜28階層の限定装備は最大3,000,000,000G（30億G）。装備品は1点ずつ出品します。ショップ販売品・薬草は出品できません。</p>${rows.length?`<div class="market-listing-type-tabs" role="tablist" aria-label="出品カテゴリ">${LISTING_CATEGORIES.map(([id,label])=>`<button type="button" class="market-tap market-filter-chip ${defaultCategory===id?'active':''}" data-market-listing-category="${id}" data-category-label="${label}" aria-pressed="${defaultCategory===id}" ${counts[id]?'':'disabled'}>${label}<small>${counts[id]}件</small></button>`).join('')}</div><div class="market-category-summary" data-market-listing-category-summary></div>`:''}<div class="market-listing-grid"><label class="market-form-field"><span>商品：</span><select data-market-listing-item>${rows.map(x=>{const key=x.kind==='equipment'?`equipment:${x.instanceId}`:`${x.kind}:${x.id}`;const plus=x.kind==='equipment'&&Number(x.enhanceLevel??0)>0?` ＋${Number(x.enhanceLevel)}`:'';const itemId=x.kind==='equipment'?(x.equipmentId??x.id):x.id;const count=Number(x.available??1),unit=x.kind==='equipment'?'点':'個',categoryLabel=LISTING_CATEGORIES.find(([id])=>id===x.category)?.[1]??'商品';return `<option value="${esc(key)}" data-available="${count}" data-kind="${esc(x.kind)}" data-item-id="${esc(itemId)}" data-category="${esc(x.category??'all')}" data-category-label="${esc(categoryLabel)}" data-name="${esc(x.name)}" data-market-max-price="${marketPriceLimitForItem(x)}" data-enhance-level="${Number(x.enhanceLevel??0)}">${esc(x.name)}${plus}</option>`;}).join('')}</select></label><div class="market-selected-item" data-market-selected-item></div><label class="market-form-field"><span>個数：</span><div class="market-quantity-picker"><button type="button" class="market-tap" data-market-qty-adjust="-1">−1</button><input data-market-listing-quantity type="number" min="1" value="1" inputmode="numeric"><button type="button" class="market-tap" data-market-qty-adjust="1">＋1</button><button type="button" class="market-tap market-max-button" data-market-qty-adjust="max">MAX</button></div></label><label class="market-form-field"><span>1つの値段：</span><input data-market-listing-price type="text" inputmode="numeric" pattern="[0-9,]*" autocomplete="off" value="1" placeholder="例：1,000"></label></div><div class="market-price-guide" data-market-price-guide><b>相場：</b><span>商品を選択すると確認できます</span></div><p class="market-listing-hint" data-market-listing-available>${rows.length?'所持数に応じて出品個数を決められます。':''}</p><button class="market-tap action-main market-listing-submit" data-market-submit-listing ${rows.length?'':'disabled'}>出品する</button></section>`;
+ return `<section class="market-listing-form" data-no-pixel-icon data-market-default-category="${defaultCategory}"><h2>商品を出品</h2><p class="notice">通常商品は1個あたり1G〜30,000,000G。魔障20〜25階層の対象装備は最大1,000,000,000G（10億G）、26〜28階層の限定装備は最大3,000,000,000G（30億G）。装備品は1点ずつ出品します。ショップ販売品・薬草は出品できません。</p>${rows.length?`<div class="market-listing-type-tabs" role="tablist" aria-label="出品カテゴリ">${LISTING_CATEGORIES.map(([id,label])=>`<button type="button" class="market-tap market-filter-chip ${defaultCategory===id?'active':''}" data-market-listing-category="${id}" data-category-label="${label}" aria-pressed="${defaultCategory===id}" ${counts[id]?'':'disabled'}>${label}<small>${counts[id]}件</small></button>`).join('')}</div><div class="market-category-summary" data-market-listing-category-summary></div>`:''}<div class="market-listing-grid"><label class="market-form-field"><span>商品：</span><select data-market-listing-item>${rows.map(x=>{const key=x.kind==='equipment'?`equipment:${x.instanceId}`:`${x.kind}:${x.id}`;const plus=x.kind==='equipment'&&Number(x.enhanceLevel??0)>0?` ＋${Number(x.enhanceLevel)}`:'';const itemId=x.kind==='equipment'?(x.equipmentId??x.id):x.id;const count=Number(x.available??1),unit=x.kind==='equipment'?'点':'個',categoryLabel=LISTING_CATEGORIES.find(([id])=>id===x.category)?.[1]??'商品';return `<option value="${esc(key)}" data-available="${count}" data-kind="${esc(x.kind)}" data-item-id="${esc(itemId)}" data-category="${esc(x.category??'all')}" data-category-label="${esc(categoryLabel)}" data-name="${esc(x.name)}" data-market-max-price="${marketPriceLimitForItem(x)}" data-enhance-level="${Number(x.enhanceLevel??0)}" data-market-special-effect="${esc(x.kind==='equipment'?marketDepthSpecialEffectText(itemId):'')}">${esc(x.name)}${plus}</option>`;}).join('')}</select></label><div class="market-selected-item" data-market-selected-item></div><label class="market-form-field"><span>個数：</span><div class="market-quantity-picker"><button type="button" class="market-tap" data-market-qty-adjust="-1">−1</button><input data-market-listing-quantity type="number" min="1" value="1" inputmode="numeric"><button type="button" class="market-tap" data-market-qty-adjust="1">＋1</button><button type="button" class="market-tap market-max-button" data-market-qty-adjust="max">MAX</button></div></label><label class="market-form-field"><span>1つの値段：</span><input data-market-listing-price type="text" inputmode="numeric" pattern="[0-9,]*" autocomplete="off" value="1" placeholder="例：1,000"></label></div><div class="market-price-guide" data-market-price-guide><b>相場：</b><span>商品を選択すると確認できます</span></div><p class="market-listing-hint" data-market-listing-available>${rows.length?'所持数に応じて出品個数を決められます。':''}</p><button class="market-tap action-main market-listing-submit" data-market-submit-listing ${rows.length?'':'disabled'}>出品する</button></section>`;
 }
