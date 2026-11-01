@@ -82,3 +82,9 @@
 /* Show comma-separated prices up to 30,000,000G without clipping on phones. */
 .market-own-row input[data-market-price]{width:132px;max-width:100%;text-align:right;font-variant-numeric:tabular-nums}
 .market-listing-form input[data-market-listing-price]{font-variant-numeric:tabular-nums}
+
+/* Marketplace special abilities stay readable in listings and the seller's
+   selected-item preview, including narrow iPhone layouts. */
+.market-special-effect{display:block!important;margin-top:3px;color:#ffe3a6!important;opacity:1!important;font-size:.77rem;line-height:1.6;overflow-wrap:anywhere;white-space:normal}
+.market-listing-main .market-special-effect,.market-own-row .market-special-effect{font-size:.74rem}
+.market-selected-item .market-special-effect{max-width:100%;font-size:.78rem;letter-spacing:normal}
