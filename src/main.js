@@ -907,7 +907,8 @@ function syncMarketListingForm(){
  const current=Math.max(1,Number(qtyInput.value??1));qtyInput.value=String(Math.min(current,available));
  if(summary){
   const plus=kind==='equipment'&&Number(option?.dataset?.enhanceLevel??0)>0?` ＋${Number(option.dataset.enhanceLevel)}`:'';
-  summary.innerHTML=`<div><small>${esc(categoryLabel)}</small><strong>${esc(option?.dataset?.name??'商品')}${plus}</strong></div><span>所持 <b>${available}</b>${isEquipment?'点':'個'}</span>`;
+  const specialEffect=isEquipment?String(option?.dataset?.marketSpecialEffect??''):'';
+   summary.innerHTML=`<div><small>${esc(categoryLabel)}</small><strong>${esc(option?.dataset?.name??'商品')}${plus}</strong>${specialEffect?`<small class="market-special-effect">✨ 固有効果：${esc(specialEffect)}</small>`:''}</div><span>所持 <b>${available}</b>${isEquipment?'点':'個'}</span>`;
  }
  if(hint)hint.textContent=isEquipment?'装備品は1点ずつ出品します。':`1〜${available}個 の範囲で出品できます。`;
  modal.querySelectorAll('[data-market-qty-adjust]').forEach(btn=>{btn.disabled=isEquipment;});
