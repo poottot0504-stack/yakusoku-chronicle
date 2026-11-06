@@ -40,7 +40,9 @@ export function collectionRankingMarkup(input={},now=Date.now()){
   input.rewardClaimable?'🎁 あなたのランキング報酬を受け取れます！':'報酬の受取対象ではないか、現在確認中です。';
  const rewardButton=phase==='ended'&&!input.rewardDelivered&&(input.rewardClaimable||input.rewardReceipt)?
   '<button class="action-main" data-collection-reward-claim>報酬を受け取る</button>':'';
+ const incidentNote=phase==='active'&&now>=Date.parse('2026-11-06T22:00:00+09:00')
+  ?'<p class="notice">11月6日、一部の討伐記録がランキングに反映されない問題が確認されました。サーバーの集計処理を修正しています。修正前の未反映記録は調査中です。ランキングの数値はサーバー確認済みの分のみ表示します。</p>':'';
  const rewardPanel=phase==='ended'?`<section class="collection-ranking-reward" aria-label="ランキング報酬"><h3>🎁 ランキング報酬</h3><p role="status">${esc(rewardStatus)}</p>${rewardButton}<button data-collection-reward-refresh ${input.rewardLoading?'disabled':''}>受取状況を確認</button></section>`:'';
  const controls=phase==='upcoming'?'':`<div class="collection-ranking-actions"><button data-collection-ranking-page="${page-1}" ${page===1||input.loading?'disabled':''}>前へ</button><span>${fmt(page)}ページ / 参加者 ${fmt(total)}人</span><button data-collection-ranking-page="${page+1}" ${!hasNext||input.loading?'disabled':''}>次へ</button><button data-collection-ranking-refresh ${input.loading?'disabled':''}>更新</button></div>`;
- return `<section class="collection-ranking" data-no-pixel-icon><h2>🏆 討伐の証争奪戦・公開ランキング</h2><p>11月6日 0:00 ～ 11月16日 23:59（日本時間）</p><p>通常ダンジョンのモンスター1体につき討伐の証1個。全プレイヤーが閲覧できます。</p><p role="status">${esc(summary)}</p>${own}<ol class="collection-ranking-list" aria-label="みんなの討伐の証ランキング">${entries}</ol>${controls}${rewardPanel}<p class="notice">表示は公開用のプレイヤー名・順位・証の個数のみ。不正調査情報や個人情報は表示しません。記録の確定まで順位が変わる場合があります。</p><button data-close-modal>閉じる</button></section>`;
+ return `<section class="collection-ranking" data-no-pixel-icon><h2>🏆 討伐の証争奪戦・公開ランキング</h2><p>11月6日 0:00 ～ 11月16日 23:59（日本時間）</p><p>通常ダンジョンのモンスター1体につき討伐の証1個。全プレイヤーが閲覧できます。</p><p role="status">${esc(summary)}</p>${own}<ol class="collection-ranking-list" aria-label="みんなの討伐の証ランキング">${entries}</ol>${controls}${incidentNote}${rewardPanel}<p class="notice">表示は公開用のプレイヤー名・順位・証の個数のみ。不正調査情報や個人情報は表示しません。記録の確定まで順位が変わる場合があります。</p><button data-close-modal>閉じる</button></section>`;
 }
