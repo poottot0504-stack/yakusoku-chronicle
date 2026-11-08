@@ -149,6 +149,7 @@ const playerStatsHeartbeat=startPlayerStatsHeartbeat({storage:session.storage,en
 const raidApi=createRaidApi();
 const progressionAuditApi=createProgressionAuditApi(undefined,session.storage,globalThis.fetch,playerStatsHeartbeat.playerId);
 void progressionAuditApi.flush().catch(()=>{});
+void progressionAuditApi.retryReview().catch(()=>{});
 const rankingApologyApi=createRankingApologyApi(undefined,undefined,session.storage);
 const huntCountApologyApi=createHuntCountApologyApi({storage:session.storage});
 let huntCountApologyStatus=null,huntCountApologyClaimBusy=false;
@@ -1411,7 +1412,8 @@ function collectionRankingViewMarkup(){
  const receipt=collectionRewardView.receipt;
  return collectionRankingMarkup({...collectionRankingView,rewardLoading:collectionRewardView.loading,rewardError:collectionRewardView.error,
   rewardFinalized:collectionRewardView.finalized,rewardClaimable:collectionRewardView.claimable,rewardReceipt:receipt,
-  rewardDelivered:!!receipt&&(collectionRewardDelivered(state,receipt)||session.storage.getItem(collectionRewardStorageKey())===receipt.id)});
+  rewardDelivered:!!receipt&&(collectionRewardDelivered(state,receipt)||session.storage.getItem(collectionRewardStorageKey())===receipt.id),
+  auditPendingReview:progressionAuditApi.pendingReview()});
 }
 function renderCollectionRankingPanel(){
  const panel=modal.querySelector('.collection-ranking');
