@@ -265,11 +265,15 @@ Deno.serve(async(req)=>{
       const since=new Date(Date.now()-60_000).toISOString();
       const {count:recentCount,error:rateError}=await db.from("yakusoku_audit_battles").select("*",{count:"exact",head:true}).eq("player_id",playerId).gte("accepted_at",since);
       if(rateError)return reply({ok:false,error:"db_rate_check"},500);
-      // Ten-battle auto-runs can legitimately exceed 15 clears/minute.
-      // Preserve the per-account request limiter and all XP/chain checks.
-      if((recentCount??0)>=35){
-        await securityEvent(authUserId,playerId,"progression_rate_limit",4,{battles_last_60s:recentCount});
-        return reply({ok:false,error:"rate_limited"},429);
+      // Collection standings review flags 28+ accepted battles in one minute.
+      // Reserve capacity for the WHOLE submitted batch; never split a party
+      // or accept an over-limit batch. The client keeps 429s queued for retry.
+      // This aligns the accepted-battle limit with the reward review threshold.
+      const submittedBattles=new Set(events.map(e=>String(e?.battleId??""))).size;
+      if((recentCount??0)+submittedBattles>27){
+        await securityEvent(authUserId,playerId,"progression_rate_limit",4,
+          {battles_last_60s:recentCount,submitted_battles:submittedBattles});
+        return reply({ok:false,error:"rate_limited",retry_after_seconds:60},429);
       }
 
       const {data:verifiedRows,error:verifiedError}=await db.from("yakusoku_verified_characters").select("player_id,save_slot,character_id,level,exp,job_id,job_level,trust_state,verified_battles,last_battle_at").eq("player_id",playerId);
