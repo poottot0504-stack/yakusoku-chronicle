@@ -51,19 +51,32 @@ function progressionScore(level:number,exp:number,jobId:string){
   for(let i=1;i<lv;i++)score+=requiredCharacterExp(i,jobId);
   return score;
 }
-// Only the game's magic-cave bosses can legitimately award enough job EXP
-// to raise a starter job by more than 15 levels in one battle.
+// Validate deep-cave floor AND the game's canonical boss ID. Never infer
+// a high-EXP boss merely from an attacker-chosen "masho-28-..." string.
+const MASHO_DEEP_BOSS_IDS:Record<number,string>={
+  21:"anima",22:"ifrit",23:"chryps",24:"fenrir",25:"lich",
+  26:"masho26-yggdravain",27:"masho27-volgrad",28:"masho28-graciel"
+};
 function mashoFloor(enemyIds:string[]){
   if(enemyIds.length!==1)return null;
-  const match=String(enemyIds[0]).match(/^masho-(20|1[0-9]|[1-9])-[a-z0-9-]+$/i);
-  return match?Number(match[1]):null;
+  const match=String(enemyIds[0]).match(/^masho-(2[0-8]|1[0-9]|[1-9])-([a-z0-9-]+)$/i);
+  if(!match)return null;
+  const floor=Number(match[1]);
+  if(floor>20 && MASHO_DEEP_BOSS_IDS[floor]!==match[2])return null;
+  return floor;
+}
+// Keep in sync with src/core/masho-cave.js's MASHO_FLOORS.
+function mashoFloorRewards(floor:number){
+  if(floor>=1&&floor<=20)return {exp:100000+(floor-1)*12000,jobExp:50000+(floor-1)*8000};
+  if(floor>=21&&floor<=25)return {exp:600000+(floor-21)*50000,jobExp:300000+(floor-21)*25000};
+  if(floor>=26&&floor<=28)return {exp:900000+(floor-26)*100000,jobExp:450000+(floor-26)*50000};
+  return null;
 }
 function allowedMashoJobGain(jobBefore:number,jobId:string,enemyIds:string[],cycle:number){
   const floor=mashoFloor(enemyIds);
   if(!floor)return 15;
-  // Magic cave job EXP = (50000 + (floor - 1) * 8000) * cycle(1 or 2)
-  // * time-limited event multiplier (up to 2). Use a conservative maximum.
-  let budget=(50000+(floor-1)*8000)*(cycle>=2?2:1)*2;
+  // Exact floor rewards (1–28) with an upper bound for NG+ and event boosts.
+  let budget=(mashoFloorRewards(floor)?.jobExp??0)*(cycle>=2?2:1)*2;
   let lv=Math.max(1,Math.min(400,asInt(jobBefore,1))),gained=0;
   while(lv<400&&gained<60){
     // No stored job-exp remainder: the first level may need just 1 EXP.
@@ -77,8 +90,9 @@ const REGION_ORDER=["field","forest","coast","cave","snow","desert","swamp","vol
 function maxRawBattleExp(battleType:string,regionId:string,avgLevel:number,enemyCount:number,enemyIds:string[]=[],cycle=1){
   if(regionId==="masho"){
     const floor=battleType==="boss"?mashoFloor(enemyIds):null;
-    // 20 floors, each with its own reward. Support NG+ (x2) and event (x2).
-    return floor?Math.min(2_000_000,(100000+(floor-1)*12000)*(cycle>=2?2:1)*2+32):330000;
+    // All 28 floors. Unrecognized/deceptive IDs stay on the conservative cap.
+    const reward=floor?mashoFloorRewards(floor):null;
+    return reward?Math.min(2_000_000,reward.exp*(cycle>=2?2:1)*2+32):330000;
   }
   if(battleType==="raid")return 50000;
   if(battleType==="training")return 50000;
