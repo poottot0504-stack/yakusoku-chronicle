@@ -248,6 +248,13 @@ Deno.serve(async(req)=>{
       return reply({ok:true,slot_reset:saveSlot,characters_reset:data?.length??0});
     }
 
+    // Keep this version monotonic when validation rules change. The browser
+    // retries quarantined (not previously accepted) battle proofs only after
+    // a newer policy is deployed.
+    if(action==="progression_audit_policy"){
+      return reply({ok:true,policy_version:13});
+    }
+
     if(action==="progression_audit"){
       const {data:guardAllowed,error:guardError}=await db.rpc("yakusoku_take_progression_request",{p_auth_user_id:authUserId});
       if(guardError)return reply({ok:false,error:"rate_guard_unavailable"},503);
@@ -258,9 +265,15 @@ Deno.serve(async(req)=>{
       const since=new Date(Date.now()-60_000).toISOString();
       const {count:recentCount,error:rateError}=await db.from("yakusoku_audit_battles").select("*",{count:"exact",head:true}).eq("player_id",playerId).gte("accepted_at",since);
       if(rateError)return reply({ok:false,error:"db_rate_check"},500);
-      if((recentCount??0)>=15){
-        await securityEvent(authUserId,playerId,"progression_rate_limit",4,{battles_last_60s:recentCount});
-        return reply({ok:false,error:"rate_limited"},429);
+      // Collection standings review flags 28+ accepted battles in one minute.
+      // Reserve capacity for the WHOLE submitted batch; never split a party
+      // or accept an over-limit batch. The client keeps 429s queued for retry.
+      // This aligns the accepted-battle limit with the reward review threshold.
+      const submittedBattles=new Set(events.map(e=>String(e?.battleId??""))).size;
+      if((recentCount??0)+submittedBattles>27){
+        await securityEvent(authUserId,playerId,"progression_rate_limit",4,
+          {battles_last_60s:recentCount,submitted_battles:submittedBattles});
+        return reply({ok:false,error:"rate_limited",retry_after_seconds:60},429);
       }
 
       const {data:verifiedRows,error:verifiedError}=await db.from("yakusoku_verified_characters").select("player_id,save_slot,character_id,level,exp,job_id,job_level,trust_state,verified_battles,last_battle_at").eq("player_id",playerId);
@@ -280,15 +293,20 @@ Deno.serve(async(req)=>{
       }
 
       let acceptedBattles=0,acceptedEvents=0,rejectedBattles=0,rebaselineBattles=0;
+      const acceptedBattleIds:string[]=[];
+      const alreadyProcessedBattleIds:string[]=[];
+      const rejectedBattleDetails:{battleId:string,reason:string}[]=[];
       const allowedTypes=new Set(["normal","boss","rare","training","event","raid","other"]);
 
       for(const [battleId,battleEvents] of grouped){
         if(battleEvents.length<1||battleEvents.length>4){
-          rejectedBattles++;await securityEvent(authUserId,playerId,"invalid_party_event_count",3,{battle_id:battleId,event_count:battleEvents.length});continue;
+          rejectedBattles++;
+          rejectedBattleDetails.push({battleId,reason:"invalid_party_event_count"});
+          await securityEvent(authUserId,playerId,"invalid_party_event_count",3,{battle_id:battleId,event_count:battleEvents.length});continue;
         }
         const {data:existingBattle,error:existingError}=await db.from("yakusoku_audit_battles").select("battle_id").eq("battle_id",battleId).maybeSingle();
         if(existingError)return reply({ok:false,error:"db_battle_check"},500);
-        if(existingBattle)continue;
+        if(existingBattle){alreadyProcessedBattleIds.push(battleId);continue;}
 
         const first=battleEvents[0];
         const saveSlot=Math.max(1,Math.min(5,asInt(first?.saveSlot,1)));
@@ -371,6 +389,7 @@ Deno.serve(async(req)=>{
 
         if(invalidReason){
           rejectedBattles++;
+          rejectedBattleDetails.push({battleId,reason:invalidReason});
           await securityEvent(authUserId,playerId,invalidReason,invalidReason.includes("chain")||invalidReason.includes("impossible")?5:4,{battle_id:battleId,save_slot:saveSlot,exp_awarded:expAwarded});
           continue;
         }
@@ -409,9 +428,17 @@ Deno.serve(async(req)=>{
           verified.set(s.key,next);
         }
         acceptedBattles++;acceptedEvents+=staged.length;
+        acceptedBattleIds.push(battleId);
         if(collectionRebaselineUsed)rebaselineBattles++;
       }
-      return reply({ok:true,accepted:acceptedEvents,accepted_battles:acceptedBattles,rejected_battles:rejectedBattles,rebaseline_battles:rebaselineBattles});
+      return reply({
+        ok:true,ack_version:2,policy_version:13,
+        accepted:acceptedEvents,accepted_battles:acceptedBattles,
+        rejected_battles:rejectedBattles,rebaseline_battles:rebaselineBattles,
+        accepted_battle_ids:acceptedBattleIds,
+        already_processed_battle_ids:alreadyProcessedBattleIds,
+        rejected_battle_details:rejectedBattleDetails
+      });
     }
 
     return reply({ok:false,error:"invalid_action"},400);
