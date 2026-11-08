@@ -84,8 +84,9 @@ test('ranking shows local pending-verification warning but does not invent point
 test('the Edge Function exposes no unconditional backfill and keeps all anti-cheat limits',()=>{
  const edge=readFileSync(new URL('../supabase/functions/yakusoku-player-stats/index.ts',import.meta.url),'utf8');
  for(const guard of [
-  'if((recentCount??0)>=35)',
+  'if((recentCount??0)+submittedBattles>27)',
   'progression_audit_policy',
+  'new Set(events.map(e=>String(e?.battleId??""))).size',
   'ack_version:2',
   'accepted_battle_ids:acceptedBattleIds',
   'already_processed_battle_ids:alreadyProcessedBattleIds',
