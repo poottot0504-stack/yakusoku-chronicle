@@ -1,6 +1,8 @@
 import {palette as treeColors,pixels as treePixels,size} from '../data/masho-depth-tree-pixels.js';
 import {palette as fireColors,pixels as firePixels} from '../data/masho-depth-fire-pixels.js';
 import {palette as iceColors,pixels as icePixels} from '../data/masho-depth-ice-pixels.js';
+import {palette as axeColors,pixels as axePixels} from '../data/masho-depth-bellnecros-pixels.js';
+import {palette as galaxyColors,pixels as galaxyPixels} from '../data/masho-depth-galaxy-dragon-pixels.js';
 
 const SYMBOLS='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 // Compact palette pixels are derived from the three submitted illustrations,
@@ -25,7 +27,10 @@ function spriteSvg(colors,rawPixels){
 const DATA={
  'masho26-yggdravain':{palette:treeColors,pixels:treePixels},
  'masho27-volgrad':{palette:fireColors,pixels:firePixels},
- 'masho28-graciel':{palette:iceColors,pixels:icePixels}
+ 'masho28-graciel':{palette:iceColors,pixels:icePixels},
+ // Floor 29/30 use the same 56×52 pixel canvas and aspect as 26–28F.
+ 'masho29-bellnecros':{palette:axeColors,pixels:axePixels},
+ 'masho30-galaxy-dragon':{palette:galaxyColors,pixels:galaxyPixels}
 };
 export const MASHO_DEPTH_BOSS_ART=Object.fromEntries(Object.entries(DATA).map(([id,d],i)=>[id,{
  sheet:'masho-depth-'+(i+26),index:0,cols:1,rows:1,aspect:size[0]/size[1],
