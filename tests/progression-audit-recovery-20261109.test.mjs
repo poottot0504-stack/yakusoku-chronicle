@@ -91,7 +91,7 @@ test('the Edge Function exposes no unconditional backfill and keeps all anti-che
   'accepted_battle_ids:acceptedBattleIds',
   'already_processed_battle_ids:alreadyProcessedBattleIds',
   'rejected_battle_details:rejectedBattleDetails',
-  'if(expAwarded>2_000_000)',
+  'if(expAwarded>(deepEndgameBoss?8_000_000:2_000_000))',
   'progression_chain_mismatch',
   'raw_exp_over_limit',
   'collection_one_time_rebaseline'

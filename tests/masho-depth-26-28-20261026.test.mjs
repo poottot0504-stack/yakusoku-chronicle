@@ -16,16 +16,16 @@ const win=(s,floor,rng)=>settleMashoVictory(s,{mashoFloor:floor,actors:[{side:'e
 
 test('three new floors follow existing 25F clears in sequence, preserving old saves',()=>{
  const s=state();
- assert.equal(MASHO_MAX_FLOOR,28);
- assert.equal(MASHO_FLOORS.length,28);
+ assert.equal(MASHO_MAX_FLOOR,30);
+ assert.equal(MASHO_FLOORS.length,30);
  assert.equal(getMashoFloors(s).filter(f=>f.available).at(-1).floor,26);
  const restored=migrateSave(s);
  assert.equal(restored.mashoCave.highestCleared,25);
- assert.match(mashoCaveMarkup(s),/28階層/);
+ assert.match(mashoCaveMarkup(s),/30階層/);
  assert.match(mashoCaveMarkup(s),/翠晶樹皇ユグドラヴェイン/);
  assert.match(mashoCaveMarkup(s),/氷晶神竜グラシエル/);
  assert.equal(createMashoRun(28).floor,28);
- assert.throws(()=>createMashoRun(29),/階層/);
+ assert.equal(createMashoRun(29).floor,29);assert.throws(()=>createMashoRun(31),/階層/);
 });
 
 test('three guardians have exact ratios against 25F HP and attack, with unique art',()=>{

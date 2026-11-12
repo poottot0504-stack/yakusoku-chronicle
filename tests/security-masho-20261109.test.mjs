@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {MASHO_FLOORS} from '../src/core/masho-cave.js';
 import {requiredExpForLevel} from '../src/core/progression.js';
+import {scaledCharacterExp} from '../src/core/adventure.js';
 
 // Exercise the actual Edge Function's pure validation formulas against the
 // shipped game definitions. No credentials, DB writes, or network calls.
@@ -21,9 +22,9 @@ const policy=Function('requiredBaseExp','asInt',policySource+
  requiredExpForLevel,(value,fallback=0)=>Number.isFinite(Number(value))?Math.trunc(Number(value)):fallback
 );
 
-test('the Edge Function recognizes every real 21–28F Masho boss and exact XP amounts',()=>{
- assert.equal(MASHO_FLOORS.length,28);
- for(let floor=21;floor<=28;floor++){
+test('the Edge Function recognizes every real 21–30F Masho boss and exact XP amounts',()=>{
+ assert.equal(MASHO_FLOORS.length,30);
+ for(let floor=21;floor<=30;floor++){
   const game=MASHO_FLOORS[floor-1];
   assert.deepEqual(policy.mashoFloorRewards(floor),{exp:game.exp,jobExp:game.jobExp});
   for(const boss of game.bosses){
@@ -31,12 +32,18 @@ test('the Edge Function recognizes every real 21–28F Masho boss and exact XP a
    assert.equal(policy.mashoFloor([enemyId]),floor,enemyId);
    assert.ok(policy.maxRawBattleExp('boss','masho',game.level,1,[enemyId],1)>=game.exp,enemyId);
    assert.ok(policy.allowedMashoJobGain(1,'swordsman',[enemyId],2)>15,enemyId);
+   if(floor>=29){
+    const maxLegitimate=scaledCharacterExp(game.exp,2,2);
+    assert.ok(policy.maxRawBattleExp('boss','masho',game.level,1,[enemyId],2)>=maxLegitimate,
+      `${enemyId}: must accept 1.2x global, NG+ and x2 festival/scroll EXP`);
+    assert.ok(maxLegitimate<=8_000_000);
+   }
   }
  }
 });
 
 test('unknown deep-floor bosses and out-of-range floors cannot obtain high-XP validation',()=>{
- for(const enemyId of ['masho-28-fake','masho-26-anima','masho-29-masho28-graciel','masho-00-anima']){
+ for(const enemyId of ['masho-28-fake','masho-26-anima','masho-29-masho28-graciel','masho-30-fake','masho-31-masho30-galaxy-dragon','masho-00-anima']){
   assert.equal(policy.mashoFloor([enemyId]),null,enemyId);
   assert.equal(policy.maxRawBattleExp('boss','masho',400,1,[enemyId],2),330000,enemyId);
   assert.equal(policy.allowedMashoJobGain(1,'swordsman',[enemyId],2),15,enemyId);
@@ -56,8 +63,8 @@ test('existing older Masho and non-Masho validation limits remain supported',()=
 });
 
 test('anti-cheat continues checking independently of floor reward caps',()=>{
- assert.match(source,/if\(expAwarded>2_000_000\)invalidReason="exp_awarded_too_high"/);
- assert.match(source,/if\(levelBefore<1\|\|levelAfter<1\|\|levelAfter>500/);
+ assert.match(source,/if\(expAwarded>\(deepEndgameBoss\?8_000_000:2_000_000\)\)invalidReason="exp_awarded_too_high"/);
+ assert.match(source,/if\(levelBefore<1\|\|levelAfter<1\|\|levelAfter>1500/);
  assert.match(source,/if\(gain<0\|\|gain>maxGain\)/);
  assert.match(source,/if\(invalidReason\)\{/);
 });

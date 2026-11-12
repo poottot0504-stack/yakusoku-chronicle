@@ -46,7 +46,7 @@ function requiredCharacterExp(level:number,jobId:string){
   return Math.max(1,Math.ceil(requiredBaseExp(level,jobId)*characterLevelMultiplier(level)));
 }
 function progressionScore(level:number,exp:number,jobId:string){
-  const lv=Math.max(1,Math.min(500,asInt(level,1)));
+  const lv=Math.max(1,Math.min(1500,asInt(level,1)));
   let score=Math.max(0,asInt(exp,0));
   for(let i=1;i<lv;i++)score+=requiredCharacterExp(i,jobId);
   return score;
@@ -55,11 +55,12 @@ function progressionScore(level:number,exp:number,jobId:string){
 // a high-EXP boss merely from an attacker-chosen "masho-28-..." string.
 const MASHO_DEEP_BOSS_IDS:Record<number,string>={
   21:"anima",22:"ifrit",23:"chryps",24:"fenrir",25:"lich",
-  26:"masho26-yggdravain",27:"masho27-volgrad",28:"masho28-graciel"
+  26:"masho26-yggdravain",27:"masho27-volgrad",28:"masho28-graciel",
+  29:"masho29-bellnecros",30:"masho30-galaxy-dragon"
 };
 function mashoFloor(enemyIds:string[]){
   if(enemyIds.length!==1)return null;
-  const match=String(enemyIds[0]).match(/^masho-(2[0-8]|1[0-9]|[1-9])-([a-z0-9-]+)$/i);
+  const match=String(enemyIds[0]).match(/^masho-(30|2[0-9]|1[0-9]|[1-9])-([a-z0-9-]+)$/i);
   if(!match)return null;
   const floor=Number(match[1]);
   if(floor>20 && MASHO_DEEP_BOSS_IDS[floor]!==match[2])return null;
@@ -70,15 +71,17 @@ function mashoFloorRewards(floor:number){
   if(floor>=1&&floor<=20)return {exp:100000+(floor-1)*12000,jobExp:50000+(floor-1)*8000};
   if(floor>=21&&floor<=25)return {exp:600000+(floor-21)*50000,jobExp:300000+(floor-21)*25000};
   if(floor>=26&&floor<=28)return {exp:900000+(floor-26)*100000,jobExp:450000+(floor-26)*50000};
+  if(floor===29)return {exp:1300000,jobExp:650000};
+  if(floor===30)return {exp:1650000,jobExp:850000};
   return null;
 }
 function allowedMashoJobGain(jobBefore:number,jobId:string,enemyIds:string[],cycle:number){
   const floor=mashoFloor(enemyIds);
   if(!floor)return 15;
-  // Exact floor rewards (1–28) with an upper bound for NG+ and event boosts.
+  // Exact floor rewards (1–30) with an upper bound for NG+ and event boosts.
   let budget=(mashoFloorRewards(floor)?.jobExp??0)*(cycle>=2?2:1)*2;
-  let lv=Math.max(1,Math.min(400,asInt(jobBefore,1))),gained=0;
-  while(lv<400&&gained<60){
+  let lv=Math.max(1,Math.min(1000,asInt(jobBefore,1))),gained=0;
+  while(lv<1000&&gained<60){
     // No stored job-exp remainder: the first level may need just 1 EXP.
     const need=gained===0?1:requiredBaseExp(lv,jobId);
     if(budget<need)break;
@@ -90,9 +93,11 @@ const REGION_ORDER=["field","forest","coast","cave","snow","desert","swamp","vol
 function maxRawBattleExp(battleType:string,regionId:string,avgLevel:number,enemyCount:number,enemyIds:string[]=[],cycle=1){
   if(regionId==="masho"){
     const floor=battleType==="boss"?mashoFloor(enemyIds):null;
-    // All 28 floors. Unrecognized/deceptive IDs stay on the conservative cap.
+    // All 30 floors. Only canonical 29–30 bosses may use the higher raw EXP cap.
     const reward=floor?mashoFloorRewards(floor):null;
-    return reward?Math.min(2_000_000,reward.exp*(cycle>=2?2:1)*2+32):330000;
+    // Final floors also apply the game's 1.2x global character-EXP boost.
+    // The 8M ceiling remains exclusive to validated 29/30F boss IDs.
+    return reward?Math.min(floor>=29?8_000_000:2_000_000,reward.exp*(floor>=29?1.2:1)*(cycle>=2?2:1)*2+32):330000;
   }
   if(battleType==="raid")return 50000;
   if(battleType==="training")return 50000;
@@ -252,7 +257,7 @@ Deno.serve(async(req)=>{
     // retries quarantined (not previously accepted) battle proofs only after
     // a newer policy is deployed.
     if(action==="progression_audit_policy"){
-      return reply({ok:true,policy_version:13});
+      return reply({ok:true,policy_version:14});
     }
 
     if(action==="progression_audit"){
@@ -315,7 +320,11 @@ Deno.serve(async(req)=>{
         const enemyIds=Array.isArray(first?.enemyIds)?first.enemyIds.slice(0,20).map((x:unknown)=>String(x).slice(0,120)):[];
         const expAwarded=Math.max(0,asInt(first?.expAwarded,0));
         let invalidReason="";
-        if(expAwarded>2_000_000)invalidReason="exp_awarded_too_high";
+        // Only the two canonically named final cave bosses need the expanded
+        // 8M raw EXP allowance for NG+ and limited-time XP boosts.
+        // Other battles retain the existing 2M hard anti-cheat ceiling.
+        const deepEndgameBoss=battleType==="boss"&&regionId==="masho"&&(mashoFloor(enemyIds)??0)>=29;
+        if(expAwarded>(deepEndgameBoss?8_000_000:2_000_000))invalidReason="exp_awarded_too_high";
 
         // A strictly scoped, one-time event recovery for accounts whose historical
         // progression chain stopped updating before the collection event began.
@@ -347,9 +356,9 @@ Deno.serve(async(req)=>{
           const jobLevelBefore=asInt(e?.jobLevelBefore,1),jobLevelAfter=asInt(e?.jobLevelAfter,1);
           const eventExp=Math.max(0,asInt(e?.expAwarded,0));
           if(!characterId){invalidReason="missing_character";break;}
-          if(levelBefore<1||levelAfter<1||levelAfter>500||levelAfter<levelBefore||levelAfter-levelBefore>10){invalidReason="invalid_level_delta";break;}
+          if(levelBefore<1||levelAfter<1||levelAfter>1500||levelAfter<levelBefore||levelAfter-levelBefore>10){invalidReason="invalid_level_delta";break;}
           const allowedJobDelta=(battleType==="boss"&&regionId==="masho")?allowedMashoJobGain(jobLevelBefore,jobId,enemyIds,Math.max(1,asInt(e?.cycle,1))):15;
-          if(jobLevelBefore<1||jobLevelAfter<1||jobLevelAfter>400||jobLevelAfter<jobLevelBefore||jobLevelAfter-jobLevelBefore>allowedJobDelta){invalidReason="invalid_job_delta";break;}
+          if(jobLevelBefore<1||jobLevelAfter<1||jobLevelAfter>1000||jobLevelAfter<jobLevelBefore||jobLevelAfter-jobLevelBefore>allowedJobDelta){invalidReason="invalid_job_delta";break;}
           if(expBefore>1_000_000_000_000||expAfter>1_000_000_000_000){invalidReason="invalid_exp_state";break;}
           if(eventExp!==expAwarded){invalidReason="mixed_exp_award";break;}
           const key=`${saveSlot}:${characterId}`;
@@ -432,7 +441,7 @@ Deno.serve(async(req)=>{
         if(collectionRebaselineUsed)rebaselineBattles++;
       }
       return reply({
-        ok:true,ack_version:2,policy_version:13,
+        ok:true,ack_version:2,policy_version:14,
         accepted:acceptedEvents,accepted_battles:acceptedBattles,
         rejected_battles:rejectedBattles,rebaseline_battles:rebaselineBattles,
         accepted_battle_ids:acceptedBattleIds,
