@@ -59,8 +59,7 @@ begin
  end if;
  return new;
 end;
-$function$
-
+$function$;
 
 -- Reconcile ONLY existing, authenticated, server-ACCEPTED victory audit rows.
 -- The original AFTER INSERT trigger ignored these due to a client/server timestamp
