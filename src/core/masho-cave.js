@@ -99,7 +99,7 @@ export function getMashoFloors(state){
  const hero=(state.characters??[]).find(c=>c.isHero)??state.characters?.[0];
  const heroLevel=Math.floor(Number(hero?.level)||0);
  return MASHO_FLOORS.map(f=>({...f,cleared:f.floor<=highest,
-  available:unlocked&&f.floor<=highest+1&&heroLevel>=(f.requiredCharacterLevel??1),
+  available:unlocked&&f.floor<=highest+1&&(f.floor!==30||heroLevel>=1000),
   ...(f.floor===30?{lockedReason:heroLevel<1000?'主人公Lv1000以上が必要です':'前の階層をクリアで解放'}:{})
  }));
 }
