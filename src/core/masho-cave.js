@@ -22,7 +22,7 @@ import { normalizeElement, regionElement, elementProfile } from './elements.js';
 export const MASHO_DROP_RATE=.05;
 // 21F–28F share the same rare equipment chance: 0.5% per cleared battle.
 export const MASHO_ABYSS_DROP_RATE=.005;
-export const MASHO_MAX_FLOOR=28;
+export const MASHO_MAX_FLOOR=30;
 // 第15〜20階層で全22職業の全部位を必ず入手可能にする。
 export const MASHO_FLOOR_DROP_FOCUS=Object.freeze({
  15:{group:'magic',parts:['weapon','ring','charm'],label:'魔法系：武器・指輪・チャーム'},
@@ -42,7 +42,8 @@ export const MASHO_ABYSS_FLOOR_REWARDS=Object.freeze({
  25:[MASHO_ABYSS_SPELLBOOK.id,'masho-abyss-dagger']
 });
 export function getMashoAbyssDropPool(floor){
- return (MASHO_ABYSS_FLOOR_REWARDS[floor]??(MASHO_DEPTH_REWARD_BY_FLOOR[floor]?[MASHO_DEPTH_REWARD_BY_FLOOR[floor]]:[])).map(id=>id===MASHO_ABYSS_SPELLBOOK.id?MASHO_ABYSS_SPELLBOOK:(MASHO_DEPTH_EQUIPMENT[id]??MASHO_ABYSS_WEAPONS[id])).filter(Boolean);
+ const reward=MASHO_ABYSS_FLOOR_REWARDS[floor]??MASHO_DEPTH_REWARD_BY_FLOOR[floor]??[];
+ return (Array.isArray(reward)?reward:[reward]).map(id=>id===MASHO_ABYSS_SPELLBOOK.id?MASHO_ABYSS_SPELLBOOK:(MASHO_DEPTH_EQUIPMENT[id]??MASHO_ABYSS_WEAPONS[id])).filter(Boolean);
 }
 export function getMashoEquipmentDropPool(floor){
  const f=MASHO_FLOORS[floor-1];
@@ -58,7 +59,7 @@ export function getMashoEquipmentDropPool(floor){
  });
 }
 export function getMashoFloorDropLabel(floor){
- const standard=MASHO_FLOOR_DROP_FOCUS[floor]?.label??(floor>=21&&floor<=28?getMashoAbyssDropPool(floor).map(d=>d.name).join(' ／ '):'');
+ const standard=MASHO_FLOOR_DROP_FOCUS[floor]?.label??(floor>=21&&floor<=30?getMashoAbyssDropPool(floor).map(d=>d.name).join(' ／ '):'');
  const shields=SHIELDER_CAVE_SHIELDS.filter(d=>floor>=d.mashoFloor);
  return [standard,...shields.map(d=>`${d.name}（${(d.dropRate*100).toFixed(1)}%）`)].filter(Boolean).join(' ／ ')||null;
 }
@@ -75,14 +76,33 @@ endings.forEach((b,i)=>pools[15+i].push(b));
 pools[18].push(oaths.at(-1),raids.at(-1));pools[19].push(MASHO_BOSS_POOL.at(-1));
 export const MASHO_FLOORS=pools.map((bosses,i)=>({floor:i+1,level:150+Math.round(i*150/19),tier:i>=14?3:i>=7?2:1,bosses,exp:100000+i*12000,jobExp:50000+i*8000,gold:15000+i*5000}));
 for(let i=0;i<5;i++)MASHO_FLOORS.push({floor:21+i,level:310+i*10,tier:4,bosses:[raids[i]],exp:600000+i*50000,jobExp:300000+i*25000,gold:200000+i*25000});
-// 26–28F: dedicated endgame guardians. Their stats derive exactly from floor 25.
-for(const [key,b] of Object.entries(MASHO_DEPTH_BOSSES)){const floor=Number(key);MASHO_FLOORS.push({floor,level:360+(floor-26)*10,tier:5,bosses:[{...b,kind:'depth'}],exp:900000+(floor-26)*100000,jobExp:450000+(floor-26)*50000,gold:350000+(floor-26)*50000});}
+// 26–30F: dedicated endgame guardians. Their base stats use floor 25.
+for(const [key,b] of Object.entries(MASHO_DEPTH_BOSSES)){
+ const floor=Number(key);
+ const special={29:{level:900,exp:1_300_000,jobExp:650_000,gold:650_000},
+                30:{level:1200,exp:1_650_000,jobExp:850_000,gold:1_000_000}}[floor];
+ MASHO_FLOORS.push({floor,level:special?.level??360+(floor-26)*10,tier:5,bosses:[{...b,kind:'depth'}],
+  exp:special?.exp??900000+(floor-26)*100000,
+  jobExp:special?.jobExp??450000+(floor-26)*50000,
+  gold:special?.gold??350000+(floor-26)*50000,
+  ...(floor===30?{requiredCharacterLevel:1000}:{})
+ });
+}
 export function normalizeMashoProgress(state){
  const old=state.mashoCave??{},highest=Math.max(0,Math.min(MASHO_MAX_FLOOR,Math.floor(Number(old.highestCleared)||0)));
- const pastAbyssClears=Array.from({length:8},(_,i)=>Math.max(0,Math.floor(Number(old.clearCounts?.[i+21])||0))).reduce((a,b)=>a+b,0);
+ const pastAbyssClears=Array.from({length:10},(_,i)=>Math.max(0,Math.floor(Number(old.clearCounts?.[i+21])||0))).reduce((a,b)=>a+b,0);
  state.mashoCave={...old,highestCleared:highest,clearCounts:{...(old.clearCounts??{})},abyssClearCount:Math.max(0,Math.floor(Number(old.abyssClearCount??pastAbyssClears)||0))};return state.mashoCave;
 }
-export function getMashoFloors(state){const highest=normalizeMashoProgress(state).highestCleared,unlocked=hasFirstClear(state);return MASHO_FLOORS.map(f=>({...f,cleared:f.floor<=highest,available:unlocked&&f.floor<=highest+1}));}
+export function getMashoFloors(state){
+ const highest=normalizeMashoProgress(state).highestCleared,unlocked=hasFirstClear(state);
+ // Endgame floor 30 is unlocked only by an existing Lv1000+ protagonist.
+ const hero=(state.characters??[]).find(c=>c.isHero)??state.characters?.[0];
+ const heroLevel=Math.floor(Number(hero?.level)||0);
+ return MASHO_FLOORS.map(f=>({...f,cleared:f.floor<=highest,
+  available:unlocked&&f.floor<=highest+1&&heroLevel>=(f.requiredCharacterLevel??1),
+  ...(f.floor===30?{lockedReason:heroLevel<1000?'主人公Lv1000以上が必要です':'前の階層をクリアで解放'}:{})
+ }));
+}
 export function canEnterMashoFloor(state,floor){return Number.isInteger(floor)&&getMashoFloors(state).some(f=>f.floor===floor&&f.available);}
 const pick=(list,rng)=>list[Math.max(0,Math.min(list.length-1,Math.floor(rng()*list.length)))];
 export function createMashoEnemy(state,floor,rng=Math.random){
@@ -103,7 +123,14 @@ export function createMashoEnemy(state,floor,rng=Math.random){
   stats.speed=Math.round(stats.speed*(1+.05*(floor-25)));
  }
  const element=normalizeElement(b.element)==='none'?(b.kind==='oath'?'dark':regionElement('cave')):normalizeElement(b.element);
- return {id:`masho-${floor}-${b.id}`,artId:b.id,name:b.name+'【魔障】',...elementProfile(element),mashoBoss:true,mashoFloor:floor,regionId:'cave',...(b.kind==='raid'?{raidBoss:true,bossId:b.id}:{}),level,maxHp,hp:maxHp,maxMp:Math.round(9999*multiplier),mp:Math.round(9999*multiplier),stats,isBoss:true,enemyClass:'boss',instantDeathCycle:b.kind==='oath'||b.kind==='final'||b.id==='lich',instantDeathName:b.instantDeathName??'魔障の死刻',ai:[{type:'attack',power:110},{type:'attack',power:140},bossAreaAttack(`${b.name}・魔障波`,85+floor,{kind:element==='none'?'physical':'magic',element}),...(floor>20?[{type:'skill',skill:{id:'mashoAbyssRuin',name:'魔障・終焉の波動',kind:'magic',element:'none',allTargets:true,alwaysHit:true,canCrit:false,maxHpDamageRatio:.4,description:'全員に最大HPの40％ダメージ。防御力を無視する。防御で回避可能。'}}]:[])],exp:f.exp,jobExp:f.jobExp,gold:f.gold,stealTable:[],plunderTable:[]};
+ return {id:`masho-${floor}-${b.id}`,artId:b.id,name:b.name+'【魔障】',...elementProfile(element),mashoBoss:true,mashoFloor:floor,regionId:'cave',...(b.kind==='raid'?{raidBoss:true,bossId:b.id}:{}),level,maxHp,hp:maxHp,maxMp:Math.round(9999*multiplier),mp:Math.round(9999*multiplier),stats,isBoss:true,enemyClass:'boss',instantDeathCycle:floor>=29||b.kind==='oath'||b.kind==='final'||b.id==='lich',
+ instantDeathName:floor===29?'冥鐘・断罪の刻':floor===30?'星界・終焉の宣告':b.instantDeathName??'魔障の死刻',
+ ai:[{type:'attack',power:floor>=30?220:floor===29?180:110},
+  {type:'attack',power:floor>=30?260:floor===29?215:140},
+  bossAreaAttack(`${b.name}・魔障波`,floor>=30?280:floor===29?220:85+floor,{kind:element==='none'?'physical':'magic',element}),
+  ...(floor>20?[{type:'skill',skill:{id:'mashoAbyssRuin',name:floor===30?'銀河崩壊・終焉の波動':floor===29?'冥鐘・葬送の波動':'魔障・終焉の波動',kind:'magic',element:'none',allTargets:true,alwaysHit:true,canCrit:false,maxHpDamageRatio:floor===30?.65:floor===29?.5:.4,description:'防御力を無視した全体割合攻撃。防御で回避可能。'}}]:[]),
+  ...(floor===30?[{type:'skill',skill:{id:'galaxyFinalBurst',name:'星界竜・銀河絶滅ブレス',kind:'magic',element:'light',power:320,allTargets:true,multiHit:3,canCrit:false}}]:[])
+ ],exp:f.exp,jobExp:f.jobExp,gold:f.gold,stealTable:[],plunderTable:[]};
 }
 export function getMashoRewardPreview(state,floor,now=Date.now()){
  const f=MASHO_FLOORS[floor-1];if(!f)return null;
