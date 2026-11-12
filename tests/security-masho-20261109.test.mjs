@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {MASHO_FLOORS} from '../src/core/masho-cave.js';
 import {requiredExpForLevel} from '../src/core/progression.js';
+import {scaledCharacterExp} from '../src/core/adventure.js';
 
 // Exercise the actual Edge Function's pure validation formulas against the
 // shipped game definitions. No credentials, DB writes, or network calls.
@@ -31,6 +32,12 @@ test('the Edge Function recognizes every real 21–30F Masho boss and exact XP a
    assert.equal(policy.mashoFloor([enemyId]),floor,enemyId);
    assert.ok(policy.maxRawBattleExp('boss','masho',game.level,1,[enemyId],1)>=game.exp,enemyId);
    assert.ok(policy.allowedMashoJobGain(1,'swordsman',[enemyId],2)>15,enemyId);
+   if(floor>=29){
+    const maxLegitimate=scaledCharacterExp(game.exp,2,2);
+    assert.ok(policy.maxRawBattleExp('boss','masho',game.level,1,[enemyId],2)>=maxLegitimate,
+      `${enemyId}: must accept 1.2x global, NG+ and x2 festival/scroll EXP`);
+    assert.ok(maxLegitimate<=8_000_000);
+   }
   }
  }
 });
