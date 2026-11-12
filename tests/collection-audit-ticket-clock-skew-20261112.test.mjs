@@ -26,7 +26,7 @@ test('only individually verified victories with canonical ticket and matching en
   "old.battle_id IS NULL",
   "a.battle_type='normal'",
   "a.region_id IN ('field','forest','coast','cave','snow','desert','swamp','volcano','ruins','abyss')",
-  "a.region_id=t.region_id",
+  "t.region_id IS NOT DISTINCT FROM a.region_id",
   "jsonb_array_length(a.enemy_ids) BETWEEN 1 AND 5",
   "a.exp_awarded IS NOT NULL AND a.exp_awarded>=0",
   "NOT EXISTS (",
