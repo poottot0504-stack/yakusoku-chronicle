@@ -1,15 +1,19 @@
-// 魔障の洞窟・第26〜28階層の限定報酬。
+// 魔障の洞窟・第26〜30階層の限定報酬。
 // Existing equipment IDs remain unchanged. The hero-only weapon checks the
 // original protagonist flag rather than the character's editable display name.
 export const MASHO_DEPTH_BOSSES=Object.freeze({
  26:{id:'masho26-yggdravain',name:'翠晶樹皇ユグドラヴェイン',element:'water',hpRatio:10,attackRatio:1.5,description:'翠晶を宿す古代樹の皇'},
  27:{id:'masho27-volgrad',name:'獄炎獣王ヴォルグラード',element:'fire',hpRatio:12,attackRatio:1.6,description:'獄炎に身を包む角獣の王'},
- 28:{id:'masho28-graciel',name:'氷晶神竜グラシエル',element:'ice',hpRatio:14,attackRatio:1.7,description:'最深層を守る氷晶の神竜'}
+ 28:{id:'masho28-graciel',name:'氷晶神竜グラシエル',element:'ice',hpRatio:14,attackRatio:1.7,description:'深層を守る氷晶の神竜'},
+ 29:{id:'masho29-bellnecros',name:'骸鐘の処刑王ベルネクロス',element:'dark',hpRatio:20,attackRatio:2.2,description:'亡王の鐘を鳴らす冥府の斧王'},
+ 30:{id:'masho30-galaxy-dragon',name:'究極銀河竜・星界の覇王',element:'light',hpRatio:32,attackRatio:3,description:'星界を喰らう魔障最強の銀河竜'}
 });
 export const MASHO_DEPTH_REWARD_BY_FLOOR=Object.freeze({
  26:'masho-26-eternal-tree-blessing',
  27:'masho-27-infernal-eclipse-ring',
- 28:'masho-28-final-claussolas'
+ 28:'masho-28-final-claussolas',
+ 29:['masho-29-bellnecros-axe','masho-29-bellnecros-body','masho-29-bellnecros-ring','masho-29-bellnecros-charm'],
+ 30:['masho-30-nebula-spear','masho-30-galaxy-body','masho-30-stellar-ring','masho-30-celestial-charm']
 });
 export const MASHO_DEPTH_EQUIPMENT=Object.freeze({
  'masho-26-eternal-tree-blessing':{
@@ -29,5 +33,53 @@ export const MASHO_DEPTH_EQUIPMENT=Object.freeze({
   requiredLevel:150,rarity:'legendary',attack:450,magic:450,maxHp:220,
   elementResist:{ice:.1},mashoDepthFloor:28,heroOnly:true,turnMpRegenRatio:.01,
   description:'第28階層の希少報酬。主人公本人（名前変更後も可）だけが全職業で装備可能。攻撃力と魔法力が同じだけ上昇する。毎ターン終了時に最大MPを1％回復。悠久樹の祝福のMP回復とも重複する。'
+ },
+ 'masho-29-bellnecros-axe':{
+  id:'masho-29-bellnecros-axe',name:'冥鐘断罪斧ベルネクロス',slot:'weapon',weaponType:'axe',twoHanded:true,
+  requiredLevel:900,rarity:'legendary',attack:850,defense:220,maxHp:1200,
+  elementResist:{dark:.12},mashoDepthFloor:29,
+  description:'第29階層の限定武器。ジョブLv900以上の斧を扱える職業用。闇の大斧に高い攻撃力と防御力が宿る。'
+ },
+ 'masho-29-bellnecros-body':{
+  id:'masho-29-bellnecros-body',name:'骸鐘冥帝の鎧',slot:'body',
+  requiredLevel:900,rarity:'legendary',defense:950,attack:180,maxHp:2600,
+  elementResist:{dark:.14},mashoDepthFloor:29,
+  description:'第29階層の限定防具。ジョブLv900以上、全職業装備可能。強大な冥王の防御力を宿す。'
+ },
+ 'masho-29-bellnecros-ring':{
+  id:'masho-29-bellnecros-ring',name:'亡王の骸環',slot:'accessory',accessoryType:'ring',
+  requiredLevel:900,rarity:'legendary',attack:320,magic:320,defense:200,
+  elementResist:{dark:.12},mashoDepthFloor:29,armorShredPerHit:.001,armorShredMaxStacks:10,
+  description:'第29階層の限定指輪。ジョブLv900以上、全職業装備可能。命中時に敵の防御力を0.1％ずつ削り、最大1％低下させる。'
+ },
+ 'masho-29-bellnecros-charm':{
+  id:'masho-29-bellnecros-charm',name:'葬鐘の護章',slot:'accessory',accessoryType:'charm',
+  requiredLevel:900,rarity:'legendary',defense:350,maxHp:1700,maxMp:400,
+  elementResist:{dark:.12},mashoDepthFloor:29,turnRegenRatio:.015,
+  description:'第29階層の限定チャーム。ジョブLv900以上、全職業装備可能。毎ターン最大HP・MPを各1.5％回復。'
+ },
+ 'masho-30-nebula-spear':{
+  id:'masho-30-nebula-spear',name:'星界竜槍ネビュラハート',slot:'weapon',weaponType:'spear',twoHanded:true,
+  requiredLevel:1000,rarity:'legendary',attack:1450,magic:1100,maxHp:700,
+  elementResist:{light:.15,dark:.12},mashoDepthFloor:30,turnMpRegenRatio:.02,
+  description:'第30階層の最強級槍。ジョブLv1000以上の槍職業用。攻撃と魔力を大幅強化し、毎ターン最大MPを2％回復。'
+ },
+ 'masho-30-galaxy-body':{
+  id:'masho-30-galaxy-body',name:'銀河竜鱗の神装',slot:'body',
+  requiredLevel:1000,rarity:'legendary',attack:400,defense:1650,magic:400,maxHp:5300,maxMp:1100,
+  elementResist:{light:.15,dark:.15},mashoDepthFloor:30,
+  description:'第30階層の最強級防具。ジョブLv1000以上、全職業装備可能。銀河竜鱗の絶対防御と全能力強化。'
+ },
+ 'masho-30-stellar-ring':{
+  id:'masho-30-stellar-ring',name:'星核王の指輪',slot:'accessory',accessoryType:'ring',
+  requiredLevel:1000,rarity:'legendary',attack:700,magic:700,defense:280,
+  elementResist:{light:.14,dark:.14},mashoDepthFloor:30,armorShredPerHit:.001,armorShredMaxStacks:10,
+  description:'第30階層の最強級指輪。ジョブLv1000以上、全職業装備可能。攻撃・魔力強化と敵防御最大1％低下。'
+ },
+ 'masho-30-celestial-charm':{
+  id:'masho-30-celestial-charm',name:'天冥星竜の紋章',slot:'accessory',accessoryType:'charm',
+  requiredLevel:1000,rarity:'legendary',defense:550,maxHp:3300,maxMp:1100,
+  elementResist:{light:.15,dark:.15},mashoDepthFloor:30,turnRegenRatio:.025,
+  description:'第30階層の最強級チャーム。ジョブLv1000以上、全職業装備可能。毎ターン最大HP・MPを各2.5％回復。'
  }
 });
