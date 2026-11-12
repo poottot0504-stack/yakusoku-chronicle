@@ -95,7 +95,9 @@ function maxRawBattleExp(battleType:string,regionId:string,avgLevel:number,enemy
     const floor=battleType==="boss"?mashoFloor(enemyIds):null;
     // All 30 floors. Only canonical 29–30 bosses may use the higher raw EXP cap.
     const reward=floor?mashoFloorRewards(floor):null;
-    return reward?Math.min(floor>=29?8_000_000:2_000_000,reward.exp*(cycle>=2?2:1)*2+32):330000;
+    // Final floors also apply the game's 1.2x global character-EXP boost.
+    // The 8M ceiling remains exclusive to validated 29/30F boss IDs.
+    return reward?Math.min(floor>=29?8_000_000:2_000_000,reward.exp*(floor>=29?1.2:1)*(cycle>=2?2:1)*2+32):330000;
   }
   if(battleType==="raid")return 50000;
   if(battleType==="training")return 50000;
