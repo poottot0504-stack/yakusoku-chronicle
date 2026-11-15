@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {CHARACTER_LEVEL_MAX,JOB_LEVEL_MAX,applyProgressionCaps} from '../src/core/progression-caps.js';
 import {awardCharacterExp,awardJobExp,requiredCharacterExpForLevel,requiredExpForLevel} from '../src/core/progression.js';
 import {migrateSave} from '../src/core/save-migration.js';
-import {MASHO_FLOORS,MASHO_MAX_FLOOR,getMashoFloors,canEnterMashoFloor,createMashoEnemy,
+import {MASHO_FLOORS,MASHO_MAX_FLOOR,canEnterMashoFloor,createMashoEnemy,
  getMashoAbyssDropPool,settleMashoVictory} from '../src/core/masho-cave.js';
 import {MASHO_DEPTH_BOSSES,MASHO_DEPTH_EQUIPMENT,MASHO_DEPTH_REWARD_BY_FLOOR} from '../src/data/masho-depth-rewards.js';
 import {EQUIPMENT} from '../src/data/equipment.js';
@@ -57,22 +57,37 @@ test('Lv1500 character and job1000 remain fixed at their upper bound',()=>{
  assert.equal(c.jobLevels.swordsman,1000);
 });
 
-test('29F follows the 28F clear; 30F requires BOTH 29F clear and hero Lv1000',()=>{
+test('30F stays locked before the 29F clear even at the character level cap',()=>{
  assert.equal(MASHO_MAX_FLOOR,30);assert.equal(MASHO_FLOORS.length,30);
- const s=save(999,28);
+ const s=save(1500,28);
  assert.equal(canEnterMashoFloor(s,29),true);
  assert.equal(canEnterMashoFloor(s,30),false);
- s.mashoCave.highestCleared=29;
- assert.equal(canEnterMashoFloor(s,30),false);
- assert.match(getMashoFloors(s).find(f=>f.floor===30).lockedReason,/Lv1000/);
- assert.match(mashoCaveMarkup(s),/主人公Lv1000以上が必要です/);
- s.characters[0].level=1000;
+ assert.throws(()=>createMashoEnemy(s,30),/前の階層/);
+ assert.match(mashoCaveMarkup(s),/data-masho-floor="30" disabled>第29階層をクリアで解放/);
+});
+
+test('a save below Lv1000 that already cleared 29F can start 30F',()=>{
+ const s=save(500,29);
  assert.equal(canEnterMashoFloor(s,30),true);
+ assert.equal(createMashoEnemy(s,30,()=>0).mashoFloor,30);
+ const markup=mashoCaveMarkup(s);
+ assert.match(markup,/推奨キャラLv1000/);
+ assert.match(markup,/data-masho-floor="30" >挑戦する/);
+ assert.doesNotMatch(markup,/data-masho-run10="30"/);
+});
+
+test('winning 29F below Lv1000 opens 30F immediately and valid 30F wins unlock repeat play',()=>{
+ const s=save(500,28);
+ win(s,29,.99);
+ s.ui.mashoResultVisible=true;
+ assert.match(mashoCaveMarkup(s),/data-masho-floor="30">第30階層へ/);
+ const reward=win(s,30,.99);
+ assert.equal(reward.floor,30);
+ assert.equal(s.mashoCave.highestCleared,30);
+ assert.match(mashoCaveMarkup(s),/data-masho-run10="30"/);
  assert.equal(createMashoRun(29).floor,29);
  assert.equal(createMashoRun(30).floor,30);
  assert.throws(()=>createMashoRun(31),/階層/);
- const neverCleared=save(1500,28);
- assert.equal(canEnterMashoFloor(neverCleared,30),false);
 });
 
 test('user-supplied axe and dragon art are used and the final dragon is clearly strongest',()=>{

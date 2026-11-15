@@ -85,7 +85,7 @@ for(const [key,b] of Object.entries(MASHO_DEPTH_BOSSES)){
   exp:special?.exp??900000+(floor-26)*100000,
   jobExp:special?.jobExp??450000+(floor-26)*50000,
   gold:special?.gold??350000+(floor-26)*50000,
-  ...(floor===30?{requiredCharacterLevel:1000}:{})
+  ...(floor===30?{recommendedCharacterLevel:1000}:{})
  });
 }
 export function normalizeMashoProgress(state){
@@ -95,12 +95,8 @@ export function normalizeMashoProgress(state){
 }
 export function getMashoFloors(state){
  const highest=normalizeMashoProgress(state).highestCleared,unlocked=hasFirstClear(state);
- // Endgame floor 30 is unlocked only by an existing Lv1000+ protagonist.
- const hero=(state.characters??[]).find(c=>c.isHero)??state.characters?.[0];
- const heroLevel=Math.floor(Number(hero?.level)||0);
  return MASHO_FLOORS.map(f=>({...f,cleared:f.floor<=highest,
-  available:unlocked&&f.floor<=highest+1&&(f.floor!==30||heroLevel>=1000),
-  ...(f.floor===30?{lockedReason:heroLevel<1000?'主人公Lv1000以上が必要です':'前の階層をクリアで解放'}:{})
+  available:unlocked&&f.floor<=highest+1
  }));
 }
 export function canEnterMashoFloor(state,floor){return Number.isInteger(floor)&&getMashoFloors(state).some(f=>f.floor===floor&&f.available);}
